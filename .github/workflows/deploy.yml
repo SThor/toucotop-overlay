@@ -1,0 +1,79 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Prepare deployment directory
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: github-deploy
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          # Backup current overlay if it exists
+          if [ -d "/var/www/stream-overlay" ]; then
+            sudo cp -r /var/www/stream-overlay /var/www/stream-overlay.backup.$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # Clear and prepare deployment directory
+          sudo rm -rf /var/www/stream-overlay/* || true
+          sudo mkdir -p /var/www/stream-overlay
+          
+          # Set ownership for deployment
+          sudo chown github-deploy:www-data /var/www/stream-overlay
+    
+    - name: Deploy files to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: github-deploy
+        key: ${{ secrets.VPS_SSH_KEY }}
+        source: "dist/*"
+        target: "/var/www/stream-overlay"
+        strip_components: 1
+    
+    - name: Update nginx configuration and restart
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: github-deploy
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          # Set proper permissions
+          sudo chown -R www-data:www-data /var/www/stream-overlay
+          sudo chmod -R 755 /var/www/stream-overlay
+          
+          # Update nginx configuration for React Router (ensure it handles client-side routing)
+          sudo sed -i 's|try_files $uri $uri/ =404|try_files $uri $uri/ /index.html|g' /etc/nginx/sites-available/stream-overlay
+          
+          # Test nginx configuration and reload
+          sudo nginx -t && sudo systemctl reload nginx
+          
+          # Clean up old backups (keep only last 5)
+          sudo find /var/www -name "stream-overlay.backup.*" -type d | sort -r | tail -n +6 | xargs -r sudo rm -rf
+          
+          # Log deployment success
+          echo "Deployment completed at $(date)"
+          echo "New React overlay deployed to /var/www/stream-overlay"
