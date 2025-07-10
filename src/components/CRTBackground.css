@@ -1,4 +1,20 @@
-/* CRT Background Effects */
+/* ==================== */
+/* CRT BACKGROUND EFFECTS */
+/* ==================== */
+
+/* CSS Custom Properties for CRT Effects */
+:root {
+  --crt-base-glow: rgba(var(--MainRGBA), 0.08);
+  --crt-base-scanline: rgba(var(--LightRGBA), 0.03);
+  --crt-aberration-red: rgba(255, 0, 0, 0.1);
+  --crt-aberration-cyan: rgba(0, 255, 255, 0.1);
+  --crt-vignette: rgba(var(--DarkRGBA), 0.2);
+}
+
+/* ==================== */
+/* 1. BASE CRT CONTAINER */
+/* ==================== */
+
 .crt-background {
   position: absolute;
   top: 0;
@@ -8,11 +24,206 @@
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
-  /* CRT Font Styling */
   font-family: 'Courier New', monospace;
 }
 
-/* Reusable Glow Effect Classes */
+/* CRT Container Selector (reusable for future expansion) */
+/* .crt-container { } - Reserved for future use */
+
+/* Base CRT container styles (reserved for future expansion) */
+/* .clock-overlay:has(.crt-background), etc. { } - Reserved for future use */
+
+/* ==================== */
+/* 2. CRT VISUAL EFFECTS */
+/* ==================== */
+
+/* Screen Glow */
+.crt-glow {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  background: radial-gradient(
+    ellipse at center,
+    var(--crt-base-glow) 0%,
+    rgba(var(--MainRGBA), 0.04) 50%,
+    rgba(var(--MainRGBA), 0.01) 80%,
+    transparent 100%
+  );
+  filter: blur(2px);
+}
+
+/* Scanlines */
+.crt-scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    var(--crt-base-scanline) 3px,
+    var(--crt-base-scanline) 5px
+  );
+  animation: scanlines-flicker 2s ease-in-out infinite alternate;
+}
+
+/* Scan Sweep Animation */
+.crt-scan-sweep {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(var(--MainRGBA), 0.1) 50%,
+    transparent 100%
+  );
+  animation: scan-sweep 8s linear infinite;
+  opacity: 0.6;
+}
+
+/* Screen Curvature */
+.crt-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 2% / 3%;
+  box-shadow: 
+    inset 0 0 20px rgba(var(--MainRGBA), 0.05),
+    inset 0 0 40px rgba(var(--MainRGBA), 0.02);
+  pointer-events: none;
+}
+
+/* Edge Vignette */
+.crt-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    var(--crt-vignette) 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ==================== */
+/* 3. CHROMATIC ABERRATION */
+/* ==================== */
+
+/* Base Chromatic Aberration for all CRT content */
+.clock-overlay:has(.crt-background) *:not(.crt-background):not(.crt-background *),
+.chat-overlay:has(.crt-background) *:not(.crt-background):not(.crt-background *),
+.bar-overlay:has(.crt-background) *:not(.crt-background):not(.crt-background *),
+.main-page:has(.crt-background) *:not(.crt-background):not(.crt-background *) {
+  filter: 
+    drop-shadow(-1px 0 0 var(--crt-aberration-red))
+    drop-shadow(1px 0 0 var(--crt-aberration-cyan));
+  animation: chromatic-aberration-subtle 5s ease-in-out infinite;
+}
+
+/* ==================== */
+/* 4. INTENSITY VARIANTS */
+/* ==================== */
+
+/* Minimal Intensity */
+.crt-intensity-minimal .crt-glow {
+  --crt-base-glow: rgba(var(--MainRGBA), 0.03);
+  background: radial-gradient(
+    ellipse at center,
+    var(--crt-base-glow) 0%,
+    rgba(var(--MainRGBA), 0.015) 50%,
+    transparent 80%
+  );
+}
+
+.crt-intensity-minimal .crt-scanlines {
+  --crt-base-scanline: rgba(var(--LightRGBA), 0.015);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 4px,
+    var(--crt-base-scanline) 4px,
+    var(--crt-base-scanline) 7px
+  );
+}
+
+.clock-overlay:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *),
+.chat-overlay:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *),
+.bar-overlay:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *),
+.main-page:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *) {
+  --crt-aberration-red: rgba(255, 0, 0, 0.05);
+  --crt-aberration-cyan: rgba(0, 255, 255, 0.05);
+  filter: 
+    drop-shadow(-0.2px 0 0 var(--crt-aberration-red))
+    drop-shadow(0.2px 0 0 var(--crt-aberration-cyan));
+  animation: chromatic-aberration-minimal 8s ease-in-out infinite;
+}
+
+/* Medium Intensity */
+.crt-intensity-medium .crt-glow {
+  --crt-base-glow: rgba(var(--MainRGBA), 0.12);
+  background: radial-gradient(
+    ellipse at center,
+    var(--crt-base-glow) 0%,
+    rgba(var(--MainRGBA), 0.06) 50%,
+    rgba(var(--MainRGBA), 0.02) 80%,
+    transparent 100%
+  );
+  filter: blur(3px);
+}
+
+.crt-intensity-medium .crt-scanlines {
+  --crt-base-scanline: rgba(var(--LightRGBA), 0.05);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--crt-base-scanline) 2px,
+    var(--crt-base-scanline) 4px
+  );
+}
+
+.clock-overlay:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *),
+.chat-overlay:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *),
+.bar-overlay:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *),
+.main-page:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *) {
+  --crt-aberration-red: rgba(255, 0, 0, 0.2);
+  --crt-aberration-cyan: rgba(0, 255, 255, 0.2);
+  filter: 
+    drop-shadow(-1.5px 0 0 var(--crt-aberration-red))
+    drop-shadow(1.5px 0 0 var(--crt-aberration-cyan));
+  animation: chromatic-aberration-medium 3s ease-in-out infinite;
+}
+
+/* ==================== */
+/* 5. TYPOGRAPHY & TEXT EFFECTS */
+/* ==================== */
+
+/* CRT Font Application */
+.crt-background ~ *,
+.crt-background ~ * * {
+  font-family: 'Courier New', monospace !important;
+  letter-spacing: 0.5px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Text Glow Utility Classes */
 .crt-glow-text {
   text-shadow: 
     0 0 10px rgba(var(--MainRGBA), 0.5),
@@ -31,80 +242,29 @@
   text-shadow: 0 0 8px rgba(var(--MainRGBA), 0.3);
 }
 
-/* Apply CRT font to any element with CRT effects */
-.crt-background ~ *,
-.crt-background ~ * * {
-  font-family: 'Courier New', monospace !important;
-}
-
-/* CRT Text Enhancement for better readability */
-.crt-background ~ * {
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Enhanced glow for CRT mode */
+/* Enhanced Label Glows */
 .crt-background ~ * .time-label,
 .crt-background ~ * .progress-label,
 .crt-background ~ * .stat-label {
   text-shadow: 0 0 4px rgba(var(--MainRGBA), 0.3);
 }
 
-/* Main CRT Glow Effect */
-.crt-glow {
-  position: absolute;
-  top: -20px;
-  left: -20px;
-  right: -20px;
-  bottom: -20px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(var(--MainRGBA), 0.08) 0%,
-    rgba(var(--MainRGBA), 0.04) 50%,
-    rgba(var(--MainRGBA), 0.01) 80%,
-    transparent 100%
-  );
-  filter: blur(2px);
+/* ==================== */
+/* 6. PERFORMANCE OPTIMIZATIONS */
+/* ==================== */
+
+.crt-background * {
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
-/* Static Scanlines */
-.crt-scanlines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-        transparent 3px,
-    rgba(var(--LightRGBA), 0.03) 3px,
-    rgba(var(--LightRGBA), 0.03) 5px
-  );
-  animation: scanlines-flicker 2s ease-in-out infinite alternate;
-}
+/* ==================== */
+/* 7. ANIMATIONS */
+/* ==================== */
 
 @keyframes scanlines-flicker {
   0% { opacity: 1; }
   100% { opacity: 0.95; }
-}
-
-/* Animated Scan Sweep */
-.crt-scan-sweep {
-  position: absolute;
-  top: -100%;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(var(--MainRGBA), 0.1) 50%,
-    transparent 100%
-  );
-  animation: scan-sweep 8s linear infinite;
-  opacity: 0.6;
 }
 
 @keyframes scan-sweep {
@@ -119,117 +279,116 @@
     opacity: 0.6;
   }
   100% {
-    transform: translateY(calc(100vh + 200px));
+    transform: translateY(calc(100% + 200px));
     opacity: 0;
   }
 }
 
-/* Chromatic Aberration */
-.crt-aberration {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: inherit;
-  filter: 
-    drop-shadow(-0.5px 0 0 rgba(255, 0, 0, 0.02))
-    drop-shadow(0.5px 0 0 rgba(0, 255, 255, 0.02));
+@keyframes chromatic-aberration-minimal {
+  0%, 92% { 
+    filter: 
+      drop-shadow(-0.2px 0 0 var(--crt-aberration-red))
+      drop-shadow(0.2px 0 0 var(--crt-aberration-cyan));
+  }
+  93% { 
+    filter: 
+      drop-shadow(-0.4px 0 0 rgba(255, 0, 0, 0.12))
+      drop-shadow(0.4px 0 0 rgba(0, 255, 255, 0.12));
+  }
+  94% { 
+    filter: 
+      drop-shadow(-0.3px 0 0 rgba(255, 0, 0, 0.08))
+      drop-shadow(0.3px 0 0 rgba(0, 255, 255, 0.08));
+  }
+  95% { 
+    filter: 
+      drop-shadow(-0.5px 0 0 rgba(255, 0, 0, 0.15))
+      drop-shadow(0.5px 0 0 rgba(0, 255, 255, 0.15));
+  }
+  96%, 100% { 
+    filter: 
+      drop-shadow(-0.2px 0 0 var(--crt-aberration-red))
+      drop-shadow(0.2px 0 0 var(--crt-aberration-cyan));
+  }
 }
 
-/* Intensity Variations */
-.crt-intensity-minimal .crt-glow {
-  background: radial-gradient(
-    ellipse at center,
-    rgba(var(--MainRGBA), 0.03) 0%,
-    rgba(var(--MainRGBA), 0.015) 50%,
-    transparent 80%
-  );
+@keyframes chromatic-aberration-subtle {
+  0%, 85% { 
+    filter: 
+      drop-shadow(-1px 0 0 var(--crt-aberration-red))
+      drop-shadow(1px 0 0 var(--crt-aberration-cyan));
+  }
+  86% { 
+    filter: 
+      drop-shadow(-0.8px 0 0 rgba(255, 0, 0, 0.25))
+      drop-shadow(0.8px 0 0 rgba(0, 255, 255, 0.25));
+  }
+  87% { 
+    filter: 
+      drop-shadow(-0.6px 0 0 rgba(255, 0, 0, 0.2))
+      drop-shadow(0.6px 0 0 rgba(0, 255, 255, 0.2));
+  }
+  88% { 
+    filter: 
+      drop-shadow(-1.2px 0 0 rgba(255, 0, 0, 0.3))
+      drop-shadow(1.2px 0 0 rgba(0, 255, 255, 0.3));
+  }
+  89% { 
+    filter: 
+      drop-shadow(-0.8px 0 0 rgba(255, 0, 0, 0.15))
+      drop-shadow(0.8px 0 0 rgba(0, 255, 255, 0.15));
+  }
+  90%, 100% { 
+    filter: 
+      drop-shadow(-1px 0 0 var(--crt-aberration-red))
+      drop-shadow(1px 0 0 var(--crt-aberration-cyan));
+  }
 }
 
-.crt-intensity-minimal .crt-scanlines {
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 4px,
-    rgba(var(--LightRGBA), 0.015) 4px,
-    rgba(var(--LightRGBA), 0.015) 7px
-  );
-}
-
-.crt-intensity-minimal .crt-aberration {
-  filter: 
-    drop-shadow(-0.25px 0 0 rgba(255, 0, 0, 0.01))
-    drop-shadow(0.25px 0 0 rgba(0, 255, 255, 0.01));
-}
-
-.crt-intensity-medium .crt-glow {
-  background: radial-gradient(
-    ellipse at center,
-    rgba(var(--MainRGBA), 0.12) 0%,
-    rgba(var(--MainRGBA), 0.06) 50%,
-    rgba(var(--MainRGBA), 0.02) 80%,
-    transparent 100%
-  );
-  filter: blur(3px);
-}
-
-.crt-intensity-medium .crt-scanlines {
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(var(--LightRGBA), 0.05) 2px,
-    rgba(var(--LightRGBA), 0.05) 4px
-  );
-}
-
-.crt-intensity-medium .crt-aberration {
-  filter: 
-    drop-shadow(-1px 0 0 rgba(255, 0, 0, 0.03))
-    drop-shadow(1px 0 0 rgba(0, 255, 255, 0.03));
-}
-
-/* Screen Curvature (Subtle) */
-.crt-background::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 2% / 3%;
-  box-shadow: 
-    inset 0 0 20px rgba(var(--MainRGBA), 0.05),
-    inset 0 0 40px rgba(var(--MainRGBA), 0.02);
-  pointer-events: none;
-}
-
-/* Performance optimizations */
-.crt-background * {
-  will-change: transform, opacity;
-  transform: translateZ(0);
-}
-
-/* CRT Text Style Enhancements */
-.crt-background ~ * {
-  /* Slightly adjust letter spacing for CRT authenticity */
-  letter-spacing: 0.5px;
-}
-
-/* CRT Screen Edge Vignette */
-.crt-background::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 60%,
-    rgba(var(--DarkRGBA), 0.2) 100%
-  );
-  pointer-events: none;
-  z-index: 10;
+@keyframes chromatic-aberration-medium {
+  0%, 70% { 
+    filter: 
+      drop-shadow(-1.5px 0 0 var(--crt-aberration-red))
+      drop-shadow(1.5px 0 0 var(--crt-aberration-cyan));
+  }
+  71% { 
+    filter: 
+      drop-shadow(-1.8px 0 0 rgba(255, 0, 0, 0.4))
+      drop-shadow(1.8px 0 0 rgba(0, 255, 255, 0.4));
+  }
+  72% { 
+    filter: 
+      drop-shadow(-1.2px 0 0 rgba(255, 0, 0, 0.3))
+      drop-shadow(1.2px 0 0 rgba(0, 255, 255, 0.3));
+  }
+  73% { 
+    filter: 
+      drop-shadow(-2.2px 0 0 rgba(255, 0, 0, 0.5))
+      drop-shadow(2.2px 0 0 rgba(0, 255, 255, 0.5));
+  }
+  74% { 
+    filter: 
+      drop-shadow(-1.6px 0 0 rgba(255, 0, 0, 0.35))
+      drop-shadow(1.6px 0 0 rgba(0, 255, 255, 0.35));
+  }
+  75% { 
+    filter: 
+      drop-shadow(-2.8px 0 0 rgba(255, 0, 0, 0.6))
+      drop-shadow(2.8px 0 0 rgba(0, 255, 255, 0.6));
+  }
+  76% { 
+    filter: 
+      drop-shadow(-1.0px 0 0 rgba(255, 0, 0, 0.25))
+      drop-shadow(1.0px 0 0 rgba(0, 255, 255, 0.25));
+  }
+  77% { 
+    filter: 
+      drop-shadow(-2.0px 0 0 rgba(255, 0, 0, 0.45))
+      drop-shadow(2.0px 0 0 rgba(0, 255, 255, 0.45));
+  }
+  78%, 100% { 
+    filter: 
+      drop-shadow(-1.5px 0 0 var(--crt-aberration-red))
+      drop-shadow(1.5px 0 0 var(--crt-aberration-cyan));
+  }
 }
