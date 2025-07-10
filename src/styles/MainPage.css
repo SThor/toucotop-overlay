@@ -1,0 +1,36 @@
+/* Paper components - make them more visible */
+.main-page [data-paper] {
+  background: rgba(var(--LightRGBA), 0.03) !important;
+  border-color: rgba(var(--LightRGBA), 0.1) !important;
+}
+
+/* Title gradients */
+.main-title {
+  background: linear-gradient(135deg, var(--Light), var(--Main), var(--mantine-color-brand-filled)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+.section-title {
+  background: linear-gradient(135deg, var(--Light), var(--Main)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Overlay card hover effect */
+.overlay-card:hover {
+  transform: translateY(-3px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(var(--LightRGBA), 0.06) !important;
+}
+
+/* Tip paper styling */
+.tip-paper {
+  background: rgba(var(--MainRGBA), 0.08) !important;
+  border-color: rgba(var(--MainRGBA), 0.2) !important;
+}

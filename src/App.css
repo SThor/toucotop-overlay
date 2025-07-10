@@ -1,0 +1,9 @@
+/* Override Mantine's body background to let our custom CSS take control */
+body {
+  background-color: transparent !important;
+}
+
+.App {
+  min-height: 100vh;
+  color: var(--Light);
+}

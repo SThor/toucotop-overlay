@@ -1,0 +1,97 @@
+/* Animated Background - Gooey blob animation */
+.animated-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, 
+    rgba(var(--DarkRGBA), 0.15) 0%,
+    rgba(var(--MainRGBA), 0.2) 50%,
+    rgba(var(--LightRGBA), 0.1) 100%
+  );
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#animated-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Gooey filter applied to blobs group */
+.blobs {
+  filter: url("#goo");
+}
+
+/* Individual blob animations */
+.blob {
+  transform-origin: center;
+  animation: rotateBlob 8s linear infinite;
+}
+
+.blob-1 {
+  animation-delay: 0s;
+  animation-duration: 6s;
+}
+
+.blob-2 {
+  animation-delay: -1s;
+  animation-duration: 8s;
+}
+
+.blob-3 {
+  animation-delay: -2s;
+  animation-duration: 10s;
+}
+
+.blob-4 {
+  animation-delay: -3s;
+  animation-duration: 7s;
+}
+
+.blob-5 {
+  animation-delay: -4s;
+  animation-duration: 9s;
+}
+
+.blob-6 {
+  animation-delay: -2.5s;
+  animation-duration: 11s;
+}
+
+.blob-7 {
+  animation-delay: -5s;
+  animation-duration: 5s;
+}
+
+/* Rotation animation for blobs */
+@keyframes rotateBlob {
+  0% {
+    transform: rotate(0deg) translate(3%, 0) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translate(3%, 0) rotate(-360deg);
+  }
+}
+
+/* Main rectangle animation */
+rect {
+  transform-origin: center;
+  animation: pulseGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(1.2);
+  }
+}

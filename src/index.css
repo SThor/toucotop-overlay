@@ -1,0 +1,105 @@
+:root {
+  /* Custom Brand Colors */
+  --DarkRGBA: 31, 15, 1;
+  --MainRGBA: 229, 109, 12;
+  --LightRGBA: 255, 235, 219;
+  --Dark: rgb(var(--DarkRGBA));
+  --Main: rgb(var(--MainRGBA));
+  --Light: rgb(var(--LightRGBA));
+
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--Light);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  font-weight: 500;
+  color: var(--Main);
+  text-decoration: inherit;
+  transition: color 0.25s ease;
+}
+a:hover {
+  color: var(--Main);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--Light);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--Light);
+  margin: 0 0 1rem 0;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  color: var(--Main);
+}
+
+button {
+  border-radius: 8px;
+  border: 2px solid var(--Main);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: transparent;
+  color: var(--Light);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+button:hover {
+  background-color: var(--Main);
+  color: var(--Dark);
+  transform: translateY(-2px);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--Main);
+  outline-offset: 2px;
+}
+
+button.primary {
+  background-color: var(--Main);
+  color: var(--Dark);
+}
+
+button.primary:hover {
+  background-color: var(--Main);
+}
+
+input, textarea {
+  background-color: rgba(var(--LightRGBA), 0.1);
+  border: 2px solid rgba(var(--MainRGBA), 0.3);
+  border-radius: 4px;
+  padding: 0.5em;
+  color: var(--Light);
+  font-family: inherit;
+  transition: border-color 0.25s ease;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--Main);
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgba(var(--LightRGBA), 0.6);
+}

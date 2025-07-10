@@ -1,0 +1,148 @@
+.chat-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: auto;
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.chat-overlay.preview-mode {
+  position: static;
+  width: 350px;
+  height: 500px;
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 12px;
+  margin: 2rem auto;
+  max-width: none;
+  top: auto;
+  left: auto;
+  right: auto;
+  transform: none;
+}
+
+.chat-header {
+  padding: 1rem;
+}
+
+.chat-header h3 {
+  margin: 0 0 1rem 0;
+  color: var(--Main);
+  font-size: 1.1rem;
+  text-align: center;
+  /* Enhanced glow effect when CRT is enabled */
+}
+
+.crt-background ~ .chat-header h3,
+.chat-overlay .chat-header h3.crt-glow-text {
+  text-shadow: 0 0 10px rgba(var(--MainRGBA), 0.5);
+}
+
+.chat-divider {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--Main), transparent);
+  border-radius: 1px;
+}
+
+.connection-status {
+  font-size: 0.8rem;
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+.connection-status.connecting {
+  color: #ffd700;
+}
+
+.connection-status.error {
+  color: #ff6b6b;
+}
+
+.connection-status.demo {
+  color: #888;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 1rem;
+  padding-top: 0rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--Main) transparent;
+}
+
+.chat-messages.feed-from-top {
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+}
+
+.chat-messages.feed-from-bottom {
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--Main);
+  border-radius: 3px;
+}
+
+.chat-message {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(var(--LightRGBA), 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.username {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.message {
+  color: var(--Light);
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* Twitch Emote Styling */
+.chat-emote {
+  height: 1.75em;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 1px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* CRT effect for emotes when enabled */
+.crt-background ~ * .chat-emote {
+  filter: brightness(0.95) contrast(1.1);
+  image-rendering: pixelated;
+}
+
+/* Emote hover effect */
+.chat-emote:hover {
+  transform: scale(1.1);
+  transition: transform 0.1s ease;
+}
