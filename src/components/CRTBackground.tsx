@@ -34,9 +34,6 @@ const CRTBackground: React.FC<CRTBackgroundProps> = ({
       
       {/* Animated scan sweep */}
       {showAnimation && <div className="crt-scan-sweep" />}
-      
-      {/* Chromatic aberration overlay */}
-      <div className="crt-aberration" />
     </div>
   );
 };

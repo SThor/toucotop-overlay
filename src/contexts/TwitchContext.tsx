@@ -145,7 +145,7 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
 
   // Load recent messages from localStorage
   const loadRecentMessages = useCallback(async () => {
-    if (!settings.channelName) return;
+    if (!settings.channelName || settings.previewMode) return;
 
     try {
       const storedMessages = localStorage.getItem(`twitch-messages-${settings.channelName}`);
@@ -164,7 +164,7 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Failed to load recent messages:', error);
     }
-  }, [settings.channelName, settings.maxChatMessages]);
+  }, [settings.previewMode, settings.channelName, settings.maxChatMessages]);
 
   const connect = useCallback(async () => {
     if (!settings.channelName) {
