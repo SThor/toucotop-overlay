@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { ChatClient } from '@twurple/chat';
 import { ApiClient } from '@twurple/api';
 import { StaticAuthProvider } from '@twurple/auth';
@@ -79,6 +79,8 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<TwitchChatMessage[]>([]);
   const [cachedEmotes, setCachedEmotes] = useState<Map<string, CachedEmote>>(new Map());
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [lastConnectionAttempt, setLastConnectionAttempt] = useState<number>(0);
 
   // Helper function to create emote URLs
   const createEmoteUrls = (emoteId: string): EmoteUrls => ({
@@ -176,8 +178,22 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
       return;
     }
 
+    // Rate limiting: prevent rapid reconnection attempts
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastConnectionAttempt;
+    const minInterval = Math.min(5000 * Math.pow(2, connectionAttempts), 30000); // Exponential backoff, max 30s
+
+    if (timeSinceLastAttempt < minInterval) {
+      console.log(`Rate limiting connection attempts. Please wait ${Math.ceil((minInterval - timeSinceLastAttempt) / 1000)}s`);
+      return;
+    }
+
+    setLastConnectionAttempt(now);
+    setConnectionAttempts(prev => prev + 1);
     setIsConnecting(true);
     setError(null);
+
+    console.log(`Attempting to connect to Twitch chat for channel: ${settings.channelName} (attempt ${connectionAttempts + 1})`);
 
     try {
       // For read-only chat, we can connect anonymously without credentials
@@ -263,15 +279,16 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
+        setConnectionAttempts(0); // Reset attempts on successful connection
         console.log(`Connected to Twitch chat for channel: ${settings.channelName}`);
         
         // Preload emotes if we have an API client
         if (api) {
-          await preloadEmotes(api);
+          preloadEmotesRef.current(api).catch(err => console.error('Failed to preload emotes:', err));
         }
         
         // Load recent messages after connecting
-        await loadRecentMessages();
+        loadRecentMessagesRef.current().catch(err => console.error('Failed to load recent messages:', err));
       });
 
       chat.onDisconnect((manually: boolean, reason?: Error) => {
@@ -279,8 +296,10 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
         setIsConnecting(false);
         if (!manually && reason) {
           setError(`Disconnected: ${reason.message}`);
+          console.error('Disconnected from Twitch chat', { manually, reason });
+        } else {
+          console.log('Disconnected from Twitch chat', { manually, reason });
         }
-        console.log('Disconnected from Twitch chat', { manually, reason });
       });
 
       // Connect to chat
@@ -289,10 +308,13 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
 
     } catch (err) {
       setIsConnecting(false);
-      setError(err instanceof Error ? err.message : 'Failed to connect to Twitch');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect to Twitch';
+      setError(errorMessage);
       console.error('Twitch connection error:', err);
+      
+      // Don't immediately retry on error - let the rate limiting handle it
     }
-  }, [settings.channelName, settings.twitchClientId, settings.twitchAccessToken, settings.maxChatMessages, isConnecting, isConnected, loadRecentMessages, preloadEmotes]);
+  }, [settings.channelName, settings.twitchClientId, settings.twitchAccessToken, settings.maxChatMessages, isConnecting, isConnected, connectionAttempts, lastConnectionAttempt]);
 
   const disconnect = useCallback(() => {
     if (chatClient) {
@@ -303,6 +325,8 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
     setIsConnected(false);
     setIsConnecting(false);
     setError(null);
+    setConnectionAttempts(0); // Reset attempts on manual disconnect
+    setLastConnectionAttempt(0);
     // Clear cached emotes on disconnect
     setCachedEmotes(new Map());
   }, [chatClient]);
@@ -321,11 +345,25 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
   }, [messages, settings.channelName]);
 
   // Auto-connect when channel name is available (credentials are optional)
+  // Use a ref to prevent infinite loops
+  const connectRef = useRef(connect);
+  connectRef.current = connect;
+
+  const loadRecentMessagesRef = useRef(loadRecentMessages);
+  loadRecentMessagesRef.current = loadRecentMessages;
+
+  const preloadEmotesRef = useRef(preloadEmotes);
+  preloadEmotesRef.current = preloadEmotes;
+
   useEffect(() => {
     if (settings.channelName && !isConnected && !isConnecting) {
-      connect();
+      const timeoutId = setTimeout(() => {
+        connectRef.current();
+      }, 100); // Small delay to prevent rapid firing
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [settings.channelName, isConnected, isConnecting, connect]);
+  }, [settings.channelName, isConnected, isConnecting]); // Removed connect from dependencies
 
   // Disconnect when channel name is removed
   useEffect(() => {

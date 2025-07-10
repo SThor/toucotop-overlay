@@ -20,6 +20,17 @@ const ChatOverlay = () => {
   const { messages, isConnected, isConnecting, error } = useTwitch();
   const [demoMessages, setDemoMessages] = useState<ChatMessage[]>([]);
 
+  // Debug logging to help track connection issues
+  useEffect(() => {
+    console.log('ChatOverlay: Connection state changed', { 
+      isConnected, 
+      isConnecting, 
+      error, 
+      channelName: settings.channelName,
+      previewMode: settings.previewMode 
+    });
+  }, [isConnected, isConnecting, error, settings.channelName, settings.previewMode]);
+
   // Demo messages for when not connected to Twitch AND in preview mode
   useEffect(() => {
     if (!settings.previewMode) {
