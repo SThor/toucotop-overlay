@@ -22,13 +22,13 @@ const ChatOverlay = () => {
 
   // Demo messages for when not connected to Twitch AND in preview mode
   useEffect(() => {
-    if (isConnected || !settings.previewMode) {
+    if (!settings.previewMode) {
       // Clear demo messages when connected to real Twitch OR not in preview mode
       setDemoMessages([]);
       return;
     }
 
-    // Show demo messages only when not connected AND in preview mode
+    // Show demo messages only when in preview mode
     const demos: ChatMessage[] = [
       {
         id: '1',
@@ -55,9 +55,9 @@ const ChatOverlay = () => {
 
     setDemoMessages(demos);
 
-    // Simulate new messages only when not connected AND in preview mode
+    // Simulate new messages only when in preview mode
     const interval = setInterval(() => {
-      if (!isConnected && settings.previewMode) {
+      if (settings.previewMode) {
         const newMessage: ChatMessage = {
           id: Date.now().toString(),
           username: `Viewer${Math.floor(Math.random() * 1000)}`,
@@ -71,7 +71,7 @@ const ChatOverlay = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isConnected, settings.maxChatMessages, settings.previewMode]);
+  }, [settings.maxChatMessages, settings.previewMode]);
 
   const getRandomMessage = () => {
     const messages = [
