@@ -10,6 +10,10 @@ const ClockOverlay = () => {
   const { streamInfo, fetchStreamInfo } = TwitchProvider.useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [streamDuration, setStreamDuration] = useState('00:00:00');
+  
+  // Track previous values for change detection
+  const [lastTitle, setLastTitle] = useState('');
+  const [lastGame, setLastGame] = useState('');
 
   // Trigger stream info fetch when component mounts or channel changes
   useEffect(() => {
@@ -23,33 +27,34 @@ const ClockOverlay = () => {
     if (settings.channelName && !settings.previewMode) {
       fetchStreamInfo();
       
-      // Smart refresh: check every 30 seconds, but only log/notify when data actually changes
-      let lastTitle = '';
-      let lastGame = '';
-      
-      const refreshInterval = setInterval(async () => {
-        const previousTitle = lastTitle;
-        const previousGame = lastGame;
-        
-        await fetchStreamInfo();
-        
-        // Check if title or game changed (we'll get the new data from streamInfo in next render)
-        if (streamInfo) {
-          if (streamInfo.title !== previousTitle && previousTitle !== '') {
-            console.log(`🎯 Stream title changed: "${previousTitle}" → "${streamInfo.title}"`);
-          }
-          if (streamInfo.gameName !== previousGame && previousGame !== '') {
-            console.log(`🎮 Game changed: "${previousGame}" → "${streamInfo.gameName}"`);
-          }
-          
-          lastTitle = streamInfo.title;
-          lastGame = streamInfo.gameName;
-        }
+      const refreshInterval = setInterval(() => {
+        fetchStreamInfo();
       }, 30 * 1000);
 
       return () => clearInterval(refreshInterval);
     }
-  }, [settings.channelName, settings.previewMode, fetchStreamInfo, streamInfo]);
+  }, [settings.channelName, settings.previewMode, fetchStreamInfo]);
+
+  // Detect and log changes in stream info
+  useEffect(() => {
+    if (streamInfo && streamInfo.isLive) {
+      // Check for title changes
+      if (streamInfo.title !== lastTitle) {
+        if (lastTitle !== '') {
+          console.log(`🎯 Stream title changed: "${lastTitle}" → "${streamInfo.title}"`);
+        }
+        setLastTitle(streamInfo.title);
+      }
+      
+      // Check for game changes
+      if (streamInfo.gameName !== lastGame) {
+        if (lastGame !== '') {
+          console.log(`🎮 Game changed: "${lastGame}" → "${streamInfo.gameName}"`);
+        }
+        setLastGame(streamInfo.gameName);
+      }
+    }
+  }, [streamInfo, lastTitle, lastGame]);
 
   useEffect(() => {
     const timer = setInterval(() => {
