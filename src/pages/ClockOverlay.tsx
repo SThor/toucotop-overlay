@@ -18,25 +18,13 @@ const ClockOverlay = () => {
   const [lastTitle, setLastTitle] = useState('');
   const [lastGame, setLastGame] = useState('');
 
-  // Trigger stream info fetch when component mounts or channel changes
+  // Trigger initial stream info fetch when component mounts or channel changes
+  // Note: TwitchContext handles the periodic refresh automatically
   useEffect(() => {
-    if (settings.channelName && fetchStreamInfo) {
+    if (settings.channelName && fetchStreamInfo && !settings.previewMode) {
       fetchStreamInfo();
     }
-  }, [settings.channelName, fetchStreamInfo]);
-
-  // Fetch stream info on component mount and periodically refresh
-  useEffect(() => {
-    if (settings.channelName && !settings.previewMode) {
-      fetchStreamInfo();
-      
-      const refreshInterval = setInterval(() => {
-        fetchStreamInfo();
-      }, 30 * 1000);
-
-      return () => clearInterval(refreshInterval);
-    }
-  }, [settings.channelName, settings.previewMode, fetchStreamInfo]);
+  }, [settings.channelName, fetchStreamInfo, settings.previewMode]);
 
   // Detect and log changes in stream info
   useEffect(() => {
