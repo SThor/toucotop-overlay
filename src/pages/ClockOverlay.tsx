@@ -121,6 +121,14 @@ const ClockOverlay = () => {
             : (settings.previewMode ? 'Preview: Stream Title' : 'Stream Offline')
           }
         </div>
+        <div className="stream-category">
+          {streamInfo && streamInfo.isLive && streamInfo.gameName && (
+              <>{streamInfo.gameName}</>
+            )}
+            {settings.previewMode && (
+              <>{`Preview: Game Category`}</>
+            )}
+          </div>
       </div>
     </div>
   );
