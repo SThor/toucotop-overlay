@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 
 export interface Settings {
   channelName: string;
-  streamTitle: string;
   overlayOpacity: number;
   previewMode: boolean;
   chatFeedDirection: 'top' | 'bottom';
@@ -25,7 +24,6 @@ interface SettingsContextType {
 
 const defaultSettings: Settings = {
   channelName: '',
-  streamTitle: 'Live Stream',
   overlayOpacity: 0.9,
   previewMode: false,
   chatFeedDirection: 'bottom',
@@ -65,13 +63,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       url.searchParams.set('channelName', settings.channelName);
     } else {
       url.searchParams.delete('channelName');
-    }
-    
-    // Update or remove streamTitle (only if different from default)
-    if (settings.streamTitle !== defaultSettings.streamTitle) {
-      url.searchParams.set('streamTitle', settings.streamTitle);
-    } else {
-      url.searchParams.delete('streamTitle');
     }
     
     // Update or remove overlayOpacity (only if different from default)
@@ -177,9 +168,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
     if (urlParams.has('channelName')) {
       querySettings.channelName = urlParams.get('channelName') || '';
-    }
-    if (urlParams.has('streamTitle')) {
-      querySettings.streamTitle = urlParams.get('streamTitle') || '';
     }
     if (urlParams.has('overlayOpacity')) {
       const opacity = parseFloat(urlParams.get('overlayOpacity') || '0.9');

@@ -101,8 +101,26 @@
   font-size: 1rem;
   font-family: inherit;
   font-weight: 500;
-  max-width: 250px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  width: 100%;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.stream-category {
+  color: rgba(var(--LightRGBA), 0.7);
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 400;
+  width: 100%;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  text-align: center;
+  line-height: 1.3;
+  margin-top: 0.5rem;
+  font-style: italic;
 }
