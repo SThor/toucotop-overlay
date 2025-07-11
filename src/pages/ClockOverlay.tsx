@@ -90,7 +90,7 @@ const ClockOverlay = () => {
 
   return (
     <div 
-      className={`clock-overlay ${settings.previewMode ? 'preview-mode' : ''}`}
+      className={`clock-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
       {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}

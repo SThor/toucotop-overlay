@@ -31,6 +31,7 @@ const MainPage = () => {
   const [localCrtIntensity, setLocalCrtIntensity] = useState(settings.crtIntensity);
   const [localCrtScanlines, setLocalCrtScanlines] = useState(settings.crtScanlines);
   const [localCrtAnimation, setLocalCrtAnimation] = useState(settings.crtAnimation);
+  const [localOverlayFullWidth, setLocalOverlayFullWidth] = useState(settings.overlayFullWidth);
   const [showSavedIndicator, setShowSavedIndicator] = useState(false);
 
   // Sync local state with settings when they change (e.g., from query params)
@@ -44,6 +45,7 @@ const MainPage = () => {
     setLocalCrtIntensity(settings.crtIntensity);
     setLocalCrtScanlines(settings.crtScanlines);
     setLocalCrtAnimation(settings.crtAnimation);
+    setLocalOverlayFullWidth(settings.overlayFullWidth);
   }, [settings]);
 
   // Auto-save function that updates settings
@@ -68,6 +70,11 @@ const MainPage = () => {
   const handlePreviewModeChange = (value: boolean) => {
     setLocalPreviewMode(value);
     autoSave({ previewMode: value });
+  };
+
+  const handleOverlayFullWidthChange = (value: boolean) => {
+    setLocalOverlayFullWidth(value);
+    autoSave({ overlayFullWidth: value });
   };
 
   const handleChatFeedDirectionChange = (value: 'top' | 'bottom') => {
@@ -113,6 +120,9 @@ const MainPage = () => {
     }
     if (settings.previewMode) {
       url.searchParams.set('previewMode', 'true');
+    }
+    if (settings.overlayFullWidth) {
+      url.searchParams.set('overlayFullWidth', 'true');
     }
     if (settings.chatFeedDirection !== 'bottom') {
       url.searchParams.set('chatFeedDirection', settings.chatFeedDirection);
@@ -199,6 +209,12 @@ const MainPage = () => {
               label="Preview Mode (shows overlays in smaller containers for development)"
               checked={localPreviewMode}
               onChange={(e) => handlePreviewModeChange(e.currentTarget.checked)}
+            />
+
+            <Switch
+              label="Full Width Overlays (removes padding and borders for edge-to-edge appearance)"
+              checked={localOverlayFullWidth}
+              onChange={(e) => handleOverlayFullWidthChange(e.currentTarget.checked)}
             />
 
             <div>

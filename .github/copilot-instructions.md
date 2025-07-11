@@ -54,3 +54,4 @@ Use these CSS custom properties throughout the project:
 - Maintain backward compatibility with existing AnimatedBackground
 - All overlays should work without authentication for easy setup
 - Development server (`npm run dev`) is already running - no need to start it
+- **Important**: Do not check shell dev, run builds, or look at browser during development. Simply complete the code changes and ask the user to test, as checking these provides no useful information and often gets stuck.

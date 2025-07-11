@@ -1,23 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { TwitchProvider } from '../contexts/TwitchContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import CRTBackground from '../components/CRTBackground';
 import '../styles/BarOverlay.css';
 
-interface ProgressItem {
-  label: string;
-  current: number;
-  max: number;
-  color: string;
-}
-
-const BarOverlay = () => {
+const BarOverlayContent = () => {
   const { settings } = useSettings();
-  const [progressItems, setProgressItems] = useState<ProgressItem[]>([
-    { label: 'Followers Goal', current: 1250, max: 2000, color: '#FF6B6B' },
-    { label: 'Stream Health', current: 85, max: 100, color: '#4ECDC4' },
-    { label: 'Chat Activity', current: 67, max: 100, color: '#45B7D1' }
-  ]);
+  const twitch = TwitchProvider.useTwitch();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [newFollowerAnimation, setNewFollowerAnimation] = useState(false);
+  const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
+  const [prevFollower, setPrevFollower] = useState<string | null>(null);
+  const [prevSubscriber, setPrevSubscriber] = useState<string | null>(null);
+
+  // Update current time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Set overlay mode for OBS transparency
   useEffect(() => {
@@ -25,90 +29,163 @@ const BarOverlay = () => {
     return () => document.body.classList.remove('overlay-mode');
   }, []);
 
+  // TwitchContext handles connection automatically - no manual connection needed
+
+  // Animate when new follower detected
   useEffect(() => {
-    // Simulate progress updates
-    const interval = setInterval(() => {
-      setProgressItems(prev => prev.map(item => ({
-        ...item,
-        current: Math.min(item.max, item.current + Math.random() * 5)
-      })));
-    }, 3000);
+    if (twitch.lastFollower && twitch.lastFollower.userName !== prevFollower) {
+      setPrevFollower(twitch.lastFollower.userName);
+      setNewFollowerAnimation(true);
+      setTimeout(() => setNewFollowerAnimation(false), 2000);
+    }
+  }, [twitch.lastFollower, prevFollower]);
 
-    return () => clearInterval(interval);
-  }, []);
+  // Animate when new subscriber detected
+  useEffect(() => {
+    if (twitch.lastSubscriber && twitch.lastSubscriber.userName !== prevSubscriber) {
+      setPrevSubscriber(twitch.lastSubscriber.userName);
+      setNewSubscriberAnimation(true);
+      setTimeout(() => setNewSubscriberAnimation(false), 2000);
+    }
+  }, [twitch.lastSubscriber, prevSubscriber]);
 
-  const calculatePercentage = (current: number, max: number) => {
-    return Math.min(100, (current / max) * 100);
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const formatStreamDuration = () => {
+    if (!twitch.streamInfo?.startedAt) {
+      return '00:00:00';
+    }
+    
+    const duration = Date.now() - twitch.streamInfo.startedAt.getTime();
+    const hours = Math.floor(duration / (1000 * 60 * 60));
+    const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((duration % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  const formatRelativeTime = (date: Date) => {
+    const diff = Date.now() - date.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
 
   return (
     <div 
-      className={`bar-overlay ${settings.previewMode ? 'preview-mode' : ''}`}
+      className={`bar-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.crtEffects ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
       {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
-      <div className="bar-header">
-        <h3 className={settings.crtEffects ? 'crt-glow-text' : ''}>📊 Stream Info</h3>
-        <div className="channel-info">
-          {settings.channelName && <span className={settings.crtEffects ? 'crt-glow-text-subtle' : ''}>@{settings.channelName}</span>}
+      
+      {/* Current Time Section */}
+      <div className="bar-section bar-time-section">
+        <div className="bar-time-label">Current Time</div>
+        <div className="bar-time-value">{formatTime(currentTime)}</div>
+      </div>
+
+      <div className="bar-divider"></div>
+
+      {/* Stream Duration Section */}
+      <div className="bar-section bar-time-section">
+        <div className="bar-time-label">Stream Time</div>
+        <div className="bar-time-value">{formatStreamDuration()}</div>
+      </div>
+
+      <div className="bar-divider"></div>
+
+      {/* Stream Info Section */}
+      <div className="bar-section bar-stream-section">
+        <div className="bar-stream-title">
+          {twitch.streamInfo?.title || 'Stream Title'}
+        </div>
+        <div className="bar-stream-category">
+          {twitch.streamInfo?.gameName || 'No Category'}
         </div>
       </div>
-      
-      <div className="progress-section">
-        {progressItems.map((item, index) => (
-          <div key={index} className="progress-item">
-            <div className="progress-header">
-              <span className="progress-label">{item.label}</span>
-              <span className="progress-value">
-                {Math.floor(item.current)}/{item.max}
-              </span>
+
+      <div className="bar-divider"></div>
+
+      {/* Stats Section */}
+      <div className="bar-section bar-stats-section">
+        <div className="bar-stat-item">
+          <div className="bar-stat-icon">👥</div>
+          <div className="bar-stat-content">
+            <div className="bar-stat-value">
+              {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
             </div>
-            
-            <div className="progress-bar-container">
-              <div 
-                className="progress-bar"
-                style={{
-                  width: `${calculatePercentage(item.current, item.max)}%`,
-                  backgroundColor: item.color
-                }}
-              >
-                <div className="progress-bar-shine"></div>
+            <div className="bar-stat-label">Viewers</div>
+          </div>
+        </div>
+
+        <div className="bar-stat-item">
+          <div className="bar-stat-icon">❤️</div>
+          <div className="bar-stat-content">
+            <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
+            <div className="bar-stat-label">Followers</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bar-divider"></div>
+
+      {/* Recent Activity Section */}
+      <div className="bar-section bar-recent-section">
+        {twitch.lastFollower && (
+          <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
+            <div className="bar-recent-icon">❤️</div>
+            <div className="bar-recent-content">
+              <div className="bar-recent-name">{twitch.lastFollower.userDisplayName}</div>
+              <div className="bar-recent-label">Last Follow {formatRelativeTime(twitch.lastFollower.followDate)}</div>
+            </div>
+          </div>
+        )}
+
+        {twitch.lastSubscriber && (
+          <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
+            <div className="bar-recent-icon">⭐</div>
+            <div className="bar-recent-content">
+              <div className="bar-recent-name">{twitch.lastSubscriber.userDisplayName}</div>
+              <div className="bar-recent-label">
+                Last Sub {formatRelativeTime(twitch.lastSubscriber.subscribeDate)}
+                {twitch.lastSubscriber.isGift && ' (Gift)'}
               </div>
             </div>
-            
-            <div className="progress-percentage">
-              {Math.round(calculatePercentage(item.current, item.max))}%
-            </div>
           </div>
-        ))}
-      </div>
-      
-      <div className="stats-section">
-        <div className="stat-item">
-          <div className="stat-icon">👥</div>
-          <div className="stat-info">
-            <div className="stat-value">342</div>
-            <div className="stat-label">Viewers</div>
-          </div>
-        </div>
-        
-        <div className="stat-item">
-          <div className="stat-icon">💬</div>
-          <div className="stat-info">
-            <div className="stat-value">1.2k</div>
-            <div className="stat-label">Messages</div>
-          </div>
-        </div>
-        
-        <div className="stat-item">
-          <div className="stat-icon">❤️</div>
-          <div className="stat-info">
-            <div className="stat-value">89</div>
-            <div className="stat-label">Likes</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
+  );
+};
+
+const BarOverlay = () => {
+  return (
+    <TwitchProvider>
+      <BarOverlayContent />
+    </TwitchProvider>
   );
 };
 
