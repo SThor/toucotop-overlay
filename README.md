@@ -13,6 +13,31 @@ A modern React TypeScript application for Twitch stream overlays with customizab
 
 ## Getting Started
 
+### Environment Setup
+
+1. Copy the environment template:
+
+```bash
+cp .env.sample .env
+```
+
+2. Configure your Twitch API credentials in `.env`:
+   - Go to [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+   - Create a new application or use an existing one
+   - Copy your Client ID and Client Secret to the `.env` file:
+
+```env
+VITE_TWITCH_CLIENT_ID=your_client_id_here
+VITE_TWITCH_CLIENT_SECRET=your_client_secret_here
+```
+
+**Note**: Environment variables are required for advanced features like:
+- Real stream title fetching
+- Accurate stream duration calculation
+- Enhanced API rate limits
+
+Basic chat functionality works without credentials.
+
 ### Development
 
 1. Install dependencies:

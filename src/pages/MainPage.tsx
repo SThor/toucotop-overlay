@@ -23,12 +23,9 @@ import '../styles/MainPage.css';
 const MainPage = () => {
   const { settings, updateSettings, resetSettings } = useSettings();
   const [localChannelName, setLocalChannelName] = useState(settings.channelName);
-  const [localStreamTitle, setLocalStreamTitle] = useState(settings.streamTitle);
   const [localOpacity, setLocalOpacity] = useState(settings.overlayOpacity);
   const [localPreviewMode, setLocalPreviewMode] = useState(settings.previewMode);
   const [localChatFeedDirection, setLocalChatFeedDirection] = useState(settings.chatFeedDirection);
-  const [localTwitchClientId, setLocalTwitchClientId] = useState(settings.twitchClientId);
-  const [localTwitchAccessToken, setLocalTwitchAccessToken] = useState(settings.twitchAccessToken);
   const [localMaxChatMessages, setLocalMaxChatMessages] = useState(settings.maxChatMessages);
   const [localCrtEffects, setLocalCrtEffects] = useState(settings.crtEffects);
   const [localCrtIntensity, setLocalCrtIntensity] = useState(settings.crtIntensity);
@@ -39,12 +36,9 @@ const MainPage = () => {
   // Sync local state with settings when they change (e.g., from query params)
   useEffect(() => {
     setLocalChannelName(settings.channelName);
-    setLocalStreamTitle(settings.streamTitle);
     setLocalOpacity(settings.overlayOpacity);
     setLocalPreviewMode(settings.previewMode);
     setLocalChatFeedDirection(settings.chatFeedDirection);
-    setLocalTwitchClientId(settings.twitchClientId);
-    setLocalTwitchAccessToken(settings.twitchAccessToken);
     setLocalMaxChatMessages(settings.maxChatMessages);
     setLocalCrtEffects(settings.crtEffects);
     setLocalCrtIntensity(settings.crtIntensity);
@@ -66,11 +60,6 @@ const MainPage = () => {
     autoSave({ channelName: value });
   };
 
-  const handleStreamTitleChange = (value: string) => {
-    setLocalStreamTitle(value);
-    autoSave({ streamTitle: value });
-  };
-
   const handleOpacityChange = (value: number) => {
     setLocalOpacity(value);
     autoSave({ overlayOpacity: value });
@@ -84,16 +73,6 @@ const MainPage = () => {
   const handleChatFeedDirectionChange = (value: 'top' | 'bottom') => {
     setLocalChatFeedDirection(value);
     autoSave({ chatFeedDirection: value });
-  };
-
-  const handleTwitchClientIdChange = (value: string) => {
-    setLocalTwitchClientId(value);
-    autoSave({ twitchClientId: value });
-  };
-
-  const handleTwitchAccessTokenChange = (value: string) => {
-    setLocalTwitchAccessToken(value);
-    autoSave({ twitchAccessToken: value });
   };
 
   const handleMaxChatMessagesChange = (value: number) => {
@@ -129,9 +108,6 @@ const MainPage = () => {
     if (settings.channelName) {
       url.searchParams.set('channelName', settings.channelName);
     }
-    if (settings.streamTitle !== 'Live Stream') {
-      url.searchParams.set('streamTitle', settings.streamTitle);
-    }
     if (settings.overlayOpacity !== 0.9) {
       url.searchParams.set('overlayOpacity', settings.overlayOpacity.toString());
     }
@@ -143,12 +119,6 @@ const MainPage = () => {
     }
     if (settings.maxChatMessages !== 50) {
       url.searchParams.set('maxChatMessages', settings.maxChatMessages.toString());
-    }
-    if (settings.twitchClientId) {
-      url.searchParams.set('twitchClientId', settings.twitchClientId);
-    }
-    if (settings.twitchAccessToken) {
-      url.searchParams.set('twitchAccessToken', settings.twitchAccessToken);
     }
     if (settings.crtEffects !== true) { // true is default
       url.searchParams.set('crtEffects', settings.crtEffects.toString());
@@ -212,14 +182,6 @@ const MainPage = () => {
               value={localChannelName}
               onChange={(e) => handleChannelNameChange(e.currentTarget.value)}
             />
-
-            <TextInput
-              label="Stream Title"
-              placeholder="Enter your stream title"
-              value={localStreamTitle}
-              onChange={(e) => handleStreamTitleChange(e.currentTarget.value)}
-            />
-
             <div>
               <Text size="sm" fw={500} mb="xs">
                 Overlay Opacity: {Math.round(localOpacity * 100)}%
@@ -273,27 +235,21 @@ const MainPage = () => {
             <span className="section-title">Twitch Integration</span>
           </Title>
           <Stack gap="lg">
-            <Text size="sm" c="dimmed">
-              Chat overlay works without credentials! Just enter your channel name above. 
-              Twitch API credentials are optional and only needed for advanced features.
-            </Text>
-            
-            <TextInput
-              label="Twitch Client ID (Optional)"
-              placeholder="Enter your Twitch application client ID"
-              value={localTwitchClientId}
-              onChange={(e) => handleTwitchClientIdChange(e.currentTarget.value)}
-              description="Optional: Only needed for advanced API features"
-            />
-
-            <TextInput
-              label="Twitch Access Token (Optional)"
-              placeholder="Enter your access token"
-              value={localTwitchAccessToken}
-              onChange={(e) => handleTwitchAccessTokenChange(e.currentTarget.value)}
-              type="password"
-              description="Optional: Only needed for advanced API features"
-            />
+            <div>
+              <Text size="sm" c="dimmed" mb="sm">
+                <strong>Basic Features:</strong> Chat overlay works without any configuration! Just enter your channel name above.
+              </Text>
+              <Text size="sm" c="dimmed" mb="sm">
+                <strong>Advanced Features:</strong> Stream title, duration, and enhanced functionality require Twitch API credentials configured via environment variables (.env file).
+              </Text>
+              <Text size="sm" c="dimmed">
+                <strong>Environment Status:</strong> {
+                  import.meta.env.VITE_TWITCH_CLIENT_ID 
+                    ? '✅ Twitch API credentials configured' 
+                    : '⚠️ No API credentials - basic functionality only'
+                }
+              </Text>
+            </div>
 
             <div>
               <Text size="sm" fw={500} mb="xs">

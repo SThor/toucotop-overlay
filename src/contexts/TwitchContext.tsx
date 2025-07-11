@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { ChatClient } from '@twurple/chat';
 import { ApiClient } from '@twurple/api';
-import { StaticAuthProvider } from '@twurple/auth';
+import { AppTokenAuthProvider } from '@twurple/auth';
 import { buildEmoteImageUrl, parseChatMessage } from '@twurple/chat';
 import { useSettings } from './SettingsContext';
 
@@ -41,6 +41,15 @@ interface CachedEmote {
   urls: EmoteUrls;
 }
 
+interface TwitchStreamInfo {
+  id: string;
+  title: string;
+  gameName: string;
+  startedAt: Date;
+  viewerCount: number;
+  isLive: boolean;
+}
+
 interface TwitchContextType {
   chatClient: ChatClient | null;
   apiClient: ApiClient | null;
@@ -49,11 +58,14 @@ interface TwitchContextType {
   error: string | null;
   messages: TwitchChatMessage[];
   cachedEmotes: Map<string, CachedEmote>;
+  streamInfo: TwitchStreamInfo | null;
+  isLoadingStreamInfo: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   clearMessages: () => void;
   loadRecentMessages: () => Promise<void>;
   getEmoteByName: (name: string) => CachedEmote | undefined;
+  fetchStreamInfo: () => Promise<void>;
 }
 
 const TwitchContext = createContext<TwitchContextType | undefined>(undefined);
@@ -83,6 +95,8 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<TwitchChatMessage[]>([]);
   const [cachedEmotes, setCachedEmotes] = useState<Map<string, CachedEmote>>(new Map());
+  const [streamInfo, setStreamInfo] = useState<TwitchStreamInfo | null>(null);
+  const [isLoadingStreamInfo, setIsLoadingStreamInfo] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [lastConnectionAttempt, setLastConnectionAttempt] = useState<number>(0);
 
@@ -212,19 +226,23 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
       }
 
       // For read-only chat, we can connect anonymously without credentials
-      let chat: ChatClient;
       let api: ApiClient | null = null;
 
-      if (settings.twitchClientId && settings.twitchAccessToken) {
-        // Authenticated connection (if credentials are provided)
-        const authProvider = new StaticAuthProvider(settings.twitchClientId, settings.twitchAccessToken);
+      // Always use anonymous chat connection (read-only)
+      const chat = new ChatClient({ channels: [settings.channelName] });
+
+      // But use authenticated API client if credentials are available (for better rate limits and more features)
+      if (import.meta.env.VITE_TWITCH_CLIENT_ID && import.meta.env.VITE_TWITCH_CLIENT_SECRET) {
+        const authProvider = new AppTokenAuthProvider(
+          import.meta.env.VITE_TWITCH_CLIENT_ID, 
+          import.meta.env.VITE_TWITCH_CLIENT_SECRET
+        );
         api = new ApiClient({ authProvider });
-        chat = new ChatClient({ authProvider, channels: [settings.channelName] });
         setApiClient(api);
+        console.log('Using authenticated API client for enhanced features');
       } else {
-        // Anonymous read-only connection (no credentials needed)
-        chat = new ChatClient({ channels: [settings.channelName] });
         setApiClient(null);
+        console.log('Using anonymous connections (chat + API)');
       }
 
       // Set up chat message handler
@@ -350,7 +368,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
       
       // Don't immediately retry on error - let the rate limiting handle it
     }
-  }, [settings.channelName, settings.twitchClientId, settings.twitchAccessToken, settings.maxChatMessages, isConnecting, isConnected, connectionAttempts, lastConnectionAttempt, chatClient, apiClient]);
+  }, [settings.channelName, settings.maxChatMessages, isConnecting, isConnected, connectionAttempts, lastConnectionAttempt, chatClient, apiClient]);
 
   const disconnect = useCallback(() => {
     if (chatClient) {
@@ -365,6 +383,9 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     setLastConnectionAttempt(0);
     // Clear cached emotes on disconnect
     setCachedEmotes(new Map());
+    // Clear stream info on disconnect
+    setStreamInfo(null);
+    setIsLoadingStreamInfo(false);
   }, [chatClient]);
 
   const clearMessages = useCallback(() => {
@@ -372,6 +393,186 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     // Also clear from localStorage
     localStorage.removeItem(`twitch-messages-${settings.channelName}`);
   }, [settings.channelName]);
+
+  // Function to fetch stream information
+  const fetchStreamInfo = useCallback(async () => {
+    if (!settings.channelName) {
+      setStreamInfo(null);
+      return;
+    }
+
+    try {
+      setIsLoadingStreamInfo(true);
+      setError(null);
+
+      if (apiClient) {
+        // Authenticated API approach (preferred when available)
+        const user = await apiClient.users.getUserByName(settings.channelName);
+        if (!user) {
+          console.error(`User not found: ${settings.channelName}`);
+          setStreamInfo(null);
+          return;
+        }
+
+        const stream = await apiClient.streams.getStreamByUserId(user.id);
+        
+        if (stream) {
+          const gameInfo = await apiClient.games.getGameById(stream.gameId);
+          
+          setStreamInfo({
+            id: stream.id,
+            title: stream.title,
+            gameName: gameInfo?.name || 'Unknown Game',
+            startedAt: stream.startDate,
+            viewerCount: stream.viewers,
+            isLive: true
+          });
+          
+          console.log('Stream info fetched (authenticated):', {
+            title: stream.title,
+            game: gameInfo?.name,
+            startedAt: stream.startDate,
+            viewers: stream.viewers
+          });
+        } else {
+          // Stream is offline
+          setStreamInfo({
+            id: '',
+            title: '',
+            gameName: '',
+            startedAt: new Date(),
+            viewerCount: 0,
+            isLive: false
+          });
+          console.log('Stream is offline (authenticated)');
+        }
+      } else {
+        // Anonymous approach using Twitch Helix API with environment variables
+        const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
+        
+        if (!clientId) {
+          console.warn('No Twitch Client ID available in environment variables. Stream info will not be available.');
+          setStreamInfo({
+            id: '',
+            title: '',
+            gameName: '',
+            startedAt: new Date(),
+            viewerCount: 0,
+            isLive: false
+          });
+          return;
+        }
+        
+        console.log('Fetching stream info anonymously for:', settings.channelName);
+        
+        // First get user ID from username
+        const userResponse = await fetch(`https://api.twitch.tv/helix/users?login=${settings.channelName}`, {
+          headers: {
+            'Client-ID': clientId
+          }
+        });
+        
+        if (!userResponse.ok) {
+          throw new Error(`Failed to fetch user: ${userResponse.status}`);
+        }
+        
+        const userData = await userResponse.json();
+        if (!userData.data || userData.data.length === 0) {
+          console.error(`User not found: ${settings.channelName}`);
+          setStreamInfo({
+            id: '',
+            title: '',
+            gameName: '',
+            startedAt: new Date(),
+            viewerCount: 0,
+            isLive: false
+          });
+          return;
+        }
+        
+        const userId = userData.data[0].id;
+        
+        // Then get stream info
+        const streamResponse = await fetch(`https://api.twitch.tv/helix/streams?user_id=${userId}`, {
+          headers: {
+            'Client-ID': clientId
+          }
+        });
+        
+        if (!streamResponse.ok) {
+          throw new Error(`Failed to fetch stream: ${streamResponse.status}`);
+        }
+        
+        const streamData = await streamResponse.json();
+        
+        if (streamData.data && streamData.data.length > 0) {
+          const stream = streamData.data[0];
+          
+          // Get game info
+          let gameName = 'Unknown Game';
+          if (stream.game_id) {
+            try {
+              const gameResponse = await fetch(`https://api.twitch.tv/helix/games?id=${stream.game_id}`, {
+                headers: {
+                  'Client-ID': clientId
+                }
+              });
+              
+              if (gameResponse.ok) {
+                const gameData = await gameResponse.json();
+                if (gameData.data && gameData.data.length > 0) {
+                  gameName = gameData.data[0].name;
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to fetch game info:', error);
+            }
+          }
+          
+          setStreamInfo({
+            id: stream.id,
+            title: stream.title,
+            gameName: gameName,
+            startedAt: new Date(stream.started_at),
+            viewerCount: stream.viewer_count,
+            isLive: true
+          });
+          
+          console.log('Stream info fetched (anonymous):', {
+            title: stream.title,
+            game: gameName,
+            startedAt: stream.started_at,
+            viewers: stream.viewer_count
+          });
+        } else {
+          // Stream is offline
+          setStreamInfo({
+            id: '',
+            title: '',
+            gameName: '',
+            startedAt: new Date(),
+            viewerCount: 0,
+            isLive: false
+          });
+          console.log('Stream is offline (anonymous)');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch stream info:', error);
+      setError(`Failed to fetch stream info: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Set offline state on error
+      setStreamInfo({
+        id: '',
+        title: '',
+        gameName: '',
+        startedAt: new Date(),
+        viewerCount: 0,
+        isLive: false
+      });
+    } finally {
+      setIsLoadingStreamInfo(false);
+    }
+  }, [apiClient, settings.channelName]);
 
   // Save messages to localStorage for persistence
   useEffect(() => {
@@ -440,6 +641,25 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     };
   }, [disconnect]);
 
+  // Fetch stream info when channel name is available and set up periodic refresh
+  useEffect(() => {
+    if (!settings.channelName || settings.previewMode) {
+      return;
+    }
+
+    // Fetch immediately
+    fetchStreamInfo();
+
+    // Set up periodic refresh every 30 seconds for live stream data
+    const streamInfoInterval = setInterval(() => {
+      fetchStreamInfo();
+    }, 30000);
+
+    return () => {
+      clearInterval(streamInfoInterval);
+    };
+  }, [settings.channelName, settings.previewMode, fetchStreamInfo]);
+
   const value: TwitchContextType = {
     chatClient,
     apiClient,
@@ -448,11 +668,14 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     error,
     messages,
     cachedEmotes,
+    streamInfo,
+    isLoadingStreamInfo,
     connect,
     disconnect,
     clearMessages,
     loadRecentMessages,
     getEmoteByName,
+    fetchStreamInfo,
   };
 
   return <TwitchContext.Provider value={value}>{children}</TwitchContext.Provider>;

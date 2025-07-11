@@ -1,33 +1,59 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { TwitchProvider } from '../contexts/TwitchContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import CRTBackground from '../components/CRTBackground';
 import '../styles/ClockOverlay.css';
 
 const ClockOverlay = () => {
   const { settings } = useSettings();
+  const { streamInfo, fetchStreamInfo } = TwitchProvider.useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [streamStartTime] = useState(new Date()); // Would be set when stream starts
   const [streamDuration, setStreamDuration] = useState('00:00:00');
+
+  // Trigger stream info fetch when component mounts or channel changes
+  useEffect(() => {
+    if (settings.channelName && fetchStreamInfo) {
+      fetchStreamInfo();
+    }
+  }, [settings.channelName, fetchStreamInfo]);
+
+  // Fetch stream info on component mount and periodically refresh
+  useEffect(() => {
+    if (settings.channelName && !settings.previewMode) {
+      fetchStreamInfo();
+      
+      // Refresh stream info every 5 minutes for updated title/game
+      const refreshInterval = setInterval(() => {
+        fetchStreamInfo();
+      }, 5 * 60 * 1000);
+
+      return () => clearInterval(refreshInterval);
+    }
+  }, [settings.channelName, settings.previewMode, fetchStreamInfo]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
       setCurrentTime(now);
       
-      // Calculate stream duration
-      const duration = now.getTime() - streamStartTime.getTime();
-      const hours = Math.floor(duration / (1000 * 60 * 60));
-      const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((duration % (1000 * 60)) / 1000);
-      
-      setStreamDuration(
-        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-      );
+      // Calculate stream duration based on actual stream start time
+      if (streamInfo && streamInfo.isLive && streamInfo.startedAt) {
+        const duration = now.getTime() - streamInfo.startedAt.getTime();
+        const hours = Math.floor(duration / (1000 * 60 * 60));
+        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((duration % (1000 * 60)) / 1000);
+        
+        setStreamDuration(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      } else {
+        setStreamDuration('00:00:00');
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [streamStartTime]);
+  }, [streamInfo]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
@@ -71,7 +97,10 @@ const ClockOverlay = () => {
       
       <div className="clock-footer">
         <div className="stream-title">
-          {settings.streamTitle}
+          {streamInfo && streamInfo.isLive 
+            ? streamInfo.title 
+            : (settings.previewMode ? 'Preview: Stream Title' : 'Stream Offline')
+          }
         </div>
       </div>
     </div>
