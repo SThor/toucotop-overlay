@@ -5,9 +5,12 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import CRTBackground from '../components/CRTBackground';
 import '../styles/ClockOverlay.css';
 
+// Destructure the hook for cleaner usage
+const { useTwitch } = TwitchProvider;
+
 const ClockOverlay = () => {
   const { settings } = useSettings();
-  const { streamInfo, fetchStreamInfo } = TwitchProvider.useTwitch();
+  const { streamInfo, fetchStreamInfo } = useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [streamDuration, setStreamDuration] = useState('00:00:00');
   
