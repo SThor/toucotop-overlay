@@ -23,14 +23,33 @@ const ClockOverlay = () => {
     if (settings.channelName && !settings.previewMode) {
       fetchStreamInfo();
       
-      // Refresh stream info every 5 minutes for updated title/game
-      const refreshInterval = setInterval(() => {
-        fetchStreamInfo();
-      }, 5 * 60 * 1000);
+      // Smart refresh: check every 30 seconds, but only log/notify when data actually changes
+      let lastTitle = '';
+      let lastGame = '';
+      
+      const refreshInterval = setInterval(async () => {
+        const previousTitle = lastTitle;
+        const previousGame = lastGame;
+        
+        await fetchStreamInfo();
+        
+        // Check if title or game changed (we'll get the new data from streamInfo in next render)
+        if (streamInfo) {
+          if (streamInfo.title !== previousTitle && previousTitle !== '') {
+            console.log(`🎯 Stream title changed: "${previousTitle}" → "${streamInfo.title}"`);
+          }
+          if (streamInfo.gameName !== previousGame && previousGame !== '') {
+            console.log(`🎮 Game changed: "${previousGame}" → "${streamInfo.gameName}"`);
+          }
+          
+          lastTitle = streamInfo.title;
+          lastGame = streamInfo.gameName;
+        }
+      }, 30 * 1000);
 
       return () => clearInterval(refreshInterval);
     }
-  }, [settings.channelName, settings.previewMode, fetchStreamInfo]);
+  }, [settings.channelName, settings.previewMode, fetchStreamInfo, streamInfo]);
 
   useEffect(() => {
     const timer = setInterval(() => {
