@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { useTwitch } from '../contexts/TwitchContext';
+import { TwitchProvider } from '../contexts/TwitchContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedBackground from '../components/AnimatedBackground';
 import CRTBackground from '../components/CRTBackground';
@@ -17,7 +17,7 @@ interface ChatMessage {
 
 const ChatOverlay = () => {
   const { settings } = useSettings();
-  const { messages, isConnected, isConnecting, error } = useTwitch();
+  const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
   const [demoMessages, setDemoMessages] = useState<ChatMessage[]>([]);
 
   // Debug logging to help track connection issues
@@ -132,9 +132,10 @@ const ChatOverlay = () => {
         <h3 className={settings.crtEffects ? 'crt-glow-text' : ''}>
           💬 {settings.channelName ? `${settings.channelName}'s Chat` : 'Stream Chat'}
           {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
-          {error && <span className="connection-status error"> (Error)</span>}
+          {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
           {settings.previewMode && <span className="connection-status demo"> (Demo Mode)</span>}
           {!settings.channelName && <span className="connection-status demo"> (Enter channel name to connect)</span>}
+          {isConnected && !settings.previewMode && <span className="connection-status connected"> (Live)</span>}
         </h3>
         <div className="chat-divider"></div>
       </div>

@@ -58,7 +58,7 @@ interface TwitchContextType {
 
 const TwitchContext = createContext<TwitchContextType | undefined>(undefined);
 
-export const useTwitch = () => {
+const useTwitch = () => {
   const context = useContext(TwitchContext);
   if (!context) {
     throw new Error('useTwitch must be used within a TwitchProvider');
@@ -70,7 +70,11 @@ interface TwitchProviderProps {
   children: React.ReactNode;
 }
 
-export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
+type TwitchProviderComponent = React.FC<TwitchProviderProps> & {
+  useTwitch: typeof useTwitch;
+};
+
+export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const { settings } = useSettings();
   const [chatClient, setChatClient] = useState<ChatClient | null>(null);
   const [apiClient, setApiClient] = useState<ApiClient | null>(null);
@@ -181,10 +185,11 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
     // Rate limiting: prevent rapid reconnection attempts
     const now = Date.now();
     const timeSinceLastAttempt = now - lastConnectionAttempt;
-    const minInterval = Math.min(5000 * Math.pow(2, connectionAttempts), 30000); // Exponential backoff, max 30s
+    const minInterval = Math.min(2000 * Math.pow(1.5, connectionAttempts), 15000); // Gentler backoff, max 15s
 
-    if (timeSinceLastAttempt < minInterval) {
+    if (timeSinceLastAttempt < minInterval && connectionAttempts > 0) {
       console.log(`Rate limiting connection attempts. Please wait ${Math.ceil((minInterval - timeSinceLastAttempt) / 1000)}s`);
+      setError(`Please wait ${Math.ceil((minInterval - timeSinceLastAttempt) / 1000)}s before retrying`);
       return;
     }
 
@@ -196,6 +201,16 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
     console.log(`Attempting to connect to Twitch chat for channel: ${settings.channelName} (attempt ${connectionAttempts + 1})`);
 
     try {
+      // Disconnect any existing connection first
+      if (chatClient) {
+        console.log('Disconnecting existing chat client');
+        chatClient.quit();
+        setChatClient(null);
+      }
+      if (apiClient) {
+        setApiClient(null);
+      }
+
       // For read-only chat, we can connect anonymously without credentials
       let chat: ChatClient;
       let api: ApiClient | null = null;
@@ -292,18 +307,39 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
       });
 
       chat.onDisconnect((manually: boolean, reason?: Error) => {
+        console.log('Chat disconnected', { manually, reason, channel: settings.channelName });
         setIsConnected(false);
         setIsConnecting(false);
-        if (!manually && reason) {
-          setError(`Disconnected: ${reason.message}`);
-          console.error('Disconnected from Twitch chat', { manually, reason });
+        
+        if (!manually) {
+          if (reason) {
+            console.error('Unexpected disconnection:', reason);
+            setError(`Connection lost: ${reason.message}`);
+          }
+          
+          // Auto-reconnect after a delay if not manually disconnected and still on same channel
+          const reconnectDelay = Math.min(5000 * Math.pow(1.5, connectionAttempts), 30000);
+          console.log(`Scheduling reconnection in ${reconnectDelay}ms`);
+          
+          setTimeout(() => {
+            // Only reconnect if we're still on the same channel and not connected
+            if (settings.channelName === currentChannelRef.current && !isConnected && !isConnecting) {
+              console.log('Attempting auto-reconnection');
+              connectRef.current();
+            }
+          }, reconnectDelay);
         } else {
-          console.log('Disconnected from Twitch chat', { manually, reason });
+          setError(null);
         }
       });
 
-      // Connect to chat
-      await chat.connect();
+      // Connect to chat with timeout
+      const connectionPromise = chat.connect();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Connection timeout')), 10000); // 10 second timeout
+      });
+
+      await Promise.race([connectionPromise, timeoutPromise]);
       setChatClient(chat);
 
     } catch (err) {
@@ -314,7 +350,7 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
       
       // Don't immediately retry on error - let the rate limiting handle it
     }
-  }, [settings.channelName, settings.twitchClientId, settings.twitchAccessToken, settings.maxChatMessages, isConnecting, isConnected, connectionAttempts, lastConnectionAttempt]);
+  }, [settings.channelName, settings.twitchClientId, settings.twitchAccessToken, settings.maxChatMessages, isConnecting, isConnected, connectionAttempts, lastConnectionAttempt, chatClient, apiClient]);
 
   const disconnect = useCallback(() => {
     if (chatClient) {
@@ -345,31 +381,56 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
   }, [messages, settings.channelName]);
 
   // Auto-connect when channel name is available (credentials are optional)
-  // Use a ref to prevent infinite loops
+  // Use refs to prevent infinite loops
   const connectRef = useRef(connect);
-  connectRef.current = connect;
-
   const loadRecentMessagesRef = useRef(loadRecentMessages);
-  loadRecentMessagesRef.current = loadRecentMessages;
-
   const preloadEmotesRef = useRef(preloadEmotes);
-  preloadEmotesRef.current = preloadEmotes;
+  const currentChannelRef = useRef<string | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Update refs
   useEffect(() => {
-    if (settings.channelName && !isConnected && !isConnecting) {
-      const timeoutId = setTimeout(() => {
-        connectRef.current();
-      }, 100); // Small delay to prevent rapid firing
-      
-      return () => clearTimeout(timeoutId);
+    connectRef.current = connect;
+    loadRecentMessagesRef.current = loadRecentMessages;
+    preloadEmotesRef.current = preloadEmotes;
+  });
+
+  // Handle channel changes and connection logic
+  useEffect(() => {
+    // Clear any pending connection timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
     }
-  }, [settings.channelName, isConnected, isConnecting]); // Removed connect from dependencies
 
-  // Disconnect when channel name is removed
-  useEffect(() => {
-    if (!settings.channelName && (isConnected || isConnecting)) {
+    // If channel changed, disconnect first
+    if (currentChannelRef.current && currentChannelRef.current !== settings.channelName) {
+      console.log('Channel changed, disconnecting from previous channel');
       disconnect();
     }
+
+    currentChannelRef.current = settings.channelName;
+
+    // Connect to new channel if provided
+    if (settings.channelName && !isConnected && !isConnecting) {
+      console.log('Scheduling connection to channel:', settings.channelName);
+      connectionTimeoutRef.current = setTimeout(() => {
+        connectRef.current();
+      }, 500); // Slightly longer delay to prevent rapid firing
+    }
+
+    // Disconnect if no channel name
+    if (!settings.channelName && (isConnected || isConnecting)) {
+      console.log('No channel name, disconnecting');
+      disconnect();
+    }
+
+    return () => {
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+        connectionTimeoutRef.current = null;
+      }
+    };
   }, [settings.channelName, isConnected, isConnecting, disconnect]);
 
   // Cleanup on unmount
@@ -396,3 +457,6 @@ export const TwitchProvider: React.FC<TwitchProviderProps> = ({ children }) => {
 
   return <TwitchContext.Provider value={value}>{children}</TwitchContext.Provider>;
 };
+
+// Add the hook as a static property to avoid Fast Refresh issues
+TwitchProvider.useTwitch = useTwitch;

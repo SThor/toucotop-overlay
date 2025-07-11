@@ -71,6 +71,10 @@
   color: #888;
 }
 
+.connection-status.connected {
+  color: #4ecdc4;
+}
+
 .chat-messages {
   flex: 1;
   padding: 1rem;
