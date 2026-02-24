@@ -14,6 +14,8 @@ export interface Settings {
   crtIntensity: 'minimal' | 'subtle' | 'medium';
   crtScanlines: boolean;
   crtAnimation: boolean;
+  // Overlay appearance mode
+  overlayFullWidth: boolean;
 }
 
 interface SettingsContextType {
@@ -34,6 +36,7 @@ const defaultSettings: Settings = {
   crtIntensity: 'subtle',
   crtScanlines: true,
   crtAnimation: true,
+  overlayFullWidth: false,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

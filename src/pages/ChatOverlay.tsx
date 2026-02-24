@@ -124,7 +124,7 @@ const ChatOverlay = () => {
 
   return (
     <div 
-      className={`chat-overlay ${settings.previewMode ? 'preview-mode' : ''}`}
+      className={`chat-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
       {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
