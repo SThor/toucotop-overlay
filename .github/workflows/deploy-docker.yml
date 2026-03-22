@@ -40,7 +40,7 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
           # Update staging service in global docker-compose
-          cd /opt/infra-docs
+          cd /home/ubuntu/infra-docs
           
           # Pull new image and restart service
           docker compose pull toucotop-overlay-staging
