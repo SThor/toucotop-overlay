@@ -1,6 +1,6 @@
 # Multi-stage build for React + Express
 # Stage 1: Build React app
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy source code
 COPY . .
@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production server
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies including Express
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy built React app from builder stage
 COPY --from=builder /app/dist /app/dist
