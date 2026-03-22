@@ -33,8 +33,6 @@ README.md
 TODO-*.md
 
 # Development configs
-vite.config.ts
-eslint.config.js
 
 # Docker files themselves
 Dockerfile
