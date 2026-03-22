@@ -34,7 +34,6 @@ TODO-*.md
 
 # Development configs
 vite.config.ts
-tsconfig*.json
 eslint.config.js
 
 # Docker files themselves
