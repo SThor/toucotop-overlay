@@ -81,8 +81,11 @@ try {
   // Serve static files from dist directory
   app.use(express.static(path.join(__dirname, '../../dist')));
   
-  // Serve error page CSS file
+  // Serve error page CSS file (multiple paths for auth routes)
   app.get('/error-pages.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'static-views', 'error-pages.css'));
+  });
+  app.get('/auth/error-pages.css', (req, res) => {
     res.sendFile(path.join(__dirname, 'static-views', 'error-pages.css'));
   });
 

@@ -21,6 +21,7 @@ console.log('🔧 OAuth Configuration:');
 console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
 console.log(`   Redirect URI: ${REDIRECT_URI}`);
 console.log(`   Allowed Users: ${ALLOWED_USERS.join(', ')}`);
+console.log(`   Environment ALLOWED_USERS: ${process.env.ALLOWED_USERS || 'Not set'}`);
 console.log('🛠️ Auth routes registered: /auth/twitch, /auth/callback, /auth/status');
 
 /**
