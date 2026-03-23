@@ -353,10 +353,10 @@ try {
 
         case 'hypetrain':
           try {
-            const hypeResponse = await fetch(`https://api.twitch.tv/helix/hypetrain/events?broadcaster_id=${userData.twitchUserId}&first=1`, { headers });
+            const hypeResponse = await fetch(`https://api.twitch.tv/helix/hypetrain/status?broadcaster_id=${userData.twitchUserId}`, { headers });
             data = await hypeResponse.json();
           } catch (error) {
-            data = { error: 'Hype Train endpoint requires broadcaster scope', details: error.message };
+            data = { error: 'Hype Train status requires channel:read:hype_train scope', details: error.message };
           }
           break;
 

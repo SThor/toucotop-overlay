@@ -455,11 +455,11 @@
 
         <div class="api-card">
           <div class="card-header">
-            <h3 class="card-title">Hype Train</h3>
+            <h3 class="card-title">Hype Train Status</h3>
             <span class="card-icon">🚂</span>
           </div>
-          <p class="card-description">Recent hype train events and progression data</p>
-          <button class="card-button" onclick="fetchEndpoint('hypetrain', this)">Fetch Hype Train</button>
+          <p class="card-description">Current hype train status and progress</p>
+          <button class="card-button" onclick="fetchEndpoint('hypetrain', this)">Fetch Hype Train Status</button>
           <div class="card-data" id="hypetrain-data">Click button to load...</div>
         </div>
       </div>
@@ -598,7 +598,7 @@
         { name: 'Predictions', endpoint: 'predictions', category: 'Interactive', overlayUse: 'Prediction status display' },
         { name: 'Channel Points', endpoint: 'channelpoints', category: 'Interactive', overlayUse: 'Reward redemption alerts' },
         { name: 'Creator Goals', endpoint: 'goals', category: 'Interactive', overlayUse: 'Goal progress bars' },
-        { name: 'Hype Train', endpoint: 'hypetrain', category: 'Interactive', overlayUse: 'Hype train progress' },
+        { name: 'Hype Train Status', endpoint: 'hypetrain', category: 'Interactive', overlayUse: 'Hype train progress display' },
         
         // Additional endpoints
         { name: 'Channel Emotes', endpoint: 'emotes', category: 'Additional', overlayUse: 'Chat integration features' },

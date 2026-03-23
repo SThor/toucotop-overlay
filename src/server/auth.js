@@ -92,6 +92,7 @@ router.get('/twitch', (req, res) => {
     'channel:read:predictions',     // Read predictions
     'channel:read:redemptions',     // Read channel point rewards/redemptions  
     'channel:read:goals',           // Read creator goals
+    'channel:read:hype_train',      // Read hype train status
     
     // Additional features
     'bits:read'                     // Read bits leaderboard
