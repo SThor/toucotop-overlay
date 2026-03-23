@@ -22,6 +22,12 @@ function escapeHtml(unsafe) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const EVENTSUB_CALLBACK_URL = process.env.EVENTSUB_CALLBACK_URL;
+const EVENTSUB_PUBLIC_BASE_URL = process.env.EVENTSUB_PUBLIC_BASE_URL;
+const EVENTSUB_ALLOWED_HOSTS = (process.env.EVENTSUB_ALLOWED_HOSTS || '')
+  .split(',')
+  .map(h => h.trim().toLowerCase())
+  .filter(Boolean);
 
 // EventSub event storage (in-memory for now)
 const eventStore = {
@@ -89,6 +95,34 @@ function verifyEventSubSignature(headers, body, secret) {
     Buffer.from(signature, 'utf8'),
     Buffer.from(expectedSignature, 'utf8')
   );
+}
+
+function getEventSubWebhookUrl(req) {
+  if (EVENTSUB_CALLBACK_URL) {
+    return EVENTSUB_CALLBACK_URL;
+  }
+
+  if (EVENTSUB_PUBLIC_BASE_URL) {
+    return `${EVENTSUB_PUBLIC_BASE_URL.replace(/\/+$/, '')}/webhooks/eventsub`;
+  }
+
+  // Fallback for local/dev environments only.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Set EVENTSUB_CALLBACK_URL or EVENTSUB_PUBLIC_BASE_URL in production');
+  }
+
+  const protocol = ((req.get('x-forwarded-proto') || req.protocol || 'http').split(',')[0] || 'http').trim();
+  const host = ((req.get('x-forwarded-host') || req.get('host') || '').split(',')[0] || '').trim().toLowerCase();
+
+  if (!host) {
+    throw new Error('Unable to determine callback host');
+  }
+
+  if (EVENTSUB_ALLOWED_HOSTS.length > 0 && !EVENTSUB_ALLOWED_HOSTS.includes(host)) {
+    throw new Error(`Host not allowed for EventSub callback: ${host}`);
+  }
+
+  return `${protocol}://${host}/webhooks/eventsub`;
 }
 
 // Test auth import
@@ -222,7 +256,7 @@ try {
     }
 
     try {
-      const webhookUrl = `${req.protocol}://${req.get('host')}/webhooks/eventsub`;
+      const webhookUrl = getEventSubWebhookUrl(req);
       
       const subscriptionData = {
         type: eventType,
@@ -248,10 +282,10 @@ try {
       });
 
       const result = await response.json();
-      res.json(result);
+      return res.status(response.status).json(result);
     } catch (error) {
       console.error('EventSub subscription error:', error);
-      res.status(500).json({ error: 'Failed to create subscription' });
+      return res.status(500).json({ error: 'Failed to create subscription', details: error.message });
     }
   });
 
