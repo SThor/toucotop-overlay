@@ -177,7 +177,7 @@ try {
       'user', 'channel', 'stream', 'followers', 'subscribers', 'validate',
       'clips', 'videos', 'schedule', 'polls', 'predictions', 'goals', 
       'emotes', 'chatters', 'moderators', 'vips', 'games',
-      'hypetrain', 'bits', 'channelpoints', 'raids', 'ads'
+      'hypetrain', 'bits', 'channelpoints'
     ];
     if (!validEndpoints.includes(endpoint)) {
       return res.status(404).json({ error: 'Unknown endpoint' });
@@ -366,24 +366,6 @@ try {
             data = await rewardsResponse.json();
           } catch (error) {
             data = { error: 'Channel points requires channel:read:redemptions scope', details: error.message };
-          }
-          break;
-
-        case 'raids':
-          try {
-            // This endpoint doesn't exist directly, but we can simulate with stream data
-            data = { message: 'Raids are real-time events - use EventSub for notifications', data: [] };
-          } catch (error) {
-            data = { error: 'Raids endpoint failed', details: error.message };
-          }
-          break;
-
-        case 'ads':
-          try {
-            // Get recent ad schedule if available
-            data = { message: 'Ad schedule not available via API', data: [] };
-          } catch (error) {
-            data = { error: 'Ads endpoint not available', details: error.message };
           }
           break;
       }
