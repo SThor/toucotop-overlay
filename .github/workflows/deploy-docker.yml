@@ -50,13 +50,20 @@ jobs:
           
           echo "✅ OAuth environment configured (persistent .env file)"
           
+          # Stop old container first to ensure fresh start
+          docker compose down toucotop-overlay-staging || echo "Container wasn't running"
+          
           # Pull new image and restart service
           docker compose pull toucotop-overlay-staging
           docker compose up -d toucotop-overlay-staging
           
           # Verify deployment
-          sleep 10
+          sleep 15
+          echo "📊 Container status:"
           docker compose ps toucotop-overlay-staging
+          
+          echo "🔍 Container logs (last 20 lines):"
+          docker compose logs --tail=20 toucotop-overlay-staging
           
           # Health checks
           echo "🔍 Testing endpoints..."

@@ -31,10 +31,12 @@ try {
   app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Create session for OAuth flow
+    name: 'oauth.session', // Custom session name
     cookie: { 
       secure: true, // HTTPS required for secure cookies
       httpOnly: true,
+      sameSite: 'lax', // Allow cookies during redirects
       maxAge: 10 * 60 * 1000 // 10 minutes
     }
   }));
