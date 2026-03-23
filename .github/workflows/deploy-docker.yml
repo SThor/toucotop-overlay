@@ -60,34 +60,9 @@ jobs:
             echo "❌ Directory /home/ubuntu/infra-docs does not exist"
           fi
           
-          # Try to change directory with more explicit error handling
-          echo "🔍 Attempting to change to infra-docs directory..."
-          cd /home/ubuntu/infra-docs || {
-            echo "❌ Failed to cd to /home/ubuntu/infra-docs"
-            echo "🔍 Creating alternative approach..."
-            # Create the .env file using absolute path instead
-            echo "TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}" > /home/ubuntu/infra-docs/.env
-            echo "TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}" >> /home/ubuntu/infra-docs/.env
-            echo "✅ OAuth environment configured via absolute path"
-            # Use absolute paths for docker compose commands
-            docker compose -f /home/ubuntu/infra-docs/docker-compose.yml down toucotop-overlay-staging || echo "Container wasn't running"
-            docker compose -f /home/ubuntu/infra-docs/docker-compose.yml pull toucotop-overlay-staging
-            docker compose -f /home/ubuntu/infra-docs/docker-compose.yml up -d toucotop-overlay-staging
-            # Skip to verification section
-            sleep 15
-            echo "📊 Container status:"
-            docker compose -f /home/ubuntu/infra-docs/docker-compose.yml ps toucotop-overlay-staging
-            echo "🔍 Container logs (last 20 lines):"
-            docker compose -f /home/ubuntu/infra-docs/docker-compose.yml logs --tail=20 toucotop-overlay-staging
-            # Health checks
-            echo "🔍 Testing endpoints..."
-            curl -f http://localhost:3000/health && echo "✅ Health check passed" || echo "⚠️ Health check failed"
-            curl -f http://localhost:3000/auth/status && echo "✅ OAuth endpoints responding" || echo "⚠️ OAuth endpoints not responding"
-            echo "🚀 Deployed staging to port 3000 with OAuth support"
-            exit 0
-          }
-          
-          # If we successfully cd'ed, continue with the original approach
+          # Change to infra-docs directory
+          echo "🔍 Changing to infra-docs directory..."
+          cd /home/ubuntu/infra-docs
           # Create/update .env file for docker-compose with OAuth secrets
           cat > .env << EOF
           TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
