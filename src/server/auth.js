@@ -77,9 +77,24 @@ router.get('/twitch', (req, res) => {
   req.session.oauthState = state;
 
   const scopes = [
-    'user:read:email',          // Get user info
-    'moderator:read:followers', // Read follower data
-    'channel:read:subscriptions' // Read subscriber data
+    // Core user data
+    'user:read:email',              // Get user info and email
+    
+    // Community data
+    'moderator:read:followers',     // Read follower data
+    'channel:read:subscriptions',   // Read subscriber data
+    'moderator:read:chatters',      // Read active chat members
+    'moderation:read',              // Read moderator list
+    'channel:read:vips',            // Read VIP users
+    
+    // Interactive features
+    'channel:read:polls',           // Read active polls
+    'channel:read:predictions',     // Read predictions
+    'channel:read:redemptions',     // Read channel point rewards/redemptions  
+    'channel:read:goals',           // Read creator goals
+    
+    // Additional features
+    'bits:read'                     // Read bits leaderboard
   ];
 
   const authUrl = `https://id.twitch.tv/oauth2/authorize?` +
