@@ -491,16 +491,6 @@
           <button class="card-button" onclick="fetchEndpoint('bits', this)">Fetch Bits</button>
           <div class="card-data" id="bits-data">Click button to load...</div>
         </div>
-
-        <div class="api-card">
-          <div class="card-header">
-            <h3 class="card-title">Stream Tags</h3>
-            <span class="card-icon">🏷️</span>
-          </div>
-          <p class="card-description">Stream tags and categories for content discovery</p>
-          <button class="card-button" onclick="fetchEndpoint('tags', this)">Fetch Tags</button>
-          <div class="card-data" id="tags-data">Click button to load...</div>
-        </div>
       </div>
     </div>
 
@@ -602,8 +592,7 @@
         
         // Additional endpoints
         { name: 'Channel Emotes', endpoint: 'emotes', category: 'Additional', overlayUse: 'Chat integration features' },
-        { name: 'Bits Leaderboard', endpoint: 'bits', category: 'Additional', overlayUse: 'Top supporter display' },
-        { name: 'Stream Tags', endpoint: 'tags', category: 'Additional', overlayUse: 'Content categorization' }
+        { name: 'Bits Leaderboard', endpoint: 'bits', category: 'Additional', overlayUse: 'Top supporter display' }
       ];
 
       const results = {

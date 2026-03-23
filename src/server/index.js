@@ -176,7 +176,7 @@ try {
     const validEndpoints = [
       'user', 'channel', 'stream', 'followers', 'subscribers', 'validate',
       'clips', 'videos', 'schedule', 'polls', 'predictions', 'goals', 
-      'emotes', 'chatters', 'moderators', 'vips', 'games', 'tags',
+      'emotes', 'chatters', 'moderators', 'vips', 'games',
       'hypetrain', 'bits', 'channelpoints', 'raids', 'ads'
     ];
     if (!validEndpoints.includes(endpoint)) {
@@ -339,15 +339,6 @@ try {
             }
           } catch (error) {
             data = { error: 'Games endpoint failed', details: error.message };
-          }
-          break;
-
-        case 'tags':
-          try {
-            const tagsResponse = await fetch(`https://api.twitch.tv/helix/streams/tags?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await tagsResponse.json();
-          } catch (error) {
-            data = { error: 'Tags endpoint failed (may be deprecated)', details: error.message };
           }
           break;
 
