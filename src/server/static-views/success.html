@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Success - Toucotop Overlay</title>
+  <link rel="stylesheet" href="server-pages.css">
+  <style>
+    .success-code {
+      color: #28a745;
+    }
+    .token-box {
+      font-family: 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #666;
+      border-left: 3px solid #28a745;
+      word-break: break-all;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .url-box {
+      font-family: 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: #666;
+      word-break: break-all;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .copy-btn {
+      background: #666;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+    .copy-btn:hover {
+      background: #555;
+    }
+    .copy-btn.copied {
+      background: #28a745;
+    }
+    @media (prefers-color-scheme: dark) {
+      .token-box, .url-box {
+        background: #2a2a2a;
+        color: #aaa;
+      }
+      .token-box {
+        border-left-color: #28a745;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="error-code success-code">✅</div>
+    <h1 class="error-title">Authentication Successful!</h1>
+    <p class="error-message">
+      Welcome, <strong>{{DISPLAY_NAME}}</strong>! Your overlay is now connected to your Twitch account.
+    </p>
+    
+    <div class="details-section">
+      <h3>🎯 Your Overlay Token</h3>
+      <p>Use this token in OBS Browser Source URLs:</p>
+      <div class="token-box">
+        <span>{{OVERLAY_TOKEN}}</span>
+        <button class="copy-btn" onclick="copyToClipboard('{{OVERLAY_TOKEN}}', this)">📋 Copy</button>
+      </div>
+    </div>
+    
+    <div class="details-section">
+      <h3>📺 OBS Browser Source URLs</h3>
+      
+      <p><strong>Chat Overlay:</strong></p>
+      <div class="url-box">
+        <span>{{CHAT_URL}}</span>
+        <button class="copy-btn" onclick="copyToClipboard('{{CHAT_URL}}', this)">📋 Copy</button>
+      </div>
+      
+      <p><strong>Clock Overlay:</strong></p>
+      <div class="url-box">
+        <span>{{CLOCK_URL}}</span>
+        <button class="copy-btn" onclick="copyToClipboard('{{CLOCK_URL}}', this)">📋 Copy</button>
+      </div>
+      
+      <p><strong>Bar Overlay:</strong></p>
+      <div class="url-box">
+        <span>{{BAR_URL}}</span>
+        <button class="copy-btn" onclick="copyToClipboard('{{BAR_URL}}', this)">📋 Copy</button>
+      </div>
+    </div>
+    
+    <div class="details-section">
+      <h3>📋 Next Steps</h3>
+      <ol>
+        <li>Copy one of the URLs above</li>
+        <li>In OBS, add a Browser Source</li>
+        <li>Paste the URL and set size (recommended: 1920x1080)</li>
+        <li>Your overlay will now show real follower/subscriber data!</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    async function copyToClipboard(text, button) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalText = button.textContent;
+        button.textContent = '✅ Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove('copied');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+        button.textContent = '❌ Failed';
+        setTimeout(() => {
+          button.textContent = '📋 Copy';
+        }, 2000);
+      }
+    }
+  </script>
+</body>
+</html>

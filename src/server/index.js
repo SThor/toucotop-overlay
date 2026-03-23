@@ -77,16 +77,50 @@ try {
     next();
   }, authRoutes.default);
 
+  // Root route - landing page or success page
+  app.get('/', (req, res) => {
+    console.log('🏠 Root route accessed');
+    
+    // Check if user has success data in session
+    if (req.session?.authSuccess) {
+      console.log('✅ Showing success page for user:', req.session.authSuccess.displayName);
+      
+      try {
+        const successHtml = readFileSync(path.join(__dirname, 'static-views', 'success.html'), 'utf-8');
+        const personalizedHtml = successHtml
+          .replace(/\{\{DISPLAY_NAME\}\}/g, req.session.authSuccess.displayName)
+          .replace(/\{\{OVERLAY_TOKEN\}\}/g, req.session.authSuccess.overlayToken)
+          .replace(/\{\{CHAT_URL\}\}/g, `${req.protocol}://${req.get('host')}/chat?token=${req.session.authSuccess.overlayToken}`)
+          .replace(/\{\{CLOCK_URL\}\}/g, `${req.protocol}://${req.get('host')}/clock?token=${req.session.authSuccess.overlayToken}`)
+          .replace(/\{\{BAR_URL\}\}/g, `${req.protocol}://${req.get('host')}/bar?token=${req.session.authSuccess.overlayToken}`);
+        
+        return res.send(personalizedHtml);
+      } catch (error) {
+        console.error('Failed to read success page:', error);
+        // Fall through to landing page
+      }
+    }
+    
+    // Show landing page
+    try {
+      const landingHtml = readFileSync(path.join(__dirname, 'static-views', 'landing.html'), 'utf-8');
+      res.send(landingHtml);
+    } catch (error) {
+      console.error('Failed to read landing page:', error);
+      res.status(500).send('Server error');
+    }
+  });
+
   console.log('📁 Setting up static files...');
   // Serve static files from dist directory
   app.use(express.static(path.join(__dirname, '../../dist')));
   
-  // Serve error page CSS file (multiple paths for auth routes)
-  app.get('/error-pages.css', (req, res) => {
-    res.sendFile(path.join(__dirname, 'static-views', 'error-pages.css'));
+  // Serve server pages CSS file (multiple paths for auth routes)
+  app.get('/server-pages.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'static-views', 'server-pages.css'));
   });
-  app.get('/auth/error-pages.css', (req, res) => {
-    res.sendFile(path.join(__dirname, 'static-views', 'error-pages.css'));
+  app.get('/auth/server-pages.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'static-views', 'server-pages.css'));
   });
 
   console.log('🔀 Setting up catch-all route...');

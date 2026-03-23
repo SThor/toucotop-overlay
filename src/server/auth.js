@@ -185,100 +185,17 @@ router.get('/callback', async (req, res) => {
       displayName: user.display_name
     });
 
-    // Return success page with overlay token
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>OAuth Success - Toucotop Overlay</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { 
-              font-family: system-ui, sans-serif; 
-              max-width: 600px; 
-              margin: 50px auto; 
-              padding: 20px;
-              background: #1f0f01;
-              color: #ffebdb;
-            }
-            .success { 
-              background: rgba(229, 109, 12, 0.1); 
-              border: 1px solid #e56d0c; 
-              padding: 20px; 
-              border-radius: 8px; 
-              margin-bottom: 20px;
-            }
-            .token { 
-              background: rgba(255, 255, 255, 0.05); 
-              padding: 15px; 
-              border-radius: 4px; 
-              font-family: monospace; 
-              font-size: 14px;
-              word-break: break-all;
-              margin: 10px 0;
-            }
-            .url { 
-              background: rgba(255, 255, 255, 0.05); 
-              padding: 15px; 
-              border-radius: 4px; 
-              font-family: monospace; 
-              font-size: 12px;
-              word-break: break-all;
-            }
-            button {
-              background: #e56d0c;
-              color: white;
-              border: none;
-              padding: 10px 15px;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 14px;
-            }
-            button:hover { background: #d1610b; }
-          </style>
-        </head>
-        <body>
-          <div class="success">
-            <h2>✅ Authentication Successful!</h2>
-            <p>Welcome, <strong>${user.display_name}</strong>! Your overlay is now connected to your Twitch account.</p>
-          </div>
-          
-          <h3>🎯 Your Overlay Token</h3>
-          <p>Use this token in OBS Browser Source URLs:</p>
-          <div class="token" id="token">${overlayToken}</div>
-          <button onclick="copyToken()">📋 Copy Token</button>
-          
-          <h3>📺 OBS Browser Source URLs</h3>
-          <p><strong>Chat Overlay:</strong></p>
-          <div class="url">${req.protocol}://${req.get('host')}/chat?token=${overlayToken}</div>
-          
-          <p><strong>Clock Overlay:</strong></p>
-          <div class="url">${req.protocol}://${req.get('host')}/clock?token=${overlayToken}</div>
-          
-          <p><strong>Bar Overlay:</strong></p>
-          <div class="url">${req.protocol}://${req.get('host')}/bar?token=${overlayToken}</div>
-          
-          <h3>📋 Next Steps</h3>
-          <ol>
-            <li>Copy one of the URLs above</li>
-            <li>In OBS, add a Browser Source</li>
-            <li>Paste the URL and set size (recommended: 1920x1080)</li>
-            <li>Your overlay will now show real follower/subscriber data!</li>
-          </ol>
-          
-          <script>
-            function copyToken() {
-              navigator.clipboard.writeText('${overlayToken}').then(() => {
-                alert('Token copied to clipboard!');
-              });
-            }
-          </script>
-        </body>
-      </html>
-    `);
+    // Store success data in session for display on root page
+    req.session.authSuccess = {
+      displayName: user.display_name,
+      overlayToken,
+      username
+    };
 
     console.log(`✅ OAuth completed for ${username}, overlay token: ${overlayToken}`);
+    
+    // Redirect to root page which will show success page
+    res.redirect('/');
 
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
