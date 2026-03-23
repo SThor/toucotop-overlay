@@ -149,6 +149,100 @@ body {
   }
 }
 
+/* Success page specific styles */
+.success-code {
+  color: #28a745;
+}
+
+.token-box {
+  font-family: 'Courier New', monospace;
+  background: #f5f5f5;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #666;
+  border-left: 3px solid #28a745;
+  word-break: break-all;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.url-box {
+  font-family: 'Courier New', monospace;
+  background: #f5f5f5;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #666;
+  word-break: break-all;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.copy-btn {
+  background: #666;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: #555;
+}
+
+.copy-btn.copied {
+  background: #28a745;
+}
+
+.expiry-info {
+  margin: 15px 0;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.expiry-info strong {
+  color: #495057;
+}
+
+#expiry-time {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .token-box,
+  .url-box {
+    background: #2a2a2a;
+    color: #aaa;
+  }
+  
+  .token-box {
+    border-left-color: #28a745;
+  }
+  
+  .expiry-info {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #aaa;
+  }
+  
+  .expiry-info strong {
+    color: #ccc;
+  }
+}
+
 @media (max-width: 600px) {
   .container {
     padding: 1rem;

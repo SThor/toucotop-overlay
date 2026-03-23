@@ -206,7 +206,8 @@ router.get('/callback', async (req, res) => {
     req.session.authSuccess = {
       displayName: user.display_name,
       overlayToken,
-      username
+      username,
+      overlayExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
     };
 
     console.log(`✅ OAuth completed for ${username}${process.env.NODE_ENV !== 'production' ? `, overlay token: ${overlayToken.slice(0, 12)}...` : ''}`);
