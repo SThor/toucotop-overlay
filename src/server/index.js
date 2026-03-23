@@ -22,12 +22,22 @@ function escapeHtml(unsafe) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const EVENTSUB_SECRET = process.env.EVENTSUB_SECRET;
+const MIN_EVENTSUB_SECRET_LENGTH = 32;
 const EVENTSUB_CALLBACK_URL = process.env.EVENTSUB_CALLBACK_URL;
 const EVENTSUB_PUBLIC_BASE_URL = process.env.EVENTSUB_PUBLIC_BASE_URL;
 const EVENTSUB_ALLOWED_HOSTS = (process.env.EVENTSUB_ALLOWED_HOSTS || '')
   .split(',')
   .map(h => h.trim().toLowerCase())
   .filter(Boolean);
+
+if (EVENTSUB_SECRET && EVENTSUB_SECRET.length < MIN_EVENTSUB_SECRET_LENGTH) {
+  throw new Error(`EVENTSUB_SECRET must be at least ${MIN_EVENTSUB_SECRET_LENGTH} characters long`);
+}
+
+if (process.env.NODE_ENV === 'production' && !EVENTSUB_SECRET) {
+  throw new Error('EVENTSUB_SECRET must be set in production');
+}
 
 // EventSub event storage (in-memory for now)
 const eventStore = {
@@ -200,11 +210,14 @@ try {
   // EventSub webhook endpoints  
   app.post('/webhooks/eventsub', express.raw({ type: 'application/json' }), (req, res) => {
     const messageType = req.headers['twitch-eventsub-message-type'];
-    const secret = process.env.EVENTSUB_SECRET || 'your-webhook-secret';
+
+    if (!EVENTSUB_SECRET) {
+      return res.status(503).send('EventSub is not configured');
+    }
     
     // Verify HMAC signature (except for webhook challenge)
     if (messageType !== 'webhook_callback_verification') {
-      if (!verifyEventSubSignature(req.headers, req.body, secret)) {
+      if (!verifyEventSubSignature(req.headers, req.body, EVENTSUB_SECRET)) {
         console.warn('❌ Invalid EventSub signature, rejecting request');
         return res.status(403).send('Forbidden: Invalid signature');
       }
@@ -255,6 +268,10 @@ try {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
+    if (!EVENTSUB_SECRET) {
+      return res.status(500).json({ error: 'EventSub secret is not configured' });
+    }
+
     try {
       const webhookUrl = getEventSubWebhookUrl(req);
       
@@ -267,7 +284,7 @@ try {
         transport: {
           method: 'webhook',
           callback: webhookUrl,
-          secret: process.env.EVENTSUB_SECRET || 'your-webhook-secret'
+          secret: EVENTSUB_SECRET
         }
       };
 
