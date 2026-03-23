@@ -8,9 +8,9 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-// Ensure tokens directory exists
+// Ensure tokens directory exists with restrictive permissions
 if (!fs.existsSync(TOKENS_DIR)) {
-  fs.mkdirSync(TOKENS_DIR, { recursive: true });
+  fs.mkdirSync(TOKENS_DIR, { recursive: true, mode: 0o700 });
 }
 
 /**
@@ -20,18 +20,22 @@ if (!fs.existsSync(TOKENS_DIR)) {
  * @param {string} tokenData.accessToken - Twitch access token
  * @param {string} tokenData.refreshToken - Twitch refresh token
  * @param {string} tokenData.overlayToken - Generated overlay token for OBS
- * @param {Date} tokenData.expiresAt - Token expiration
+ * @param {Date} tokenData.expiresAt - Access token expiration
  */
 export function storeUserTokens(username, tokenData) {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  const now = new Date();
+  const overlayExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+  
   const data = {
     ...tokenData,
     username,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    overlayExpiresAt: overlayExpiry.toISOString() // Separate expiry for overlay token
   };
   
-  fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2));
+  fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
   console.log(`✅ Stored tokens for user: ${username}`);
 }
 
@@ -50,10 +54,10 @@ export function getUserTokens(username) {
   try {
     const data = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
     
-    // Check if token is expired
+    // Check if access token is expired (but still return data for potential refresh)
     if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
-      console.log(`⚠️ Token expired for user: ${username}`);
-      return null;
+      console.log(`⚠️ Access token expired for user: ${username} (may need refresh)`);
+      // Don't return null - let the caller decide if they need to refresh
     }
     
     return data;
@@ -79,9 +83,9 @@ export function getUserByOverlayToken(overlayToken) {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       
       if (data.overlayToken === overlayToken) {
-        // Check if token is expired
-        if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
-          console.log(`⚠️ Expired token used: ${overlayToken}`);
+        // Check if overlay token is expired (separate from access token)
+        if (data.overlayExpiresAt && new Date(data.overlayExpiresAt) < new Date()) {
+          console.log(`⚠️ Expired overlay token used: ${overlayToken}`);
           return null;
         }
         

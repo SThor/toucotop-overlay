@@ -3,19 +3,31 @@ import { randomUUID } from 'crypto';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ApiClient } from '@twurple/api';
-import { AppTokenAuthProvider, exchangeCode } from '@twurple/auth';
+import { exchangeCode } from '@twurple/auth';
 import { storeUserTokens, getUserByOverlayToken } from './storage.js';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// HTML escape function to prevent XSS in template replacements
+function escapeHtml(unsafe) {
+  if (typeof unsafe !== 'string') return String(unsafe);
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;") 
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Server-side environment variables (more secure for OAuth)
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
-const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['toucotop', 'silmassan'];
+const ALLOWED_USERS = process.env.ALLOWED_USERS 
+  ? process.env.ALLOWED_USERS.split(',').map(u => u.trim().toLowerCase()).filter(Boolean)
+  : ['toucotop', 'silmassan'];
 
   console.log('🔧 OAuth Configuration:');
   console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
@@ -122,10 +134,6 @@ router.get('/callback', async (req, res) => {
     // Exchange authorization code for access token
     const tokenData = await exchangeCode(CLIENT_ID, CLIENT_SECRET, code, REDIRECT_URI);
     
-    // Create API client to get user info
-    const authProvider = new AppTokenAuthProvider(CLIENT_ID, CLIENT_SECRET);
-    const apiClient = new ApiClient({ authProvider });
-    
     // Get user information
     const userResponse = await fetch('https://api.twitch.tv/helix/users', {
       headers: {
@@ -155,7 +163,7 @@ router.get('/callback', async (req, res) => {
       // Serve access denied page
       try {
         const accessDeniedHtml = readFileSync(path.join(__dirname, 'static-views', 'access-denied.html'), 'utf-8');
-        const personalizedHtml = accessDeniedHtml.replace('{{USERNAME}}', username);
+        const personalizedHtml = accessDeniedHtml.replace('{{USERNAME}}', escapeHtml(username));
         return res.status(403).send(personalizedHtml);
       } catch (error) {
         console.error('Failed to read access denied page:', error);
@@ -187,7 +195,7 @@ router.get('/callback', async (req, res) => {
       username
     };
 
-    console.log(`✅ OAuth completed for ${username}, overlay token: ${overlayToken}`);
+    console.log(`✅ OAuth completed for ${username}${process.env.NODE_ENV !== 'production' ? `, overlay token: ${overlayToken.slice(0, 12)}...` : ''}`);
     
     // Redirect to root page which will show success page
     res.redirect('/');

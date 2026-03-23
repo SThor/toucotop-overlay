@@ -8,6 +8,17 @@ import session from 'express-session';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// HTML escape function to prevent XSS in template replacements
+function escapeHtml(unsafe) {
+  if (typeof unsafe !== 'string') return String(unsafe);
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;") 
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -29,24 +40,27 @@ try {
     console.log('🔒 Trust proxy enabled');
   }
 
-  // Debug logging with session info for auth routes only
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/auth/') && process.env.NODE_ENV !== 'production') {
-      console.log(`🔑 Auth Debug - Session ID: ${req.sessionID}, Cookie: ${req.headers.cookie ? 'Present' : 'Missing'}`);
-    }
-    next();
-  });
-
   // Session middleware for OAuth state persistence
   const isProduction = process.env.NODE_ENV === 'production';
   const isSecure = process.env.COOKIE_SECURE === 'true' || isProduction;
   
+  let sessionSecret = process.env.SESSION_SECRET;
+  
+  if (isProduction && !sessionSecret) {
+    throw new Error('SESSION_SECRET environment variable must be set in production');
+  }
+  
+  if (!sessionSecret) {
+    // Safe default for non-production environments only
+    sessionSecret = 'dev-secret-change-in-production';
+  }
+  
   console.log(`🍪 Cookie configuration: secure=${isSecure}, env=${process.env.NODE_ENV}`);
   
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+    secret: sessionSecret,
     resave: false,
-    saveUninitialized: true, // Create session for OAuth flow
+    saveUninitialized: false, // Only persist sessions that are actually used (e.g., during OAuth flow)
     name: 'oauth_session', // Custom session name (no dots)
     cookie: { 
       secure: isSecure, // Environment-aware secure flag
@@ -56,6 +70,14 @@ try {
       domain: process.env.COOKIE_DOMAIN || undefined // Allow custom domain setting
     }
   }));
+
+  // Debug logging with session info for auth routes only (after session middleware)
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/auth/') && process.env.NODE_ENV !== 'production') {
+      console.log(`🔑 Auth Debug - Session ID: ${req.sessionID}, Cookie: ${req.headers.cookie ? 'Present' : 'Missing'}`);
+    }
+    next();
+  });
 
   // Health check endpoint (before static files)
   app.get('/health', (req, res) => {
@@ -77,11 +99,11 @@ try {
       try {
         const successHtml = readFileSync(path.join(__dirname, 'static-views', 'success.html'), 'utf-8');
         const personalizedHtml = successHtml
-          .replace(/\{\{DISPLAY_NAME\}\}/g, req.session.authSuccess.displayName)
-          .replace(/\{\{OVERLAY_TOKEN\}\}/g, req.session.authSuccess.overlayToken)
-          .replace(/\{\{CHAT_URL\}\}/g, `${req.protocol}://${req.get('host')}/chat?token=${req.session.authSuccess.overlayToken}`)
-          .replace(/\{\{CLOCK_URL\}\}/g, `${req.protocol}://${req.get('host')}/clock?token=${req.session.authSuccess.overlayToken}`)
-          .replace(/\{\{BAR_URL\}\}/g, `${req.protocol}://${req.get('host')}/bar?token=${req.session.authSuccess.overlayToken}`);
+          .replace(/\{\{DISPLAY_NAME\}\}/g, escapeHtml(req.session.authSuccess.displayName))
+          .replace(/\{\{OVERLAY_TOKEN\}\}/g, escapeHtml(req.session.authSuccess.overlayToken))
+          .replace(/\{\{CHAT_URL\}\}/g, `${req.protocol}://${req.get('host')}/chat?token=${encodeURIComponent(req.session.authSuccess.overlayToken)}`)
+          .replace(/\{\{CLOCK_URL\}\}/g, `${req.protocol}://${req.get('host')}/clock?token=${encodeURIComponent(req.session.authSuccess.overlayToken)}`)
+          .replace(/\{\{BAR_URL\}\}/g, `${req.protocol}://${req.get('host')}/bar?token=${encodeURIComponent(req.session.authSuccess.overlayToken)}`);
         
         return res.send(personalizedHtml);
       } catch (error) {
@@ -118,8 +140,8 @@ try {
     try {
       const demoHtml = readFileSync(path.join(__dirname, 'static-views', 'demo.html'), 'utf-8');
       const personalizedHtml = demoHtml
-        .replace(/\{\{DISPLAY_NAME\}\}/g, userData.displayName)
-        .replace(/\{\{OVERLAY_TOKEN\}\}/g, token);
+        .replace(/\{\{DISPLAY_NAME\}\}/g, escapeHtml(userData.displayName))
+        .replace(/\{\{OVERLAY_TOKEN\}\}/g, escapeHtml(token));
       
       res.send(personalizedHtml);
     } catch (error) {
@@ -221,7 +243,7 @@ try {
   app.get('*', (req, res) => {
     try {
       const html404 = readFileSync(path.join(__dirname, 'static-views', '404.html'), 'utf-8');
-      const personalizedHtml = html404.replace('{{REQUEST_PATH}}', req.path);
+      const personalizedHtml = html404.replace('{{REQUEST_PATH}}', escapeHtml(req.path));
       res.status(404).send(personalizedHtml);
     } catch (error) {
       console.error('Error serving 404 page:', error);
