@@ -9,7 +9,7 @@ const router = express.Router();
 // Server-side environment variables (more secure for OAuth)
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://overlay-staging.touco.top/auth/callback';
+const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
 const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['toucotop', 'sthor'];
 
 console.log('🔧 OAuth Configuration:');
