@@ -2,7 +2,7 @@ name: Deploy Overlay
 
 on:
   push:
-    branches: [ docker-migration ]
+    branches: [ docker-migration, oauth-integration ]
   workflow_dispatch:
 
 jobs:
@@ -42,6 +42,14 @@ jobs:
           # Update staging service in global docker-compose
           cd /home/ubuntu/infra-docs
           
+          # Create/update .env file for docker-compose with OAuth secrets
+          cat > .env << EOF
+          TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
+          EOF
+          
+          echo "✅ OAuth environment configured (persistent .env file)"
+          
           # Pull new image and restart service
           docker compose pull toucotop-overlay-staging
           docker compose up -d toucotop-overlay-staging
@@ -49,5 +57,10 @@ jobs:
           # Verify deployment
           sleep 10
           docker compose ps toucotop-overlay-staging
-          curl -f http://localhost:3000/health || echo "⚠️ Staging health check failed"
-          echo "🚀 Deployed staging to port 3000"
+          
+          # Health checks
+          echo "🔍 Testing endpoints..."
+          curl -f http://localhost:3000/health && echo "✅ Health check passed" || echo "⚠️ Health check failed"
+          curl -f http://localhost:3000/auth/status && echo "✅ OAuth endpoints responding" || echo "⚠️ OAuth endpoints not responding"
+          
+          echo "🚀 Deployed staging to port 3000 with OAuth support"
