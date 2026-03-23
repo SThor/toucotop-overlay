@@ -2,7 +2,7 @@ name: Deploy Overlay
 
 on:
   push:
-    branches: [ docker-migration, oauth-integration ]
+    branches: [ docker-migration ]
   workflow_dispatch:
 
 jobs:
