@@ -850,7 +850,7 @@
       const statusDiv = document.getElementById('eventsub-status');
       
       statusDiv.textContent = 'Creating subscription...';
-      statusDiv.className = 'card-data pending';
+      statusDiv.className = 'card-data loading';
       
       try {
         const response = await fetch('/api/eventsub/subscribe', {
