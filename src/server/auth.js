@@ -16,6 +16,15 @@ console.log('🔧 OAuth Configuration:');
 console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
 console.log(`   Redirect URI: ${REDIRECT_URI}`);
 console.log(`   Allowed Users: ${ALLOWED_USERS.join(', ')}`);
+console.log('🛠️ Auth routes registered: /auth/twitch, /auth/callback, /auth/status');
+
+/**
+ * GET /auth/test
+ * Simple test endpoint
+ */
+router.get('/test', (req, res) => {
+  res.json({ message: 'Auth routes are working!', timestamp: new Date().toISOString() });
+});
 
 /**
  * GET /auth/twitch

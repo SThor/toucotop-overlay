@@ -14,6 +14,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Debug logging
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.path}`);
+  next();
+});
+
 // Simple session middleware (for OAuth state)
 app.use((req, res, next) => {
   if (!req.session) {
@@ -22,16 +28,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// OAuth routes
+// Health check endpoint (before static files)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// OAuth routes (before static files)
 app.use('/auth', authRoutes);
 
 // Serve static files from dist directory
 app.use(express.static(path.join(__dirname, '../../dist')));
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // API routes for overlay data will be added next
 // For now, all other requests go to React app
