@@ -740,9 +740,17 @@
       // Generate comprehensive analysis
       results.analysis = {
         successRate: ((results.summary.successful / results.totalEndpoints) * 100).toFixed(1) + '%',
-        averageResponseTime: Object.values(results.results)
-          .filter(r => r.responseTime)
-          .reduce((acc, r) => acc + r.responseTime, 0) / results.summary.successful || 0,
+        averageResponseTime: (() => {
+          const successfulWithTime = Object.values(results.results)
+            .filter(r => r.success && typeof r.responseTime === 'number');
+
+          if (successfulWithTime.length === 0) {
+            return 0;
+          }
+
+          const totalResponseTime = successfulWithTime.reduce((acc, r) => acc + r.responseTime, 0);
+          return totalResponseTime / successfulWithTime.length;
+        })(),
         workingEndpoints: Object.values(results.results).filter(r => r.success).map(r => r.endpoint),
         failingEndpoints: Object.values(results.results).filter(r => !r.success).map(r => r.endpoint),
         readinessAssessment: generateReadinessAssessment(results),
