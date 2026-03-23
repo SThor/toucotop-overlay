@@ -797,13 +797,20 @@
     }
 
     function refreshAll() {
-      const allButtons = document.querySelectorAll('.card-button');
+      const allButtons = Array.from(document.querySelectorAll('.card-button')).filter(btn => {
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        return onclickAttr.includes("fetchEndpoint('");
+      });
       const delay = 200; // Stagger requests
       
       allButtons.forEach((btn, index) => {
         btn.disabled = true;
         setTimeout(() => {
-          btn.click();
+          const onclickAttr = btn.getAttribute('onclick') || '';
+          const match = onclickAttr.match(/fetchEndpoint\('([^']+)'/);
+          if (match && match[1]) {
+            fetchEndpoint(match[1], btn);
+          }
         }, index * delay);
       });
       
@@ -813,7 +820,8 @@
     }
 
     function clearAll() {
-      document.querySelectorAll('.card-data').forEach(element => {
+      // Reset only generic endpoint result panels, not special instruction panels
+      document.querySelectorAll('.card-data:not(#analysis-data):not(#eventsub-status)').forEach(element => {
         element.textContent = 'Click button to load...';
         element.className = 'card-data';
       });
