@@ -31,7 +31,11 @@ try {
   console.log('✅ Auth module imported successfully:', Object.keys(authRoutes));
   
   // Middleware
-  app.use(cors());
+  const corsOptions = {
+    origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? false : true),
+    credentials: true
+  };
+  app.use(cors(corsOptions));
   app.use(express.json());
   
   // Trust proxy when behind reverse proxy/load balancer
@@ -76,6 +80,14 @@ try {
     if (req.path.startsWith('/auth/') && process.env.NODE_ENV !== 'production') {
       console.log(`🔑 Auth Debug - Session ID: ${req.sessionID}, Cookie: ${req.headers.cookie ? 'Present' : 'Missing'}`);
     }
+    
+    // Add security headers for auth routes
+    if (req.path.startsWith('/auth/')) {
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+    
     next();
   });
 
@@ -159,6 +171,12 @@ try {
       return res.status(401).json({ error: 'Missing token' });
     }
 
+    // Validate endpoint parameter
+    const validEndpoints = ['user', 'channel', 'stream', 'followers', 'subscribers', 'validate'];
+    if (!validEndpoints.includes(endpoint)) {
+      return res.status(404).json({ error: 'Unknown endpoint' });
+    }
+
     const userData = getUserByOverlayToken(token);
     if (!userData) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -211,9 +229,6 @@ try {
           });
           data = await validateResponse.json();
           break;
-
-        default:
-          return res.status(404).json({ error: 'Unknown endpoint' });
       }
 
       res.json(data);
@@ -261,7 +276,7 @@ try {
   console.error('❌ Failed to import auth module:', error);
   
   // Fallback server without auth
-  app.use(cors());
+  app.use(cors({ origin: false })); // Disable CORS in fallback mode for security
   app.use(express.json());
   
   app.get('/health', (req, res) => {

@@ -29,6 +29,13 @@ const ALLOWED_USERS = process.env.ALLOWED_USERS
   ? process.env.ALLOWED_USERS.split(',').map(u => u.trim().toLowerCase()).filter(Boolean)
   : ['toucotop', 'silmassan'];
 
+// Validate required environment variables at startup
+if (process.env.NODE_ENV === 'production') {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET must be set in production');
+  }
+}
+
   console.log('🔧 OAuth Configuration:');
   console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`   Redirect URI: ${REDIRECT_URI}`);
@@ -55,6 +62,13 @@ router.get('/twitch', (req, res) => {
     return res.status(500).json({ 
       error: 'OAuth not configured', 
       message: 'Missing TWITCH_CLIENT_ID environment variable' 
+    });
+  }
+
+  if (!CLIENT_SECRET) {
+    return res.status(500).json({ 
+      error: 'OAuth not configured', 
+      message: 'Missing TWITCH_CLIENT_SECRET environment variable' 
     });
   }
 
@@ -204,7 +218,7 @@ router.get('/callback', async (req, res) => {
     console.error('❌ OAuth callback error:', error);
     res.status(500).json({ 
       error: 'Authentication failed', 
-      message: error.message 
+      message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
     });
   }
 });
