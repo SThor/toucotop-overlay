@@ -22,6 +22,39 @@ function escapeHtml(unsafe) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// EventSub event storage (in-memory for now)
+const eventStore = {
+  events: [], // Array to store recent events
+  maxEvents: 100, // Keep last 100 events
+  
+  addEvent(event) {
+    this.events.unshift({
+      ...event,
+      timestamp: new Date().toISOString(),
+      id: `${event.subscription.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    });
+    
+    // Keep only the most recent events
+    if (this.events.length > this.maxEvents) {
+      this.events = this.events.slice(0, this.maxEvents);
+    }
+    
+    console.log(`📡 New EventSub event: ${event.subscription.type}`);
+  },
+  
+  getEvents(limit = 50) {
+    return this.events.slice(0, limit);
+  },
+  
+  getEventsByType(type, limit = 20) {
+    return this.events.filter(e => e.subscription.type === type).slice(0, limit);
+  },
+  
+  clearEvents() {
+    this.events = [];
+  }
+};
+
 console.log('🚀 Starting server setup...');
 
 // Test auth import
@@ -94,6 +127,81 @@ try {
   // Health check endpoint (before static files)
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // EventSub webhook endpoints
+  app.post('/webhooks/eventsub', (req, res) => {
+    const messageType = req.headers['twitch-eventsub-message-type'];
+    
+    if (messageType === 'webhook_callback_verification') {
+      // Handle webhook challenge
+      const challenge = req.body.challenge;
+      console.log('🔐 EventSub webhook challenge received');
+      return res.status(200).send(challenge);
+    }
+    
+    if (messageType === 'notification') {
+      // Handle actual event notification
+      const event = req.body;
+      eventStore.addEvent(event);
+      return res.status(204).send();
+    }
+    
+    if (messageType === 'revocation') {
+      // Handle subscription revocation
+      console.log('⚠️ EventSub subscription revoked:', req.body.subscription);
+      return res.status(204).send();
+    }
+    
+    console.log('❓ Unknown EventSub message type:', messageType);
+    res.status(400).send('Unknown message type');
+  });
+
+  // EventSub subscription management
+  app.post('/api/eventsub/subscribe', async (req, res) => {
+    const { token, eventType } = req.body;
+    
+    if (!token || !eventType) {
+      return res.status(400).json({ error: 'Missing token or eventType' });
+    }
+
+    const userData = getUserByOverlayToken(token);
+    if (!userData) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    try {
+      const webhookUrl = `${req.protocol}://${req.get('host')}/webhooks/eventsub`;
+      
+      const subscriptionData = {
+        type: eventType,
+        version: '1',
+        condition: {
+          broadcaster_user_id: userData.twitchUserId
+        },
+        transport: {
+          method: 'webhook',
+          callback: webhookUrl,
+          secret: process.env.EVENTSUB_SECRET || 'your-webhook-secret'
+        }
+      };
+
+      const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${userData.accessToken}`,
+          'Client-Id': process.env.TWITCH_CLIENT_ID,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(subscriptionData)
+      });
+
+      const result = await response.json();
+      res.json(result);
+    } catch (error) {
+      console.error('EventSub subscription error:', error);
+      res.status(500).json({ error: 'Failed to create subscription' });
+    }
   });
 
   // OAuth routes (before static files)
@@ -172,12 +280,12 @@ try {
       return res.status(401).json({ error: 'Missing token' });
     }
 
-    // Validate endpoint parameter
+  // Validate endpoint parameter
     const validEndpoints = [
       'user', 'channel', 'stream', 'followers', 'subscribers', 'validate',
       'clips', 'videos', 'schedule', 'polls', 'predictions', 'goals', 
       'emotes', 'chatters', 'moderators', 'vips', 'games',
-      'hypetrain', 'bits', 'channelpoints'
+      'hypetrain', 'bits', 'channelpoints', 'events'
     ];
     if (!validEndpoints.includes(endpoint)) {
       return res.status(404).json({ error: 'Unknown endpoint' });
@@ -368,6 +476,22 @@ try {
             data = { error: 'Channel points requires channel:read:redemptions scope', details: error.message };
           }
           break;
+
+        case 'events':
+          // Get recent EventSub events
+          const { type, limit } = req.query;
+          if (type) {
+            data = {
+              events: eventStore.getEventsByType(type, parseInt(limit) || 20),
+              total: eventStore.events.filter(e => e.subscription.type === type).length
+            };
+          } else {
+            data = {
+              events: eventStore.getEvents(parseInt(limit) || 50),
+              total: eventStore.events.length
+            };
+          }
+          break;
       }
 
       res.json(data);
@@ -375,6 +499,23 @@ try {
       console.error(`API Error for ${endpoint}:`, error);
       res.status(500).json({ error: 'API request failed', message: error.message });
     }
+  });
+
+  // EventSub management endpoints
+  app.delete('/api/twitch/events', (req, res) => {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Missing token' });
+    }
+
+    const userData = getUserByOverlayToken(token);
+    if (!userData) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    eventStore.clearEvents();
+    res.json({ message: 'Events cleared', timestamp: new Date().toISOString() });
   });
 
   console.log('📁 Setting up static files...');

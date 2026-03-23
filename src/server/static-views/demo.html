@@ -494,6 +494,47 @@
       </div>
     </div>
 
+    <!-- Real-time Events -->
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>📡</span> Real-time Events
+      </h2>
+      <p class="category-description">EventSub notifications and recent stream events</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Events</h3>
+            <span class="card-icon">⚡</span>
+          </div>
+          <p class="card-description">Latest EventSub notifications (follows, subs, etc.)</p>
+          <button class="card-button" onclick="fetchEndpoint('events', this)">Fetch Recent Events</button>
+          <button class="card-button" onclick="clearEvents()" style="background: #dc3545; margin-left: 8px;">Clear Events</button>
+          <div class="card-data" id="events-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">EventSub Setup</h3>
+            <span class="card-icon">🔧</span>
+          </div>
+          <p class="card-description">Manage EventSub subscriptions for real-time events</p>
+          <div style="margin: 10px 0;">
+            <select id="event-type-select" style="padding: 8px; margin-right: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="channel.follow">New Follows</option>
+              <option value="channel.subscribe">New Subscribers</option>
+              <option value="channel.subscription.gift">Gift Subscriptions</option>
+              <option value="channel.cheer">Bits/Cheers</option>
+              <option value="channel.raid">Incoming Raids</option>
+              <option value="stream.online">Stream Online</option>
+              <option value="stream.offline">Stream Offline</option>
+            </select>
+            <button class="card-button" onclick="subscribeToEvent()" style="font-size: 14px; padding: 8px 16px;">Subscribe</button>
+          </div>
+          <div class="card-data" id="eventsub-status">Select an event type to subscribe</div>
+        </div>
+      </div>
+    </div>
+
     <div style="text-align: center; margin-top: 3rem;">
       <a href="/" style="
         background: #6c757d;
@@ -539,7 +580,13 @@
         const data = await response.json();
         
         if (response.ok) {
-          dataElement.textContent = JSON.stringify(data, null, 2);
+          // Special formatting for events endpoint
+          if (endpoint === 'events') {
+            const eventsText = formatEventData(data.events);
+            dataElement.textContent = `Total Events: ${data.total}\n\n${eventsText}`;
+          } else {
+            dataElement.textContent = JSON.stringify(data, null, 2);
+          }
           dataElement.className = 'card-data success';
           statusIndicator.className = 'status-indicator status-success';
         } else {
@@ -592,7 +639,8 @@
         
         // Additional endpoints
         { name: 'Channel Emotes', endpoint: 'emotes', category: 'Additional', overlayUse: 'Chat integration features' },
-        { name: 'Bits Leaderboard', endpoint: 'bits', category: 'Additional', overlayUse: 'Top supporter display' }
+        { name: 'Bits Leaderboard', endpoint: 'bits', category: 'Additional', overlayUse: 'Top supporter display' },
+        { name: 'Recent Events', endpoint: 'events', category: 'Events', overlayUse: 'Real-time event notifications' }
       ];
 
       const results = {
@@ -794,6 +842,107 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    }
+
+    // EventSub functions
+    async function subscribeToEvent() {
+      const eventType = document.getElementById('event-type-select').value;
+      const statusDiv = document.getElementById('eventsub-status');
+      
+      statusDiv.textContent = 'Creating subscription...';
+      statusDiv.className = 'card-data pending';
+      
+      try {
+        const response = await fetch('/api/eventsub/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: OVERLAY_TOKEN,
+            eventType: eventType
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.data) {
+          statusDiv.textContent = `✅ Successfully subscribed to ${eventType}\nStatus: ${data.data[0].status}\nID: ${data.data[0].id}`;
+          statusDiv.className = 'card-data success';
+        } else {
+          statusDiv.textContent = `❌ Error: ${JSON.stringify(data, null, 2)}`;
+          statusDiv.className = 'card-data error';
+        }
+      } catch (error) {
+        statusDiv.textContent = `❌ Network error: ${error.message}`;
+        statusDiv.className = 'card-data error';
+      }
+    }
+    
+    async function clearEvents() {
+      const eventsDataDiv = document.getElementById('events-data');
+      
+      try {
+        eventsDataDiv.textContent = 'Clearing events...';
+        eventsDataDiv.className = 'card-data pending';
+        
+        const response = await fetch(`/api/twitch/events?token=${OVERLAY_TOKEN}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          eventsDataDiv.textContent = '✅ Events cleared successfully';
+          eventsDataDiv.className = 'card-data success';
+        } else {
+          eventsDataDiv.textContent = `❌ Error: ${data.error}`;
+          eventsDataDiv.className = 'card-data error';
+        }
+      } catch (error) {
+        eventsDataDiv.textContent = `❌ Network error: ${error.message}`;
+        eventsDataDiv.className = 'card-data error';
+      }
+    }
+    
+    function formatEventData(events) {
+      if (!events || events.length === 0) {
+        return 'No recent events found';
+      }
+      
+      return events.map(event => {
+        const eventType = event.subscription.type;
+        const timestamp = new Date(event.timestamp).toLocaleString();
+        
+        let eventInfo = `🕐 ${timestamp} - ${eventType}`;
+        
+        // Format specific event types
+        switch (eventType) {
+          case 'channel.follow':
+            eventInfo += `\n👤 New follower: ${event.event.user_name}`;
+            break;
+          case 'channel.subscribe':
+            eventInfo += `\n⭐ New subscriber: ${event.event.user_name} (Tier ${event.event.tier})`;
+            break;
+          case 'channel.subscription.gift':
+            eventInfo += `\n🎁 Gift sub: ${event.event.user_name} to ${event.event.recipient_user_name}`;
+            break;
+          case 'channel.cheer':
+            eventInfo += `\n💎 ${event.event.user_name} cheered ${event.event.bits} bits`;
+            break;
+          case 'channel.raid':
+            eventInfo += `\n🚀 Raided by ${event.event.from_broadcaster_user_name} (${event.event.viewers} viewers)`;
+            break;
+          case 'stream.online':
+            eventInfo += `\n🔴 Stream went online`;
+            break;
+          case 'stream.offline':
+            eventInfo += `\n⚫ Stream went offline`;
+            break;
+        }
+        
+        return eventInfo;
+      }).join('\n\n');
     }
 
     // Legacy function mapping for backwards compatibility
