@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
-import authRoutes from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,42 +9,83 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+console.log('🚀 Starting server setup...');
 
-// Debug logging
-app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.path}`);
-  next();
-});
+// Test auth import
+try {
+  const authRoutes = await import('./auth.js');
+  console.log('✅ Auth module imported successfully:', Object.keys(authRoutes));
+  
+  // Middleware
+  app.use(cors());
+  app.use(express.json());
 
-// Simple session middleware (for OAuth state)
-app.use((req, res, next) => {
-  if (!req.session) {
-    req.session = {};
-  }
-  next();
-});
+  // Debug logging
+  app.use((req, res, next) => {
+    console.log(`📡 ${req.method} ${req.path}`);
+    next();
+  });
 
-// Health check endpoint (before static files)
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+  // Simple session middleware (for OAuth state)
+  app.use((req, res, next) => {
+    if (!req.session) {
+      req.session = {};
+    }
+    next();
+  });
 
-// OAuth routes (before static files)
-app.use('/auth', authRoutes);
+  // Health check endpoint (before static files)
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
-// Serve static files from dist directory
-app.use(express.static(path.join(__dirname, '../../dist')));
+  // OAuth routes (before static files)
+  console.log('🔧 Mounting auth routes at /auth...');
+  app.use('/auth', (req, res, next) => {
+    console.log(`🎯 Auth route hit: ${req.method} /auth${req.path}`);
+    next();
+  }, authRoutes.default);
 
-// API routes for overlay data will be added next
-// For now, all other requests go to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../dist/index.html'));
-});
+  console.log('📁 Setting up static files...');
+  // Serve static files from dist directory
+  app.use(express.static(path.join(__dirname, '../../dist')));
 
-app.listen(PORT, () => {
-  console.log(`🚀 Overlay server running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-});
+  console.log('🔀 Setting up catch-all route...');
+
+  // API routes for overlay data will be added next
+  // For now, all other requests go to React app
+  app.get('*', (req, res) => {
+    console.log(`🔀 Catch-all route serving React app for: ${req.path}`);
+    res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  });
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Overlay server running on port ${PORT}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔧 Auth test: http://localhost:${PORT}/auth/test`);
+  });
+
+} catch (error) {
+  console.error('❌ Failed to import auth module:', error);
+  
+  // Fallback server without auth
+  app.use(cors());
+  app.use(express.json());
+  
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', error: 'Auth module failed to load' });
+  });
+  
+  app.get('/auth/*', (req, res) => {
+    res.status(500).json({ error: 'Auth system not available', message: error.message });
+  });
+  
+  app.use(express.static(path.join(__dirname, '../../dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  });
+  
+  app.listen(PORT, () => {
+    console.log(`⚠️ Server running in fallback mode on port ${PORT}`);
+  });
+}
