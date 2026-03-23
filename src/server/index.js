@@ -66,7 +66,7 @@ try {
   app.get('*', (req, res) => {
     console.log(`❌ 404 Not Found: ${req.path}`);
     try {
-      const html404 = readFileSync(path.join(__dirname, '../../public/404.html'), 'utf-8');
+      const html404 = readFileSync(path.join(__dirname, '404.html'), 'utf-8');
       const personalizedHtml = html404.replace('{{REQUEST_PATH}}', req.path);
       res.status(404).send(personalizedHtml);
     } catch (error) {
