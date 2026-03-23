@@ -12,7 +12,8 @@ React TypeScript overlay for Twitch streams using OBS Browser Source. Replaces d
 
 ### Phase 2: OAuth + API Integration - COMPLETE  
 - Twitch OAuth authentication flow
-- All 6 API endpoints working (100% success rate)
+- Expanded API surface to 21 endpoints (`/api/twitch/:endpoint`)
+- API analysis run reached 100% success for the tested endpoint set at that time
 - Secure token-based access system
 - Real follower/subscriber data flowing
 
@@ -32,21 +33,18 @@ React TypeScript overlay for Twitch streams using OBS Browser Source. Replaces d
 
 ## Current Status
 
-**Working:** OAuth authentication, all Twitch API endpoints, Docker deployment
-**Testing:** API analysis shows 100% endpoint success, 2 real followers detected
+**Working:** OAuth authentication, expanded Twitch API endpoint proxy, Docker deployment
+**Testing:** Latest analysis validated the full tested endpoint set for that run (100% success); endpoint availability still depends on OAuth scopes and channel state
 **Next:** Update React components to use real data instead of hardcoded demo values
 
 ## Technical Data
 
 **API Endpoints Status:**
-- User Info: Working (silmassan, ID: 116225840)
-- Channel Info: Working  
-- Stream Status: Working (currently offline)
-- Followers: Working (2 followers)
-- Subscribers: Working (0 subscribers)  
-- Token Validation: Working (3.5 hours remaining)
+- Current endpoint set (21 total): `user`, `channel`, `stream`, `followers`, `subscribers`, `validate`, `clips`, `videos`, `schedule`, `polls`, `predictions`, `goals`, `emotes`, `chatters`, `moderators`, `vips`, `games`, `hypetrain`, `bits`, `channelpoints`, `events`
+- Core sample checks: User/Channel/Stream/Follower/Subscriber/Validate endpoints have been verified during analysis
+- Advanced endpoints require matching OAuth scopes and may return non-2xx when scope or channel conditions are not met
 
-**OAuth Scopes:** `user:read:email`, `moderator:read:followers`, `channel:read:subscriptions`
+**OAuth Scopes:** Source of truth is `src/server/auth.js`. Current requested scopes: `user:read:email`, `moderator:read:followers`, `channel:read:subscriptions`, `moderator:read:chatters`, `moderation:read`, `channel:read:vips`, `channel:read:polls`, `channel:read:predictions`, `channel:read:redemptions`, `channel:read:goals`, `channel:read:hype_train`, `bits:read`
 
 ## Next Steps
 
