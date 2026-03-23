@@ -2,7 +2,7 @@ name: Deploy Overlay
 
 on:
   push:
-    branches: [ docker-migration ]
+    branches: [ docker-migration, twitch-api-analysis ]
   workflow_dispatch:
 
 jobs:

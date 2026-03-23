@@ -116,7 +116,14 @@
       <div class="api-data api-loading" id="token-data">Loading token validation...</div>
     </div>
 
-    <div class="details-section">
+    <div class="demo-section">
+      <h3>🔍 Analysis Dashboard</h3>
+      <button class="refresh-btn" onclick="runFullAnalysis()">🔬 Full API Analysis</button>
+      <button class="refresh-btn" onclick="exportAnalysis()">💾 Export Analysis</button>
+      <div class="api-data" id="analysis-data" style="max-height: 400px;">Click "Full API Analysis" to see comprehensive endpoint testing...</div>
+    </div>
+
+    <div class="demo-section">
       <h3>🔧 Controls</h3>
       <button class="action-btn" onclick="refreshAll()">🔄 Refresh All Data</button>
       <a href="/" class="action-btn" style="margin-left: 10px;">← Back to Home</a>
@@ -169,6 +176,130 @@
       setTimeout(() => {
         buttons.forEach(btn => btn.disabled = false);
       }, 2000);
+    }
+
+    // Enhanced analysis functions
+    let analysisResults = {};
+
+    async function runFullAnalysis() {
+      const analysisElement = document.getElementById('analysis-data');
+      analysisElement.textContent = 'Running comprehensive API analysis...';
+      analysisElement.className = 'api-data api-loading';
+
+      const endpoints = [
+        { name: 'User Info', endpoint: 'user', id: 'user-data' },
+        { name: 'Channel Info', endpoint: 'channel', id: 'channel-data' },
+        { name: 'Stream Status', endpoint: 'stream', id: 'stream-data' },
+        { name: 'Followers', endpoint: 'followers', id: 'followers-data' },
+        { name: 'Subscribers', endpoint: 'subscribers', id: 'subscribers-data' },
+        { name: 'Token Validation', endpoint: 'validate', id: 'token-data' }
+      ];
+
+      const results = {
+        timestamp: new Date().toISOString(),
+        results: {},
+        summary: {
+          total: endpoints.length,
+          successful: 0,
+          failed: 0,
+          errors: []
+        }
+      };
+
+      for (const ep of endpoints) {
+        try {
+          const response = await fetch(`/api/twitch/${ep.endpoint}?token=${OVERLAY_TOKEN}`);
+          const data = await response.json();
+          
+          results.results[ep.name] = {
+            endpoint: ep.endpoint,
+            status: response.status,
+            success: response.ok,
+            data: data,
+            responseTime: Date.now(),
+            dataSize: JSON.stringify(data).length,
+            hasData: data && Object.keys(data).length > 0
+          };
+
+          if (response.ok) {
+            results.summary.successful++;
+          } else {
+            results.summary.failed++;
+            results.summary.errors.push({
+              endpoint: ep.name,
+              error: data.error || 'Unknown error',
+              message: data.message || ''
+            });
+          }
+        } catch (error) {
+          results.summary.failed++;
+          results.summary.errors.push({
+            endpoint: ep.name,
+            error: 'Network Error',
+            message: error.message
+          });
+          results.results[ep.name] = {
+            endpoint: ep.endpoint,
+            success: false,
+            error: error.message
+          };
+        }
+      }
+
+      // Add detailed analysis
+      results.analysis = {
+        successRate: (results.summary.successful / results.summary.total * 100).toFixed(1) + '%',
+        workingEndpoints: Object.values(results.results).filter(r => r.success).map(r => r.endpoint),
+        failingEndpoints: Object.values(results.results).filter(r => !r.success).map(r => r.endpoint),
+        recommendations: generateRecommendations(results)
+      };
+
+      analysisResults = results;
+      analysisElement.textContent = JSON.stringify(results, null, 2);
+      analysisElement.className = 'api-data';
+    }
+
+    function generateRecommendations(results) {
+      const recommendations = [];
+      
+      if (results.summary.failed > 0) {
+        recommendations.push('⚠️ Some endpoints are failing - check OAuth scopes and permissions');
+      }
+      
+      const streamResult = results.results['Stream Status'];
+      if (streamResult && !streamResult.success) {
+        recommendations.push('📺 Stream endpoint failing - user may not be live or lacks broadcaster scope');
+      }
+      
+      const subsResult = results.results['Subscribers'];
+      if (subsResult && !subsResult.success) {
+        recommendations.push('⭐ Subscribers endpoint failing - requires channel:read:subscriptions scope');
+      }
+      
+      if (results.summary.successful === results.summary.total) {
+        recommendations.push('✅ All endpoints working - ready for production integration!');
+      }
+      
+      return recommendations;
+    }
+
+    function exportAnalysis() {
+      if (!analysisResults || Object.keys(analysisResults).length === 0) {
+        alert('No analysis data to export. Please run Full API Analysis first.');
+        return;
+      }
+      
+      const blob = new Blob([JSON.stringify(analysisResults, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `twitch-api-analysis-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     // Load all data on page load
