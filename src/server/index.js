@@ -16,6 +16,7 @@ console.log('🚀 Starting server setup...');
 // Test auth import
 try {
   const authRoutes = await import('./auth.js');
+  const { getUserByOverlayToken } = await import('./storage.js');
   console.log('✅ Auth module imported successfully:', Object.keys(authRoutes));
   
   // Middleware
@@ -96,6 +97,107 @@ try {
     } catch (error) {
       console.error('Failed to read landing page:', error);
       res.status(500).send('Server error');
+    }
+  });
+
+  // Demo page route
+  app.get('/demo', (req, res) => {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.redirect('/');
+    }
+
+    // Find user by overlay token
+    const userData = getUserByOverlayToken(token);
+    
+    if (!userData) {
+      return res.redirect('/');
+    }
+
+    try {
+      const demoHtml = readFileSync(path.join(__dirname, 'static-views', 'demo.html'), 'utf-8');
+      const personalizedHtml = demoHtml
+        .replace(/\{\{DISPLAY_NAME\}\}/g, userData.displayName)
+        .replace(/\{\{OVERLAY_TOKEN\}\}/g, token);
+      
+      res.send(personalizedHtml);
+    } catch (error) {
+      console.error('Failed to read demo page:', error);
+      res.status(500).send('Server error');
+    }
+  });
+
+  // API routes for Twitch data
+  app.get('/api/twitch/:endpoint', async (req, res) => {
+    const { token } = req.query;
+    const { endpoint } = req.params;
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Missing token' });
+    }
+
+    const userData = getUserByOverlayToken(token);
+    if (!userData) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    try {
+      let data;
+      const headers = {
+        'Authorization': `Bearer ${userData.accessToken}`,
+        'Client-Id': process.env.TWITCH_CLIENT_ID
+      };
+
+      switch (endpoint) {
+        case 'user':
+          const userResponse = await fetch('https://api.twitch.tv/helix/users', { headers });
+          data = await userResponse.json();
+          break;
+
+        case 'channel':
+          const channelResponse = await fetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${userData.twitchUserId}`, { headers });
+          data = await channelResponse.json();
+          break;
+
+        case 'stream':
+          const streamResponse = await fetch(`https://api.twitch.tv/helix/streams?user_id=${userData.twitchUserId}`, { headers });
+          data = await streamResponse.json();
+          break;
+
+        case 'followers':
+          try {
+            const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userData.twitchUserId}&first=10`, { headers });
+            data = await followersResponse.json();
+          } catch (error) {
+            data = { error: 'Followers endpoint requires special permissions', details: error.message };
+          }
+          break;
+
+        case 'subscribers':
+          try {
+            const subsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions?broadcaster_id=${userData.twitchUserId}&first=10`, { headers });
+            data = await subsResponse.json();
+          } catch (error) {
+            data = { error: 'Subscribers endpoint requires special permissions', details: error.message };
+          }
+          break;
+
+        case 'validate':
+          const validateResponse = await fetch('https://id.twitch.tv/oauth2/validate', {
+            headers: { 'Authorization': `OAuth ${userData.accessToken}` }
+          });
+          data = await validateResponse.json();
+          break;
+
+        default:
+          return res.status(404).json({ error: 'Unknown endpoint' });
+      }
+
+      res.json(data);
+    } catch (error) {
+      console.error(`API Error for ${endpoint}:`, error);
+      res.status(500).json({ error: 'API request failed', message: error.message });
     }
   });
 

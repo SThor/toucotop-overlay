@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ApiClient } from '@twurple/api';
 import { AppTokenAuthProvider, exchangeCode } from '@twurple/auth';
-import { storeUserTokens, getUserTokens } from './storage.js';
+import { storeUserTokens, getUserByOverlayToken } from './storage.js';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -216,7 +216,7 @@ router.get('/status', (req, res) => {
   }
 
   // Find user by overlay token
-  const userData = getUserTokens(token);
+  const userData = getUserByOverlayToken(token);
   
   if (!userData) {
     return res.json({ 
