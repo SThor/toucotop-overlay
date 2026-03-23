@@ -80,6 +80,11 @@ try {
   console.log('📁 Setting up static files...');
   // Serve static files from dist directory
   app.use(express.static(path.join(__dirname, '../../dist')));
+  
+  // Serve error page CSS file
+  app.get('/error-pages.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'static-views', 'error-pages.css'));
+  });
 
   console.log('🔀 Setting up catch-all route...');
 
