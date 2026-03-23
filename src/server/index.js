@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import cors from 'cors';
 import session from 'express-session';
 
@@ -60,10 +61,18 @@ try {
   console.log('🔀 Setting up catch-all route...');
 
   // API routes for overlay data will be added next
-  // For now, all other requests go to React app
+  
+  // 404 catch-all route with fun gaming-themed page
   app.get('*', (req, res) => {
-    console.log(`🔀 Catch-all route serving React app for: ${req.path}`);
-    res.sendFile(path.join(__dirname, '../../dist/index.html'));
+    console.log(`❌ 404 Not Found: ${req.path}`);
+    try {
+      const html404 = readFileSync(path.join(__dirname, '../../public/404.html'), 'utf-8');
+      const personalizedHtml = html404.replace('{{REQUEST_PATH}}', req.path);
+      res.status(404).send(personalizedHtml);
+    } catch (error) {
+      console.error('Error serving 404 page:', error);
+      res.status(404).send('404 - Page Not Found');
+    }
   });
 
   app.listen(PORT, () => {
