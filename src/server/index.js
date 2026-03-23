@@ -356,176 +356,181 @@ try {
 
       switch (endpoint) {
         case 'user':
-          const userResponse = await fetch('https://api.twitch.tv/helix/users', { headers });
-          data = await userResponse.json();
+          data = await makeTwitchApiCall('https://api.twitch.tv/helix/users', headers, res);
           break;
 
         case 'channel':
-          const channelResponse = await fetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${userData.twitchUserId}`, { headers });
-          data = await channelResponse.json();
+          data = await makeTwitchApiCall(`https://api.twitch.tv/helix/channels?broadcaster_id=${userData.twitchUserId}`, headers, res);
           break;
 
         case 'stream':
-          const streamResponse = await fetch(`https://api.twitch.tv/helix/streams?user_id=${userData.twitchUserId}`, { headers });
-          data = await streamResponse.json();
+          data = await makeTwitchApiCall(`https://api.twitch.tv/helix/streams?user_id=${userData.twitchUserId}`, headers, res);
           break;
 
         case 'followers':
-          try {
-            const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userData.twitchUserId}&first=10`, { headers });
-            data = await followersResponse.json();
-          } catch (error) {
-            data = { error: 'Followers endpoint requires special permissions', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userData.twitchUserId}&first=10`,
+            headers, 
+            res, 
+            'Followers endpoint requires special permissions'
+          );
           break;
 
         case 'subscribers':
-          try {
-            const subsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions?broadcaster_id=${userData.twitchUserId}&first=10`, { headers });
-            data = await subsResponse.json();
-          } catch (error) {
-            data = { error: 'Subscribers endpoint requires special permissions', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/subscriptions?broadcaster_id=${userData.twitchUserId}&first=10`,
+            headers, 
+            res, 
+            'Subscribers endpoint requires special permissions'
+          );
           break;
 
         case 'validate':
-          const validateResponse = await fetch('https://id.twitch.tv/oauth2/validate', {
-            headers: { 'Authorization': `OAuth ${userData.accessToken}` }
-          });
-          data = await validateResponse.json();
+          data = await makeTwitchApiCall(
+            'https://id.twitch.tv/oauth2/validate',
+            { 'Authorization': `OAuth ${userData.accessToken}` },
+            res
+          );
           break;
 
         case 'clips':
-          try {
-            const clipsResponse = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userData.twitchUserId}&first=10`, { headers });
-            data = await clipsResponse.json();
-          } catch (error) {
-            data = { error: 'Clips endpoint failed', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/clips?broadcaster_id=${userData.twitchUserId}&first=10`,
+            headers, 
+            res, 
+            'Clips endpoint failed'
+          );
           break;
 
         case 'videos':
-          try {
-            const videosResponse = await fetch(`https://api.twitch.tv/helix/videos?user_id=${userData.twitchUserId}&first=5&type=archive`, { headers });
-            data = await videosResponse.json();
-          } catch (error) {
-            data = { error: 'Videos endpoint failed', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/videos?user_id=${userData.twitchUserId}&first=5&type=archive`,
+            headers, 
+            res, 
+            'Videos endpoint failed'
+          );
           break;
 
         case 'schedule':
-          try {
-            const scheduleResponse = await fetch(`https://api.twitch.tv/helix/schedule?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await scheduleResponse.json();
-          } catch (error) {
-            data = { error: 'Schedule endpoint failed', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/schedule?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Schedule endpoint failed'
+          );
           break;
 
         case 'polls':
-          try {
-            const pollsResponse = await fetch(`https://api.twitch.tv/helix/polls?broadcaster_id=${userData.twitchUserId}&first=5`, { headers });
-            data = await pollsResponse.json();
-          } catch (error) {
-            data = { error: 'Polls endpoint requires broadcaster scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/polls?broadcaster_id=${userData.twitchUserId}&first=5`,
+            headers, 
+            res, 
+            'Polls endpoint requires broadcaster scope'
+          );
           break;
 
         case 'predictions':
-          try {
-            const predictionsResponse = await fetch(`https://api.twitch.tv/helix/predictions?broadcaster_id=${userData.twitchUserId}&first=5`, { headers });
-            data = await predictionsResponse.json();
-          } catch (error) {
-            data = { error: 'Predictions endpoint requires broadcaster scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/predictions?broadcaster_id=${userData.twitchUserId}&first=5`,
+            headers, 
+            res, 
+            'Predictions endpoint requires broadcaster scope'
+          );
           break;
 
         case 'goals':
-          try {
-            const goalsResponse = await fetch(`https://api.twitch.tv/helix/goals?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await goalsResponse.json();
-          } catch (error) {
-            data = { error: 'Goals endpoint requires broadcaster scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/goals?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Goals endpoint requires broadcaster scope'
+          );
           break;
 
         case 'emotes':
-          try {
-            const emotesResponse = await fetch(`https://api.twitch.tv/helix/chat/emotes?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await emotesResponse.json();
-          } catch (error) {
-            data = { error: 'Emotes endpoint failed', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/chat/emotes?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Emotes endpoint failed'
+          );
           break;
 
         case 'chatters':
-          try {
-            const chattersResponse = await fetch(`https://api.twitch.tv/helix/chat/chatters?broadcaster_id=${userData.twitchUserId}&moderator_id=${userData.twitchUserId}&first=100`, { headers });
-            data = await chattersResponse.json();
-          } catch (error) {
-            data = { error: 'Chatters endpoint requires moderator scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/chat/chatters?broadcaster_id=${userData.twitchUserId}&moderator_id=${userData.twitchUserId}&first=100`,
+            headers, 
+            res, 
+            'Chatters endpoint requires moderator scope'
+          );
           break;
 
         case 'moderators':
-          try {
-            const modsResponse = await fetch(`https://api.twitch.tv/helix/moderation/moderators?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await modsResponse.json();
-          } catch (error) {
-            data = { error: 'Moderators endpoint requires moderation scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/moderation/moderators?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Moderators endpoint requires moderation scope'
+          );
           break;
 
         case 'vips':
-          try {
-            const vipsResponse = await fetch(`https://api.twitch.tv/helix/channels/vips?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await vipsResponse.json();
-          } catch (error) {
-            data = { error: 'VIPs endpoint requires broadcaster scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/channels/vips?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'VIPs endpoint requires broadcaster scope'
+          );
           break;
 
         case 'games':
-          try {
-            // Get current game from channel info first
-            const channelResp = await fetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${userData.twitchUserId}`, { headers });
-            const channelData = await channelResp.json();
-            if (channelData.data && channelData.data[0] && channelData.data[0].game_id) {
-              const gamesResponse = await fetch(`https://api.twitch.tv/helix/games?id=${channelData.data[0].game_id}`, { headers });
-              data = await gamesResponse.json();
-            } else {
-              data = { data: [], message: 'No game currently set' };
-            }
-          } catch (error) {
-            data = { error: 'Games endpoint failed', details: error.message };
+          // Get current game from channel info first
+          const channelData = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/channels?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Games endpoint failed'
+          );
+          
+          if (!channelData) return; // Error already handled
+          
+          if (channelData.data?.[0]?.game_id) {
+            data = await makeTwitchApiCall(
+              `https://api.twitch.tv/helix/games?id=${channelData.data[0].game_id}`,
+              headers, 
+              res, 
+              'Games endpoint failed'
+            );
+          } else {
+            data = { data: [], message: 'No game currently set' };
           }
           break;
 
         case 'hypetrain':
-          try {
-            const hypeResponse = await fetch(`https://api.twitch.tv/helix/hypetrain/status?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await hypeResponse.json();
-          } catch (error) {
-            data = { error: 'Hype Train status requires channel:read:hype_train scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/hypetrain/status?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Hype Train status requires channel:read:hype_train scope'
+          );
           break;
 
         case 'bits':
-          try {
-            const bitsResponse = await fetch(`https://api.twitch.tv/helix/bits/leaderboard?user_id=${userData.twitchUserId}`, { headers });
-            data = await bitsResponse.json();
-          } catch (error) {
-            data = { error: 'Bits leaderboard requires bits:read scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/bits/leaderboard?user_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Bits leaderboard requires bits:read scope'
+          );
           break;
 
         case 'channelpoints':
-          try {
-            const rewardsResponse = await fetch(`https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${userData.twitchUserId}`, { headers });
-            data = await rewardsResponse.json();
-          } catch (error) {
-            data = { error: 'Channel points requires channel:read:redemptions scope', details: error.message };
-          }
+          data = await makeTwitchApiCall(
+            `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${userData.twitchUserId}`,
+            headers, 
+            res, 
+            'Channel points requires channel:read:redemptions scope'
+          );
           break;
 
         case 'events':
@@ -545,7 +550,10 @@ try {
           break;
       }
 
-      res.json(data);
+      // Only send response if we have data (errors already handled by makeTwitchApiCall)
+      if (data !== null) {
+        res.json(data);
+      }
     } catch (error) {
       console.error(`API Error for ${endpoint}:`, error);
       res.status(500).json({ error: 'API request failed', message: error.message });
@@ -626,4 +634,30 @@ try {
   app.listen(PORT, () => {
     console.log(`⚠️ Server running in fallback mode on port ${PORT}`);
   });
+}
+
+// Helper function to handle Twitch API responses with proper status forwarding
+async function handleTwitchResponse(twitchResponse, res) {
+  const data = await twitchResponse.json();
+  
+  if (twitchResponse.ok) {
+    return data;
+  } else {
+    // Forward the Twitch error status to the client
+    res.status(twitchResponse.status).json(data);
+    return null; // Indicates error was handled
+  }
+}
+
+// Helper function to make Twitch API calls with consistent error handling
+async function makeTwitchApiCall(url, headers, res, errorMessage = 'API request failed') {
+  try {
+    const response = await fetch(url, { headers });
+    const data = await handleTwitchResponse(response, res);
+    if (data === null) return null; // Error already handled
+    return data;
+  } catch (error) {
+    res.status(500).json({ error: errorMessage, details: error.message });
+    return null;
+  }
 }
