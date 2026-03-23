@@ -48,8 +48,13 @@ React TypeScript overlay for Twitch streams using OBS Browser Source. Replaces d
 
 ## Next Steps
 
-1. Update `TwitchContext.tsx` to call server APIs instead of demo data
-2. Connect `BarOverlay.tsx` to real follower/subscriber counts
-3. Upgrade `ChatOverlay.tsx` from anonymous to authenticated IRC
-4. Add token parameter handling: `?token=overlay_user_abc123`
-5. Implement fallback to demo data for invalid/expired tokens
+1. Execute the React refactoring plan (new PR scope):
+	- Extend `TwitchContext.tsx` with EventSub/API features
+	- Convert demo, landing, and success pages to React
+	- Align routing/state so overlays and dashboard share the same data layer
+2. Move Twitch API handling into a dedicated server module instead of keeping endpoint logic in `src/server/index.js`
+3. Start overlay feature work with module-based data flows:
+	- Chat module, bar module, and other overlay-specific data modules
+4. Save per-user overlay parameters in JSON stored alongside each user's token data
+5. Add theming support so a saved user parameter controls which theme is active
+6. Start the visual design pass for the final personal overlay implementation
