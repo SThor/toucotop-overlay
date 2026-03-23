@@ -40,8 +40,12 @@ router.get('/twitch', (req, res) => {
 
   // Generate random state for security
   const state = randomUUID();
-  req.session = req.session || {};
   req.session.oauthState = state;
+
+  console.log('🔐 OAuth initiation debug:');
+  console.log('  - Generated state:', state);
+  console.log('  - Session ID:', req.sessionID);
+  console.log('  - State stored in session:', req.session.oauthState);
 
   const scopes = [
     'user:read:email',          // Get user info
@@ -67,6 +71,12 @@ router.get('/twitch', (req, res) => {
 router.get('/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
+  console.log('🔍 OAuth callback debug:');
+  console.log('  - Received state:', state);
+  console.log('  - Session state:', req.session?.oauthState);
+  console.log('  - Session ID:', req.sessionID);
+  console.log('  - Has session:', !!req.session);
+
   // Check for OAuth errors
   if (error) {
     console.error('❌ OAuth error:', error);
@@ -79,9 +89,11 @@ router.get('/callback', async (req, res) => {
   // Validate state parameter
   if (!req.session?.oauthState || state !== req.session.oauthState) {
     console.error('❌ Invalid OAuth state');
+    console.log('  - Expected:', req.session?.oauthState);
+    console.log('  - Received:', state);
     return res.status(400).json({ 
       error: 'Invalid request', 
-      message: 'OAuth state mismatch' 
+      message: 'OAuth state mismatch - this can happen if cookies are disabled or the session expired' 
     });
   }
 

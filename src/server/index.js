@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
+import session from 'express-session';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,13 +27,17 @@ try {
     next();
   });
 
-  // Simple session middleware (for OAuth state)
-  app.use((req, res, next) => {
-    if (!req.session) {
-      req.session = {};
+  // Session middleware for OAuth state persistence
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: true, // HTTPS required for secure cookies
+      httpOnly: true,
+      maxAge: 10 * 60 * 1000 // 10 minutes
     }
-    next();
-  });
+  }));
 
   // Health check endpoint (before static files)
   app.get('/health', (req, res) => {
