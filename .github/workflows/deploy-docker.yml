@@ -2,7 +2,7 @@ name: Deploy Overlay
 
 on:
   push:
-    branches: [ docker-migration ]
+    branches: [ docker-migration, oauth-integration ]
   workflow_dispatch:
 
 jobs:
@@ -39,15 +39,56 @@ jobs:
         username: github-deploy
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
-          # Update staging service in global docker-compose
+          # Debug permissions
+          echo "🔍 Current user: $(whoami)"
+          echo "🔍 User groups: $(groups)"
+          echo "🔍 Home directory: $HOME"
+          
+          # Check directory permissions
+          echo "🔍 Checking /home permissions:"
+          ls -la /home/ || echo "Cannot access /home"
+          
+          echo "🔍 Checking /home/ubuntu permissions:"
+          ls -la /home/ubuntu/ || echo "Cannot access /home/ubuntu"
+          
+          # Try to access the target directory
+          if [ -d "/home/ubuntu/infra-docs" ]; then
+            echo "✅ Directory exists"
+            echo "🔍 Directory permissions:"
+            ls -la /home/ubuntu/ | grep infra-docs || echo "Cannot see infra-docs details"
+          else
+            echo "❌ Directory /home/ubuntu/infra-docs does not exist"
+          fi
+          
+          # Change to infra-docs directory
+          echo "🔍 Changing to infra-docs directory..."
           cd /home/ubuntu/infra-docs
+          # Create/update .env file for docker-compose with OAuth secrets
+          cat > .env << EOF
+          TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
+          EOF
+          
+          echo "✅ OAuth environment configured (persistent .env file)"
+          
+          # Stop old container first to ensure fresh start
+          docker compose down toucotop-overlay-staging || echo "Container wasn't running"
           
           # Pull new image and restart service
           docker compose pull toucotop-overlay-staging
           docker compose up -d toucotop-overlay-staging
           
           # Verify deployment
-          sleep 10
+          sleep 15
+          echo "📊 Container status:"
           docker compose ps toucotop-overlay-staging
-          curl -f http://localhost:3000/health || echo "⚠️ Staging health check failed"
-          echo "🚀 Deployed staging to port 3000"
+          
+          echo "🔍 Container logs (last 20 lines):"
+          docker compose logs --tail=20 toucotop-overlay-staging
+          
+          # Health checks
+          echo "🔍 Testing endpoints..."
+          curl -f http://localhost:3000/health && echo "✅ Health check passed" || echo "⚠️ Health check failed"
+          curl -f http://localhost:3000/auth/status && echo "✅ OAuth endpoints responding" || echo "⚠️ OAuth endpoints not responding"
+          
+          echo "🚀 Deployed staging to port 3000 with OAuth support"

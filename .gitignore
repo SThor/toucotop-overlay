@@ -74,3 +74,6 @@ bower_components/
 # Temporary folders
 tmp/
 temp/
+
+# OAuth token storage
+tokens/

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitch API Demo - Toucotop Overlay</title>
+  <link rel="stylesheet" href="server-pages.css">
+  <style>
+    .demo-section {
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+    .demo-section h3 {
+      color: #555;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #ddd;
+    }
+    .api-data {
+      font-family: 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 1rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #666;
+      border-left: 3px solid #28a745;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .api-error {
+      border-left-color: #dc3545;
+      color: #dc3545;
+    }
+    .api-loading {
+      border-left-color: #ffc107;
+      color: #856404;
+    }
+    .refresh-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin: 10px 10px 0 0;
+    }
+    .refresh-btn:hover {
+      background: #218838;
+    }
+    .refresh-btn:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    @media (prefers-color-scheme: dark) {
+      .demo-section h3 {
+        color: #ccc;
+        border-bottom-color: #444;
+      }
+      .api-data {
+        background: #2a2a2a;
+        color: #aaa;
+      }
+      .api-error {
+        color: #f5c6cb;
+      }
+      .api-loading {
+        color: #ffeaa7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="error-code success-code">📊</div>
+    <h1 class="error-title">Twitch API Demo</h1>
+    <p class="error-message">
+      Authenticated as <strong>{{DISPLAY_NAME}}</strong> - Testing all available Twitch API endpoints
+    </p>
+
+    <div class="demo-section">
+      <h3>🎮 User Information</h3>
+      <button class="refresh-btn" onclick="fetchUserInfo()">🔄 Refresh</button>
+      <div class="api-data api-loading" id="user-data">Loading user data...</div>
+    </div>
+
+    <div class="demo-section">
+      <h3>📺 Channel Information</h3>
+      <button class="refresh-btn" onclick="fetchChannelInfo()">🔄 Refresh</button>
+      <div class="api-data api-loading" id="channel-data">Loading channel data...</div>
+    </div>
+
+    <div class="demo-section">
+      <h3>🔴 Stream Status</h3>
+      <button class="refresh-btn" onclick="fetchStreamInfo()">🔄 Refresh</button>
+      <div class="api-data api-loading" id="stream-data">Loading stream data...</div>
+    </div>
+
+    <div class="demo-section">
+      <h3>👥 Followers</h3>
+      <button class="refresh-btn" onclick="fetchFollowers()">🔄 Refresh</button>
+      <div class="api-data api-loading" id="followers-data">Loading followers data...</div>
+    </div>
+
+    <div class="demo-section">
+      <h3>⭐ Subscribers</h3>
+      <button class="refresh-btn" onclick="fetchSubscribers()">🔄 Refresh</button>
+      <div class="api-data api-loading" id="subscribers-data">Loading subscribers data...</div>
+    </div>
+
+    <div class="demo-section">
+      <h3>🎯 Token Info</h3>
+      <button class="refresh-btn" onclick="fetchTokenInfo()">🔄 Refresh</button>
+      <div class="api-data api-loading" id="token-data">Loading token validation...</div>
+    </div>
+
+    <div class="details-section">
+      <h3>🔧 Controls</h3>
+      <button class="action-btn" onclick="refreshAll()">🔄 Refresh All Data</button>
+      <a href="/" class="action-btn" style="margin-left: 10px;">← Back to Home</a>
+    </div>
+  </div>
+
+  <script>
+    const OVERLAY_TOKEN = '{{OVERLAY_TOKEN}}';
+
+    async function apiCall(endpoint, elementId) {
+      const element = document.getElementById(elementId);
+      element.textContent = 'Loading...';
+      element.className = 'api-data api-loading';
+
+      try {
+        const response = await fetch(`/api/twitch/${endpoint}?token=${OVERLAY_TOKEN}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          element.textContent = JSON.stringify(data, null, 2);
+          element.className = 'api-data';
+        } else {
+          element.textContent = `Error: ${data.error}\n${data.message || ''}`;
+          element.className = 'api-data api-error';
+        }
+      } catch (error) {
+        element.textContent = `Network Error: ${error.message}`;
+        element.className = 'api-data api-error';
+      }
+    }
+
+    function fetchUserInfo() { apiCall('user', 'user-data'); }
+    function fetchChannelInfo() { apiCall('channel', 'channel-data'); }
+    function fetchStreamInfo() { apiCall('stream', 'stream-data'); }
+    function fetchFollowers() { apiCall('followers', 'followers-data'); }
+    function fetchSubscribers() { apiCall('subscribers', 'subscribers-data'); }
+    function fetchTokenInfo() { apiCall('validate', 'token-data'); }
+
+    function refreshAll() {
+      const buttons = document.querySelectorAll('.refresh-btn');
+      buttons.forEach(btn => btn.disabled = true);
+      
+      fetchUserInfo();
+      fetchChannelInfo();
+      fetchStreamInfo();
+      fetchFollowers();
+      fetchSubscribers();
+      fetchTokenInfo();
+      
+      setTimeout(() => {
+        buttons.forEach(btn => btn.disabled = false);
+      }, 2000);
+    }
+
+    // Load all data on page load
+    window.onload = refreshAll;
+  </script>
+</body>
+</html>

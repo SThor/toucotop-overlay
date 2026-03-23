@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Error - Toucotop Overlay</title>
+  <link rel="stylesheet" href="server-pages.css">
+</head>
+<body>
+  <div class="container">
+    <div class="error-code auth-error">🔐</div>
+    <h1 class="error-title">Authentication Error</h1>
+    <p class="error-message">
+      OAuth state validation failed.
+    </p>
+    
+    <div class="details-section">
+      <h3>This can happen if:</h3>
+      <ul>
+        <li>Cookies are disabled in your browser</li>
+        <li>The authentication took too long (session expired)</li>
+        <li>You navigated back and tried again</li>
+        <li>Your browser has strict privacy settings</li>
+      </ul>
+    </div>
+    
+    <div class="details-section">
+      <h3>Solutions:</h3>
+      <ol>
+        <li>Make sure cookies are enabled for this site</li>
+        <li>Try the authentication process again</li>
+        <li>Clear your browser cache and cookies</li>
+        <li>If problems persist, contact the stream admin</li>
+      </ol>
+    </div>
+    
+    <a href="/auth/twitch" class="action-btn">🔄 Try Authentication Again</a>
+  </div>
+</body>
+</html>
