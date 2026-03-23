@@ -15,7 +15,7 @@ const __dirname = path.dirname(__filename);
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
-const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['toucotop', 'sthor'];
+const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['toucotop', 'silmassan'];
 
 console.log('🔧 OAuth Configuration:');
 console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
@@ -101,7 +101,7 @@ router.get('/callback', async (req, res) => {
     
     // Serve auth error page
     try {
-      const errorHtml = readFileSync(path.join(__dirname, 'auth-error.html'), 'utf-8');
+      const errorHtml = readFileSync(path.join(__dirname, 'static-views', 'auth-error.html'), 'utf-8');
       return res.status(400).send(errorHtml);
     } catch (error) {
       console.error('Failed to read auth error page:', error);
@@ -155,10 +155,19 @@ router.get('/callback', async (req, res) => {
     // Check if user is allowed
     if (!ALLOWED_USERS.includes(username)) {
       console.error(`❌ User not in allowlist: ${username}`);
-      return res.status(403).json({ 
-        error: 'Access denied', 
-        message: `User '${username}' is not authorized to use this overlay system.` 
-      });
+      
+      // Serve access denied page
+      try {
+        const accessDeniedHtml = readFileSync(path.join(__dirname, 'static-views', 'access-denied.html'), 'utf-8');
+        const personalizedHtml = accessDeniedHtml.replace('{{USERNAME}}', username);
+        return res.status(403).send(personalizedHtml);
+      } catch (error) {
+        console.error('Failed to read access denied page:', error);
+        return res.status(403).json({ 
+          error: 'Access denied', 
+          message: `User '${username}' is not authorized to use this overlay system.` 
+        });
+      }
     }
 
     // Generate unique overlay token for OBS
