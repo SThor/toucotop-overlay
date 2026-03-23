@@ -17,12 +17,14 @@ const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
 const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['toucotop', 'silmassan'];
 
-console.log('🔧 OAuth Configuration:');
-console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
-console.log(`   Redirect URI: ${REDIRECT_URI}`);
-console.log(`   Allowed Users: ${ALLOWED_USERS.join(', ')}`);
-console.log(`   Environment ALLOWED_USERS: ${process.env.ALLOWED_USERS || 'Not set'}`);
-console.log('🛠️ Auth routes registered: /auth/twitch, /auth/callback, /auth/status');
+  console.log('🔧 OAuth Configuration:');
+  console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
+  console.log(`   Redirect URI: ${REDIRECT_URI}`);
+  console.log(`   Allowed Users: ${ALLOWED_USERS.join(', ')}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`   Environment ALLOWED_USERS: ${process.env.ALLOWED_USERS || 'Not set'}`);
+  }
+  console.log('🛠️ Auth routes registered: /auth/twitch, /auth/callback, /auth/status');
 
 /**
  * GET /auth/test
@@ -48,11 +50,6 @@ router.get('/twitch', (req, res) => {
   const state = randomUUID();
   req.session.oauthState = state;
 
-  console.log('🔐 OAuth initiation debug:');
-  console.log('  - Generated state:', state);
-  console.log('  - Session ID:', req.sessionID);
-  console.log('  - State stored in session:', req.session.oauthState);
-
   const scopes = [
     'user:read:email',          // Get user info
     'moderator:read:followers', // Read follower data
@@ -66,7 +63,7 @@ router.get('/twitch', (req, res) => {
     `scope=${encodeURIComponent(scopes.join(' '))}&` +
     `state=${state}`;
 
-  console.log(`🔄 Redirecting to Twitch OAuth: ${authUrl}`);
+  console.log(`🔄 Starting OAuth flow for state: ${state}`);
   res.redirect(authUrl);
 });
 
@@ -77,11 +74,9 @@ router.get('/twitch', (req, res) => {
 router.get('/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
-  console.log('🔍 OAuth callback debug:');
-  console.log('  - Received state:', state);
-  console.log('  - Session state:', req.session?.oauthState);
-  console.log('  - Session ID:', req.sessionID);
-  console.log('  - Has session:', !!req.session);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🔍 OAuth callback - state validation');
+  }
 
   // Check for OAuth errors
   if (error) {
@@ -94,11 +89,11 @@ router.get('/callback', async (req, res) => {
 
   // Validate state parameter
   if (!req.session?.oauthState || state !== req.session.oauthState) {
-    console.error('❌ Invalid OAuth state - investigating issue');
-    console.log('  - Expected:', req.session?.oauthState);
-    console.log('  - Received:', state);
-    console.log('  - Session age:', req.session?.cookie?.maxAge);
-    console.log('  - User Agent:', req.headers['user-agent']);
+    console.error('❌ OAuth state validation failed');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('  - Expected:', req.session?.oauthState);
+      console.log('  - Received:', state);    
+    }
     
     // Serve auth error page
     try {
@@ -155,7 +150,7 @@ router.get('/callback', async (req, res) => {
 
     // Check if user is allowed
     if (!ALLOWED_USERS.includes(username)) {
-      console.error(`❌ User not in allowlist: ${username}`);
+      console.error(`❌ User not authorized: ${username}`);
       
       // Serve access denied page
       try {

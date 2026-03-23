@@ -28,20 +28,11 @@ try {
     console.log('🔒 Trust proxy enabled');
   }
 
-  // Debug logging with session info
+  // Debug logging with session info for auth routes only
   app.use((req, res, next) => {
-    console.log(`📡 ${req.method} ${req.path}`);
-    
-    // Log session info for OAuth routes
-    if (req.path.startsWith('/auth/')) {
-      console.log(`🔑 Session Debug:`, {
-        sessionID: req.sessionID,
-        hasSession: !!req.session,
-        oauthState: req.session?.oauthState,
-        cookieHeader: req.headers.cookie ? 'Present' : 'Missing'
-      });
+    if (req.path.startsWith('/auth/') && process.env.NODE_ENV !== 'production') {
+      console.log(`🔑 Auth Debug - Session ID: ${req.sessionID}, Cookie: ${req.headers.cookie ? 'Present' : 'Missing'}`);
     }
-    
     next();
   });
 
@@ -72,18 +63,15 @@ try {
 
   // OAuth routes (before static files)
   console.log('🔧 Mounting auth routes at /auth...');
-  app.use('/auth', (req, res, next) => {
-    console.log(`🎯 Auth route hit: ${req.method} /auth${req.path}`);
-    next();
-  }, authRoutes.default);
+  app.use('/auth', authRoutes.default);
 
   // Root route - landing page or success page
   app.get('/', (req, res) => {
-    console.log('🏠 Root route accessed');
-    
     // Check if user has success data in session
     if (req.session?.authSuccess) {
-      console.log('✅ Showing success page for user:', req.session.authSuccess.displayName);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('✅ Showing success page for user:', req.session.authSuccess.displayName);
+      }
       
       try {
         const successHtml = readFileSync(path.join(__dirname, 'static-views', 'success.html'), 'utf-8');
@@ -127,9 +115,8 @@ try {
 
   // API routes for overlay data will be added next
   
-  // 404 catch-all route with fun gaming-themed page
+  // 404 catch-all route
   app.get('*', (req, res) => {
-    console.log(`❌ 404 Not Found: ${req.path}`);
     try {
       const html404 = readFileSync(path.join(__dirname, 'static-views', '404.html'), 'utf-8');
       const personalizedHtml = html404.replace('{{REQUEST_PATH}}', req.path);
