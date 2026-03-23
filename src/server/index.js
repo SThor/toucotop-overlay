@@ -173,7 +173,12 @@ try {
     }
 
     // Validate endpoint parameter
-    const validEndpoints = ['user', 'channel', 'stream', 'followers', 'subscribers', 'validate'];
+    const validEndpoints = [
+      'user', 'channel', 'stream', 'followers', 'subscribers', 'validate',
+      'clips', 'videos', 'schedule', 'polls', 'predictions', 'goals', 
+      'emotes', 'chatters', 'moderators', 'vips', 'games', 'tags',
+      'hypetrain', 'bits', 'channelpoints', 'raids', 'ads'
+    ];
     if (!validEndpoints.includes(endpoint)) {
       return res.status(404).json({ error: 'Unknown endpoint' });
     }
@@ -229,6 +234,166 @@ try {
             headers: { 'Authorization': `OAuth ${userData.accessToken}` }
           });
           data = await validateResponse.json();
+          break;
+
+        case 'clips':
+          try {
+            const clipsResponse = await fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userData.twitchUserId}&first=10`, { headers });
+            data = await clipsResponse.json();
+          } catch (error) {
+            data = { error: 'Clips endpoint failed', details: error.message };
+          }
+          break;
+
+        case 'videos':
+          try {
+            const videosResponse = await fetch(`https://api.twitch.tv/helix/videos?user_id=${userData.twitchUserId}&first=5&type=archive`, { headers });
+            data = await videosResponse.json();
+          } catch (error) {
+            data = { error: 'Videos endpoint failed', details: error.message };
+          }
+          break;
+
+        case 'schedule':
+          try {
+            const scheduleResponse = await fetch(`https://api.twitch.tv/helix/schedule?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await scheduleResponse.json();
+          } catch (error) {
+            data = { error: 'Schedule endpoint failed', details: error.message };
+          }
+          break;
+
+        case 'polls':
+          try {
+            const pollsResponse = await fetch(`https://api.twitch.tv/helix/polls?broadcaster_id=${userData.twitchUserId}&first=5`, { headers });
+            data = await pollsResponse.json();
+          } catch (error) {
+            data = { error: 'Polls endpoint requires broadcaster scope', details: error.message };
+          }
+          break;
+
+        case 'predictions':
+          try {
+            const predictionsResponse = await fetch(`https://api.twitch.tv/helix/predictions?broadcaster_id=${userData.twitchUserId}&first=5`, { headers });
+            data = await predictionsResponse.json();
+          } catch (error) {
+            data = { error: 'Predictions endpoint requires broadcaster scope', details: error.message };
+          }
+          break;
+
+        case 'goals':
+          try {
+            const goalsResponse = await fetch(`https://api.twitch.tv/helix/goals?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await goalsResponse.json();
+          } catch (error) {
+            data = { error: 'Goals endpoint requires broadcaster scope', details: error.message };
+          }
+          break;
+
+        case 'emotes':
+          try {
+            const emotesResponse = await fetch(`https://api.twitch.tv/helix/chat/emotes?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await emotesResponse.json();
+          } catch (error) {
+            data = { error: 'Emotes endpoint failed', details: error.message };
+          }
+          break;
+
+        case 'chatters':
+          try {
+            const chattersResponse = await fetch(`https://api.twitch.tv/helix/chat/chatters?broadcaster_id=${userData.twitchUserId}&moderator_id=${userData.twitchUserId}&first=100`, { headers });
+            data = await chattersResponse.json();
+          } catch (error) {
+            data = { error: 'Chatters endpoint requires moderator scope', details: error.message };
+          }
+          break;
+
+        case 'moderators':
+          try {
+            const modsResponse = await fetch(`https://api.twitch.tv/helix/moderation/moderators?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await modsResponse.json();
+          } catch (error) {
+            data = { error: 'Moderators endpoint requires moderation scope', details: error.message };
+          }
+          break;
+
+        case 'vips':
+          try {
+            const vipsResponse = await fetch(`https://api.twitch.tv/helix/channels/vips?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await vipsResponse.json();
+          } catch (error) {
+            data = { error: 'VIPs endpoint requires broadcaster scope', details: error.message };
+          }
+          break;
+
+        case 'games':
+          try {
+            // Get current game from channel info first
+            const channelResp = await fetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${userData.twitchUserId}`, { headers });
+            const channelData = await channelResp.json();
+            if (channelData.data && channelData.data[0] && channelData.data[0].game_id) {
+              const gamesResponse = await fetch(`https://api.twitch.tv/helix/games?id=${channelData.data[0].game_id}`, { headers });
+              data = await gamesResponse.json();
+            } else {
+              data = { data: [], message: 'No game currently set' };
+            }
+          } catch (error) {
+            data = { error: 'Games endpoint failed', details: error.message };
+          }
+          break;
+
+        case 'tags':
+          try {
+            const tagsResponse = await fetch(`https://api.twitch.tv/helix/streams/tags?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await tagsResponse.json();
+          } catch (error) {
+            data = { error: 'Tags endpoint failed (may be deprecated)', details: error.message };
+          }
+          break;
+
+        case 'hypetrain':
+          try {
+            const hypeResponse = await fetch(`https://api.twitch.tv/helix/hypetrain/events?broadcaster_id=${userData.twitchUserId}&first=1`, { headers });
+            data = await hypeResponse.json();
+          } catch (error) {
+            data = { error: 'Hype Train endpoint requires broadcaster scope', details: error.message };
+          }
+          break;
+
+        case 'bits':
+          try {
+            const bitsResponse = await fetch(`https://api.twitch.tv/helix/bits/leaderboard?user_id=${userData.twitchUserId}`, { headers });
+            data = await bitsResponse.json();
+          } catch (error) {
+            data = { error: 'Bits leaderboard requires bits:read scope', details: error.message };
+          }
+          break;
+
+        case 'channelpoints':
+          try {
+            const rewardsResponse = await fetch(`https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${userData.twitchUserId}`, { headers });
+            data = await rewardsResponse.json();
+          } catch (error) {
+            data = { error: 'Channel points requires channel:read:redemptions scope', details: error.message };
+          }
+          break;
+
+        case 'raids':
+          try {
+            // This endpoint doesn't exist directly, but we can simulate with stream data
+            data = { message: 'Raids are real-time events - use EventSub for notifications', data: [] };
+          } catch (error) {
+            data = { error: 'Raids endpoint failed', details: error.message };
+          }
+          break;
+
+        case 'ads':
+          try {
+            // Get recent ad schedule if available
+            data = { message: 'Ad schedule not available via API', data: [] };
+          } catch (error) {
+            data = { error: 'Ads endpoint not available', details: error.message };
+          }
           break;
       }
 
