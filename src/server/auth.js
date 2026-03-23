@@ -1,10 +1,15 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { ApiClient } from '@twurple/api';
 import { AppTokenAuthProvider, exchangeCode } from '@twurple/auth';
 import { storeUserTokens, getUserTokens } from './storage.js';
 
 const router = express.Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Server-side environment variables (more secure for OAuth)
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -88,13 +93,23 @@ router.get('/callback', async (req, res) => {
 
   // Validate state parameter
   if (!req.session?.oauthState || state !== req.session.oauthState) {
-    console.error('❌ Invalid OAuth state');
+    console.error('❌ Invalid OAuth state - investigating issue');
     console.log('  - Expected:', req.session?.oauthState);
     console.log('  - Received:', state);
-    return res.status(400).json({ 
-      error: 'Invalid request', 
-      message: 'OAuth state mismatch - this can happen if cookies are disabled or the session expired' 
-    });
+    console.log('  - Session age:', req.session?.cookie?.maxAge);
+    console.log('  - User Agent:', req.headers['user-agent']);
+    
+    // Serve auth error page
+    try {
+      const errorHtml = readFileSync(path.join(__dirname, 'auth-error.html'), 'utf-8');
+      return res.status(400).send(errorHtml);
+    } catch (error) {
+      console.error('Failed to read auth error page:', error);
+      return res.status(400).json({ 
+        error: 'Invalid request', 
+        message: 'OAuth state mismatch - this can happen if cookies are disabled or the session expired' 
+      });
+    }
   }
 
   if (!code) {

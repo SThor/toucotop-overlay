@@ -21,24 +21,47 @@ try {
   // Middleware
   app.use(cors());
   app.use(express.json());
+  
+  // Trust proxy when behind reverse proxy/load balancer
+  if (process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+    console.log('🔒 Trust proxy enabled');
+  }
 
-  // Debug logging
+  // Debug logging with session info
   app.use((req, res, next) => {
     console.log(`📡 ${req.method} ${req.path}`);
+    
+    // Log session info for OAuth routes
+    if (req.path.startsWith('/auth/')) {
+      console.log(`🔑 Session Debug:`, {
+        sessionID: req.sessionID,
+        hasSession: !!req.session,
+        oauthState: req.session?.oauthState,
+        cookieHeader: req.headers.cookie ? 'Present' : 'Missing'
+      });
+    }
+    
     next();
   });
 
   // Session middleware for OAuth state persistence
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isSecure = process.env.COOKIE_SECURE === 'true' || isProduction;
+  
+  console.log(`🍪 Cookie configuration: secure=${isSecure}, env=${process.env.NODE_ENV}`);
+  
   app.use(session({
     secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
     resave: false,
     saveUninitialized: true, // Create session for OAuth flow
-    name: 'oauth.session', // Custom session name
+    name: 'oauth_session', // Custom session name (no dots)
     cookie: { 
-      secure: true, // HTTPS required for secure cookies
+      secure: isSecure, // Environment-aware secure flag
       httpOnly: true,
       sameSite: 'lax', // Allow cookies during redirects
-      maxAge: 10 * 60 * 1000 // 10 minutes
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      domain: process.env.COOKIE_DOMAIN || undefined // Allow custom domain setting
     }
   }));
 
