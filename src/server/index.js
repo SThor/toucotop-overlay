@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 import cors from 'cors';
 import session from 'express-session';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +57,39 @@ const eventStore = {
 };
 
 console.log('🚀 Starting server setup...');
+
+// HMAC signature verification for EventSub webhooks
+function verifyEventSubSignature(headers, body, secret) {
+  const messageId = headers['twitch-eventsub-message-id'];
+  const timestamp = headers['twitch-eventsub-message-timestamp'];
+  const signature = headers['twitch-eventsub-message-signature'];
+  
+  if (!messageId || !timestamp || !signature) {
+    console.warn('❌ Missing required EventSub headers');
+    return false;
+  }
+  
+  // Verify timestamp is recent (within 10 minutes)  
+  const timestampMs = parseInt(timestamp);
+  const now = Date.now();
+  if (Math.abs(now - timestampMs) > 10 * 60 * 1000) {
+    console.warn('❌ EventSub timestamp too old or in future');
+    return false;
+  }
+  
+  // Create HMAC signature
+  const message = messageId + timestamp + body;
+  const expectedSignature = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(message, 'utf8')
+    .digest('hex');
+  
+  // Compare signatures using timing-safe comparison
+  return crypto.timingSafeEqual(
+    Buffer.from(signature, 'utf8'),
+    Buffer.from(expectedSignature, 'utf8')
+  );
+}
 
 // Test auth import
 try {
@@ -129,27 +163,44 @@ try {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // EventSub webhook endpoints
-  app.post('/webhooks/eventsub', (req, res) => {
+  // EventSub webhook endpoints  
+  app.post('/webhooks/eventsub', express.raw({ type: 'application/json' }), (req, res) => {
     const messageType = req.headers['twitch-eventsub-message-type'];
+    const secret = process.env.EVENTSUB_SECRET || 'your-webhook-secret';
+    
+    // Verify HMAC signature (except for webhook challenge)
+    if (messageType !== 'webhook_callback_verification') {
+      if (!verifyEventSubSignature(req.headers, req.body, secret)) {
+        console.warn('❌ Invalid EventSub signature, rejecting request');
+        return res.status(403).send('Forbidden: Invalid signature');
+      }
+    }
+    
+    // Parse JSON body after signature verification
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(req.body);
+    } catch (error) {
+      console.error('❌ Failed to parse EventSub body:', error);
+      return res.status(400).send('Invalid JSON');
+    }
     
     if (messageType === 'webhook_callback_verification') {
       // Handle webhook challenge
-      const challenge = req.body.challenge;
+      const challenge = parsedBody.challenge;
       console.log('🔐 EventSub webhook challenge received');
       return res.status(200).send(challenge);
     }
     
     if (messageType === 'notification') {
       // Handle actual event notification
-      const event = req.body;
-      eventStore.addEvent(event);
+      eventStore.addEvent(parsedBody);
       return res.status(204).send();
     }
     
     if (messageType === 'revocation') {
       // Handle subscription revocation
-      console.log('⚠️ EventSub subscription revoked:', req.body.subscription);
+      console.log('⚠️ EventSub subscription revoked:', parsedBody.subscription);
       return res.status(204).send();
     }
     
