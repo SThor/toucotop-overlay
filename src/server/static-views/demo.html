@@ -6,38 +6,108 @@
   <title>Twitch API Demo - Toucotop Overlay</title>
   <link rel="stylesheet" href="server-pages.css">
   <style>
-    .demo-section {
-      margin-bottom: 2rem;
-      text-align: left;
+    .demo-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
     }
-    .demo-section h3 {
-      color: #555;
+    .demo-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .demo-header h1 {
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+    .demo-header p {
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+    .global-controls {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .global-controls button {
+      background: #9146ff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 0 8px;
+      transition: background-color 0.2s;
+    }
+    .global-controls button:hover:not(:disabled) {
+      background: #7c3aed;
+    }
+    .global-controls button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    .category-section {
+      margin-bottom: 3rem;
+    }
+    .category-title {
+      font-size: 1.5rem;
+      color: #333;
       margin-bottom: 1rem;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 2px solid #9146ff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    .api-data {
-      font-family: 'Courier New', monospace;
-      background: #f5f5f5;
-      padding: 1rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
+    .category-description {
       color: #666;
-      border-left: 3px solid #28a745;
-      white-space: pre-wrap;
-      word-break: break-word;
-      max-height: 300px;
-      overflow-y: auto;
+      margin-bottom: 1.5rem;
+      font-style: italic;
     }
-    .api-error {
-      border-left-color: #dc3545;
-      color: #dc3545;
+    
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
     }
-    .api-loading {
-      border-left-color: #ffc107;
-      color: #856404;
+    
+    .api-card {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
     }
-    .refresh-btn {
+    .api-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-color: #9146ff;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+    }
+    .card-icon {
+      font-size: 1.5rem;
+    }
+    
+    .card-description {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    
+    .card-button {
       background: #28a745;
       color: white;
       border: none;
@@ -45,134 +115,859 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 0.9rem;
-      margin: 10px 10px 0 0;
+      width: 100%;
+      margin-bottom: 1rem;
+      transition: background-color 0.2s;
     }
-    .refresh-btn:hover {
+    .card-button:hover:not(:disabled) {
       background: #218838;
     }
-    .refresh-btn:disabled {
+    .card-button:disabled {
       background: #6c757d;
       cursor: not-allowed;
     }
+    
+    .card-data {
+      font-family: 'Courier New', monospace;
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #666;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e9ecef;
+    }
+    .card-data.loading {
+      background: #fff3cd;
+      color: #856404;
+      border-color: #ffeaa7;
+    }
+    .card-data.error {
+      background: #f8d7da;
+      color: #721c24;
+      border-color: #f5c6cb;
+    }
+    .card-data.success {
+      background: #d1edff;
+      color: #0c5460;
+      border-color: #bee5eb;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: 8px;
+    }
+    .status-loading { background: #ffc107; }
+    .status-success { background: #28a745; }
+    .status-error { background: #dc3545; }
+    
+    .analysis-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 3rem;
+    }
+    .analysis-section h2 {
+      margin-top: 0;
+      color: white;
+    }
+    .analysis-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .analysis-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+    }
+    .analysis-btn:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.5);
+    }
+    
     @media (prefers-color-scheme: dark) {
-      .demo-section h3 {
+      .demo-header h1, .category-title, .card-title {
         color: #ccc;
-        border-bottom-color: #444;
       }
-      .api-data {
-        background: #2a2a2a;
+      .demo-header p, .category-description, .card-description {
         color: #aaa;
       }
-      .api-error {
-        color: #f5c6cb;
+      .api-card {
+        background: #2a2a2a;
+        border-color: #444;
+        color: #ccc;
       }
-      .api-loading {
-        color: #ffeaa7;
+      .card-data {
+        background: #1a1a1a;
+        color: #aaa;
+        border-color: #444;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+      .analysis-actions {
+        flex-direction: column;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="error-code success-code">📊</div>
-    <h1 class="error-title">Twitch API Demo</h1>
-    <p class="error-message">
-      Authenticated as <strong>{{DISPLAY_NAME}}</strong> - Testing all available Twitch API endpoints
-    </p>
-
-    <div class="demo-section">
-      <h3>🎮 User Information</h3>
-      <button class="refresh-btn" onclick="fetchUserInfo()">🔄 Refresh</button>
-      <div class="api-data api-loading" id="user-data">Loading user data...</div>
+  <div class="demo-container">
+    <div class="demo-header">
+      <div class="error-code success-code">🚀</div>
+      <h1>Twitch API Demo Dashboard</h1>
+      <p>Authenticated as <strong>{{DISPLAY_NAME}}</strong> - Comprehensive Twitch API Testing</p>
     </div>
 
-    <div class="demo-section">
-      <h3>📺 Channel Information</h3>
-      <button class="refresh-btn" onclick="fetchChannelInfo()">🔄 Refresh</button>
-      <div class="api-data api-loading" id="channel-data">Loading channel data...</div>
+    <div class="analysis-section">
+      <h2>🔬 Comprehensive Analysis</h2>
+      <div class="analysis-actions">
+        <button class="analysis-btn" onclick="runFullAnalysis()">Run Full Analysis</button>
+        <button class="analysis-btn" onclick="refreshAll()">Refresh All Data</button>
+        <button class="analysis-btn" onclick="exportAnalysis()">Export Results</button>
+        <button class="analysis-btn" onclick="clearAll()">Clear All</button>
+      </div>
+      <div class="card-data" id="analysis-data" style="max-height: 300px;">
+        Click "Run Full Analysis" to test all endpoints and generate comprehensive analysis...
+      </div>
     </div>
 
-    <div class="demo-section">
-      <h3>🔴 Stream Status</h3>
-      <button class="refresh-btn" onclick="fetchStreamInfo()">🔄 Refresh</button>
-      <div class="api-data api-loading" id="stream-data">Loading stream data...</div>
+    <!-- Core Data Section -->
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>🎮</span> Core Channel Data
+      </h2>
+      <p class="category-description">Essential channel information and current status</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">User Information</h3>
+            <span class="card-icon">👤</span>
+          </div>
+          <p class="card-description">Basic user profile data including display name, creation date, and account type</p>
+          <button class="card-button" onclick="fetchEndpoint('user', this)">Fetch User Data</button>
+          <div class="card-data" id="user-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Channel Information</h3>
+            <span class="card-icon">📺</span>
+          </div>
+          <p class="card-description">Channel details including current game, title, language, and broadcaster settings</p>
+          <button class="card-button" onclick="fetchEndpoint('channel', this)">Fetch Channel Data</button>
+          <div class="card-data" id="channel-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Stream Status</h3>
+            <span class="card-icon">🔴</span>
+          </div>
+          <p class="card-description">Live stream information including viewer count, start time, and stream quality</p>
+          <button class="card-button" onclick="fetchEndpoint('stream', this)">Fetch Stream Data</button>
+          <div class="card-data" id="stream-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Token Validation</h3>
+            <span class="card-icon">🔑</span>
+          </div>
+          <p class="card-description">OAuth token status, scopes, expiration time, and authentication details</p>
+          <button class="card-button" onclick="fetchEndpoint('validate', this)">Validate Token</button>
+          <div class="card-data" id="validate-data">Click button to load...</div>
+        </div>
+      </div>
     </div>
 
-    <div class="demo-section">
-      <h3>👥 Followers</h3>
-      <button class="refresh-btn" onclick="fetchFollowers()">🔄 Refresh</button>
-      <div class="api-data api-loading" id="followers-data">Loading followers data...</div>
+    <!-- Community Section -->
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>👥</span> Community & Audience
+      </h2>
+      <p class="category-description">Follower, subscriber, and community management data</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Followers</h3>
+            <span class="card-icon">❤️</span>
+          </div>
+          <p class="card-description">Recent followers with follow dates and total follower count</p>
+          <button class="card-button" onclick="fetchEndpoint('followers', this)">Fetch Followers</button>
+          <div class="card-data" id="followers-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Subscribers</h3>
+            <span class="card-icon">⭐</span>
+          </div>
+          <p class="card-description">Active subscribers with tier information and subscription details</p>
+          <button class="card-button" onclick="fetchEndpoint('subscribers', this)">Fetch Subscribers</button>
+          <div class="card-data" id="subscribers-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Chat Members</h3>
+            <span class="card-icon">💬</span>
+          </div>
+          <p class="card-description">Current active chatters and their user types</p>
+          <button class="card-button" onclick="fetchEndpoint('chatters', this)">Fetch Chatters</button>
+          <div class="card-data" id="chatters-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Moderators</h3>
+            <span class="card-icon">🛡️</span>
+          </div>
+          <p class="card-description">Channel moderators and their assigned permissions</p>
+          <button class="card-button" onclick="fetchEndpoint('moderators', this)">Fetch Moderators</button>
+          <div class="card-data" id="moderators-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">VIP Users</h3>
+            <span class="card-icon">👑</span>
+          </div>
+          <p class="card-description">VIP users with special chat privileges</p>
+          <button class="card-button" onclick="fetchEndpoint('vips', this)">Fetch VIPs</button>
+          <div class="card-data" id="vips-data">Click button to load...</div>
+        </div>
+      </div>
     </div>
 
-    <div class="demo-section">
-      <h3>⭐ Subscribers</h3>
-      <button class="refresh-btn" onclick="fetchSubscribers()">🔄 Refresh</button>
-      <div class="api-data api-loading" id="subscribers-data">Loading subscribers data...</div>
+    <!-- Content Section -->  
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>🎬</span> Content & Media
+      </h2>
+      <p class="category-description">Clips, videos, schedule, and content-related data</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Clips</h3>
+            <span class="card-icon">🎞️</span>
+          </div>
+          <p class="card-description">Recent clips created by viewers with view counts and creation dates</p>
+          <button class="card-button" onclick="fetchEndpoint('clips', this)">Fetch Clips</button>
+          <div class="card-data" id="clips-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Past Broadcasts</h3>
+            <span class="card-icon">📼</span>
+          </div>
+          <p class="card-description">Recent VODs and archived streams with titles and view counts</p>
+          <button class="card-button" onclick="fetchEndpoint('videos', this)">Fetch Videos</button>
+          <div class="card-data" id="videos-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Stream Schedule</h3>
+            <span class="card-icon">📅</span>
+          </div>
+          <p class="card-description">Upcoming scheduled streams and recurring time slots</p>
+          <button class="card-button" onclick="fetchEndpoint('schedule', this)">Fetch Schedule</button>
+          <div class="card-data" id="schedule-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Current Game</h3>
+            <span class="card-icon">🎯</span>
+          </div>
+          <p class="card-description">Currently played game/category with detailed information</p>
+          <button class="card-button" onclick="fetchEndpoint('games', this)">Fetch Game Info</button>
+          <div class="card-data" id="games-data">Click button to load...</div>
+        </div>
+      </div>
     </div>
 
-    <div class="demo-section">
-      <h3>🎯 Token Info</h3>
-      <button class="refresh-btn" onclick="fetchTokenInfo()">🔄 Refresh</button>
-      <div class="api-data api-loading" id="token-data">Loading token validation...</div>
+    <!-- Interactive Section -->
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>🎮</span> Interactive Features
+      </h2>
+      <p class="category-description">Polls, predictions, channel points, and interactive elements</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Active Polls</h3>
+            <span class="card-icon">📊</span>
+          </div>
+          <p class="card-description">Current and recent polls with voting options and results</p>
+          <button class="card-button" onclick="fetchEndpoint('polls', this)">Fetch Polls</button>
+          <div class="card-data" id="polls-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Predictions</h3>
+            <span class="card-icon">🔮</span>
+          </div>
+          <p class="card-description">Active predictions with outcomes and channel point wagers</p>
+          <button class="card-button" onclick="fetchEndpoint('predictions', this)">Fetch Predictions</button>
+          <div class="card-data" id="predictions-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Channel Point Rewards</h3>
+            <span class="card-icon">🎁</span>
+          </div>
+          <p class="card-description">Custom channel point rewards and redemption options</p>
+          <button class="card-button" onclick="fetchEndpoint('channelpoints', this)">Fetch Rewards</button>
+          <div class="card-data" id="channelpoints-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Creator Goals</h3>
+            <span class="card-icon">🎯</span>
+          </div>
+          <p class="card-description">Active creator goals and progress tracking</p>
+          <button class="card-button" onclick="fetchEndpoint('goals', this)">Fetch Goals</button>
+          <div class="card-data" id="goals-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Hype Train Status</h3>
+            <span class="card-icon">🚂</span>
+          </div>
+          <p class="card-description">Current hype train status and progress</p>
+          <button class="card-button" onclick="fetchEndpoint('hypetrain', this)">Fetch Hype Train Status</button>
+          <div class="card-data" id="hypetrain-data">Click button to load...</div>
+        </div>
+      </div>
     </div>
 
-    <div class="details-section">
-      <h3>🔧 Controls</h3>
-      <button class="action-btn" onclick="refreshAll()">🔄 Refresh All Data</button>
-      <a href="/" class="action-btn" style="margin-left: 10px;">← Back to Home</a>
+    <!-- Additional Features -->
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>✨</span> Additional Features
+      </h2>
+      <p class="category-description">Emotes, bits, and other special channel features</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Channel Emotes</h3>
+            <span class="card-icon">😀</span>
+          </div>
+          <p class="card-description">Custom channel emotes and subscriber emotes</p>
+          <button class="card-button" onclick="fetchEndpoint('emotes', this)">Fetch Emotes</button>
+          <div class="card-data" id="emotes-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Bits Leaderboard</h3>
+            <span class="card-icon">💎</span>
+          </div>
+          <p class="card-description">Top bits supporters and donation leaderboard</p>
+          <button class="card-button" onclick="fetchEndpoint('bits', this)">Fetch Bits</button>
+          <div class="card-data" id="bits-data">Click button to load...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-time Events -->
+    <div class="category-section">
+      <h2 class="category-title">
+        <span>📡</span> Real-time Events
+      </h2>
+      <p class="category-description">EventSub notifications and recent stream events</p>
+      <div class="cards-grid">
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Events</h3>
+            <span class="card-icon">⚡</span>
+          </div>
+          <p class="card-description">Latest EventSub notifications (follows, subs, etc.)</p>
+          <button class="card-button" onclick="fetchEndpoint('events', this)">Fetch Recent Events</button>
+          <button class="card-button" onclick="clearEvents()" style="background: #dc3545; margin-left: 8px;">Clear Events</button>
+          <div class="card-data" id="events-data">Click button to load...</div>
+        </div>
+
+        <div class="api-card">
+          <div class="card-header">
+            <h3 class="card-title">EventSub Setup</h3>
+            <span class="card-icon">🔧</span>
+          </div>
+          <p class="card-description">Manage EventSub subscriptions for real-time events</p>
+          <div style="margin: 10px 0;">
+            <select id="event-type-select" style="padding: 8px; margin-right: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="channel.follow">New Follows</option>
+              <option value="channel.subscribe">New Subscribers</option>
+              <option value="channel.subscription.gift">Gift Subscriptions</option>
+              <option value="channel.cheer">Bits/Cheers</option>
+              <option value="channel.raid">Incoming Raids</option>
+              <option value="stream.online">Stream Online</option>
+              <option value="stream.offline">Stream Offline</option>
+            </select>
+            <button class="card-button" onclick="subscribeToEvent()" style="font-size: 14px; padding: 8px 16px;">Subscribe</button>
+          </div>
+          <div class="card-data" id="eventsub-status">Select an event type to subscribe</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 3rem;">
+      <a href="/" style="
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        display: inline-block;
+        transition: background-color 0.2s;
+      " onmouseover="this.style.background='#545b62'" onmouseout="this.style.background='#6c757d'">
+        ← Back to Home
+      </a>
     </div>
   </div>
 
   <script>
     const OVERLAY_TOKEN = '{{OVERLAY_TOKEN}}';
+    let analysisResults = {};
+    let activeRequests = new Set();
 
-    async function apiCall(endpoint, elementId) {
-      const element = document.getElementById(elementId);
-      element.textContent = 'Loading...';
-      element.className = 'api-data api-loading';
+    // Enhanced endpoint fetching with status indicators
+    async function fetchEndpoint(endpoint, buttonElement) {
+      if (activeRequests.has(endpoint)) return;
+      
+      const dataElement = document.getElementById(`${endpoint}-data`);
+      const cardTitle = buttonElement.parentElement.querySelector('.card-title');
+      
+      // Add status indicator
+      const existingIndicator = cardTitle.querySelector('.status-indicator');
+      if (existingIndicator) existingIndicator.remove();
+      
+      const statusIndicator = document.createElement('span');
+      statusIndicator.className = 'status-indicator status-loading';
+      cardTitle.appendChild(statusIndicator);
+      
+      activeRequests.add(endpoint);
+      buttonElement.disabled = true;
+      dataElement.textContent = 'Loading...';
+      dataElement.className = 'card-data loading';
 
       try {
         const response = await fetch(`/api/twitch/${endpoint}?token=${OVERLAY_TOKEN}`);
         const data = await response.json();
         
         if (response.ok) {
-          element.textContent = JSON.stringify(data, null, 2);
-          element.className = 'api-data';
+          // Special formatting for events endpoint
+          if (endpoint === 'events') {
+            const eventsText = formatEventData(data.events);
+            dataElement.textContent = `Total Events: ${data.total}\n\n${eventsText}`;
+          } else {
+            dataElement.textContent = JSON.stringify(data, null, 2);
+          }
+          dataElement.className = 'card-data success';
+          statusIndicator.className = 'status-indicator status-success';
         } else {
-          element.textContent = `Error: ${data.error}\n${data.message || ''}`;
-          element.className = 'api-data api-error';
+          dataElement.textContent = `Error: ${data.error}\n${data.message || data.details || ''}`;
+          dataElement.className = 'card-data error';
+          statusIndicator.className = 'status-indicator status-error';
         }
       } catch (error) {
-        element.textContent = `Network Error: ${error.message}`;
-        element.className = 'api-data api-error';
+        dataElement.textContent = `Network Error: ${error.message}`;
+        dataElement.className = 'card-data error';
+        statusIndicator.className = 'status-indicator status-error';
+      } finally {
+        activeRequests.delete(endpoint);
+        buttonElement.disabled = false;
       }
     }
 
-    function fetchUserInfo() { apiCall('user', 'user-data'); }
-    function fetchChannelInfo() { apiCall('channel', 'channel-data'); }
-    function fetchStreamInfo() { apiCall('stream', 'stream-data'); }
-    function fetchFollowers() { apiCall('followers', 'followers-data'); }
-    function fetchSubscribers() { apiCall('subscribers', 'subscribers-data'); }
-    function fetchTokenInfo() { apiCall('validate', 'token-data'); }
+    // Comprehensive API analysis
+    async function runFullAnalysis() {
+      const analysisElement = document.getElementById('analysis-data');
+      analysisElement.textContent = 'Running comprehensive analysis of all Twitch API endpoints...\n\nThis may take 30-60 seconds to complete.';
+      analysisElement.className = 'card-data loading';
 
-    function refreshAll() {
-      const buttons = document.querySelectorAll('.refresh-btn');
-      buttons.forEach(btn => btn.disabled = true);
-      
-      fetchUserInfo();
-      fetchChannelInfo();
-      fetchStreamInfo();
-      fetchFollowers();
-      fetchSubscribers();
-      fetchTokenInfo();
-      
-      setTimeout(() => {
-        buttons.forEach(btn => btn.disabled = false);
-      }, 2000);
+      const allEndpoints = [
+        // Core endpoints
+        { name: 'User Information', endpoint: 'user', category: 'Core', overlayUse: 'Display streamer name and profile' },
+        { name: 'Channel Information', endpoint: 'channel', category: 'Core', overlayUse: 'Current game and stream title' },
+        { name: 'Stream Status', endpoint: 'stream', category: 'Core', overlayUse: 'Live indicator and viewer count' },
+        { name: 'Token Validation', endpoint: 'validate', category: 'Core', overlayUse: 'Verify authentication status' },
+        
+        // Community endpoints  
+        { name: 'Followers', endpoint: 'followers', category: 'Community', overlayUse: 'Recent follow notifications' },
+        { name: 'Subscribers', endpoint: 'subscribers', category: 'Community', overlayUse: 'Sub count and recent subs' },
+        { name: 'Chat Members', endpoint: 'chatters', category: 'Community', overlayUse: 'Active viewer display' },
+        { name: 'Moderators', endpoint: 'moderators', category: 'Community', overlayUse: 'Mod list for chat features' },
+        { name: 'VIP Users', endpoint: 'vips', category: 'Community', overlayUse: 'VIP recognition in overlays' },
+        
+        // Content endpoints
+        { name: 'Recent Clips', endpoint: 'clips', category: 'Content', overlayUse: 'Highlight recent clips' },
+        { name: 'Past Broadcasts', endpoint: 'videos', category: 'Content', overlayUse: 'Link to recent VODs' },
+        { name: 'Stream Schedule', endpoint: 'schedule', category: 'Content', overlayUse: 'Next stream countdown' },
+        { name: 'Current Game', endpoint: 'games', category: 'Content', overlayUse: 'Game artwork and details' },
+        
+        // Interactive endpoints
+        { name: 'Active Polls', endpoint: 'polls', category: 'Interactive', overlayUse: 'Live poll results overlay' },
+        { name: 'Predictions', endpoint: 'predictions', category: 'Interactive', overlayUse: 'Prediction status display' },
+        { name: 'Channel Points', endpoint: 'channelpoints', category: 'Interactive', overlayUse: 'Reward redemption alerts' },
+        { name: 'Creator Goals', endpoint: 'goals', category: 'Interactive', overlayUse: 'Goal progress bars' },
+        { name: 'Hype Train Status', endpoint: 'hypetrain', category: 'Interactive', overlayUse: 'Hype train progress display' },
+        
+        // Additional endpoints
+        { name: 'Channel Emotes', endpoint: 'emotes', category: 'Additional', overlayUse: 'Chat integration features' },
+        { name: 'Bits Leaderboard', endpoint: 'bits', category: 'Additional', overlayUse: 'Top supporter display' },
+        { name: 'Recent Events', endpoint: 'events', category: 'Events', overlayUse: 'Real-time event notifications' }
+      ];
+
+      const results = {
+        timestamp: new Date().toISOString(),
+        totalEndpoints: allEndpoints.length,
+        results: {},
+        summary: {
+          successful: 0,
+          failed: 0,
+          errors: [],
+          warnings: []
+        },
+        categories: {},
+        overlayRecommendations: []
+      };
+
+      // Test all endpoints
+      for (const ep of allEndpoints) {
+        analysisElement.textContent += `\n\nTesting ${ep.name} (${ep.category})...`;
+        
+        try {
+          const startTime = Date.now();
+          const response = await fetch(`/api/twitch/${ep.endpoint}?token=${OVERLAY_TOKEN}`);
+          const data = await response.json();
+          const responseTime = Date.now() - startTime;
+          
+          const result = {
+            endpoint: ep.endpoint,
+            category: ep.category,
+            overlayUse: ep.overlayUse,
+            status: response.status,
+            success: response.ok,
+            responseTime: responseTime,
+            dataSize: JSON.stringify(data).length,
+            hasData: data && (data.data ? data.data.length > 0 : Object.keys(data).length > 0)
+          };
+
+          if (response.ok) {
+            result.data = data;
+            results.summary.successful++;
+            analysisElement.textContent += ' ✅ SUCCESS';
+            
+            // Add overlay recommendations for successful endpoints with data
+            if (result.hasData && ep.overlayUse) {
+              results.overlayRecommendations.push(`✅ ${ep.name}: ${ep.overlayUse}`);
+            }
+          } else {
+            result.error = data.error || 'Unknown error';
+            result.message = data.message || data.details || '';
+            results.summary.failed++;
+            results.summary.errors.push({
+              endpoint: ep.name,
+              error: result.error,
+              message: result.message
+            });
+            analysisElement.textContent += ` ❌ FAILED (${result.error})`;
+            
+            // Add specific guidance for failed endpoints
+            if (result.error.includes('scope') || result.error.includes('permission')) {
+              results.summary.warnings.push(`⚠️ ${ep.name}: Missing OAuth scope - ${result.message}`);
+            }
+          }
+
+          results.results[ep.name] = result;
+          
+          // Update category stats
+          if (!results.categories[ep.category]) {
+            results.categories[ep.category] = { successful: 0, failed: 0, total: 0 };
+          }
+          results.categories[ep.category].total++;
+          if (result.success) {
+            results.categories[ep.category].successful++;
+          } else {
+            results.categories[ep.category].failed++;
+          }
+          
+        } catch (error) {
+          results.summary.failed++;
+          results.summary.errors.push({
+            endpoint: ep.name,
+            error: 'Network Error',
+            message: error.message
+          });
+          results.results[ep.name] = {
+            endpoint: ep.endpoint,
+            success: false,
+            error: 'Network Error',
+            message: error.message
+          };
+          analysisElement.textContent += ` ❌ NETWORK ERROR`;
+        }
+        
+        // Small delay to prevent overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Generate comprehensive analysis
+      results.analysis = {
+        successRate: ((results.summary.successful / results.totalEndpoints) * 100).toFixed(1) + '%',
+        averageResponseTime: (() => {
+          const successfulWithTime = Object.values(results.results)
+            .filter(r => r.success && typeof r.responseTime === 'number');
+
+          if (successfulWithTime.length === 0) {
+            return 0;
+          }
+
+          const totalResponseTime = successfulWithTime.reduce((acc, r) => acc + r.responseTime, 0);
+          return totalResponseTime / successfulWithTime.length;
+        })(),
+        workingEndpoints: Object.values(results.results).filter(r => r.success).map(r => r.endpoint),
+        failingEndpoints: Object.values(results.results).filter(r => !r.success).map(r => r.endpoint),
+        readinessAssessment: generateReadinessAssessment(results),
+        nextSteps: generateNextSteps(results)
+      };
+
+      analysisResults = results;
+      analysisElement.textContent = JSON.stringify(results, null, 2);
+      analysisElement.className = 'card-data success';
     }
 
-    // Load all data on page load
-    window.onload = refreshAll;
+    function generateReadinessAssessment(results) {
+      const assessment = [];
+      
+      if (results.summary.successful === results.totalEndpoints) {
+        assessment.push('🎉 PERFECT: All endpoints working - ready for production!');
+      } else if (results.summary.successful >= results.totalEndpoints * 0.8) {
+        assessment.push('✅ EXCELLENT: Most endpoints working - minor issues to resolve');
+      } else if (results.summary.successful >= results.totalEndpoints * 0.6) {
+        assessment.push('⚠️ MODERATE: Some endpoints failing - scope/permission issues likely');
+      } else {
+        assessment.push('❌ CRITICAL: Many endpoints failing - authentication/setup issues');
+      }
+      
+      // Category-specific assessments
+      Object.entries(results.categories).forEach(([category, stats]) => {
+        const rate = (stats.successful / stats.total * 100).toFixed(0);
+        assessment.push(`${category}: ${rate}% working (${stats.successful}/${stats.total})`);
+      });
+      
+      return assessment;
+    }
+
+    function generateNextSteps(results) {
+      const steps = [];
+      
+      if (results.summary.failed === 0) {
+        steps.push('1. Proceed with Phase 3: Integrate working APIs into React components');
+        steps.push('2. Add real-time EventSub webhooks for live notifications');
+        steps.push('3. Implement overlay components using working endpoints');
+      } else {
+        steps.push('1. Review OAuth scopes - some endpoints need additional permissions');
+        steps.push('2. Check broadcaster status - some features require partner/affiliate status');
+        steps.push('3. Focus on working endpoints for initial implementation');
+        
+        if (results.summary.warnings.length > 0) {
+          steps.push('4. Address scope issues: channel:read:redemptions, moderator:read:chatters, etc.');
+        }
+      }
+      
+      return steps;
+    }
+
+    function refreshAll() {
+      const allButtons = Array.from(document.querySelectorAll('.card-button')).filter(btn => {
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        return onclickAttr.includes("fetchEndpoint('");
+      });
+      const delay = 200; // Stagger requests
+      
+      allButtons.forEach((btn, index) => {
+        btn.disabled = true;
+        setTimeout(() => {
+          const onclickAttr = btn.getAttribute('onclick') || '';
+          const match = onclickAttr.match(/fetchEndpoint\('([^']+)'/);
+          if (match && match[1]) {
+            fetchEndpoint(match[1], btn);
+          }
+        }, index * delay);
+      });
+      
+      setTimeout(() => {
+        allButtons.forEach(btn => btn.disabled = false);
+      }, allButtons.length * delay + 5000);
+    }
+
+    function clearAll() {
+      // Reset only generic endpoint result panels, not special instruction panels
+      document.querySelectorAll('.card-data:not(#analysis-data):not(#eventsub-status)').forEach(element => {
+        element.textContent = 'Click button to load...';
+        element.className = 'card-data';
+      });
+      
+      document.querySelectorAll('.status-indicator').forEach(indicator => {
+        indicator.remove();
+      });
+      
+      analysisResults = {};
+    }
+
+    function exportAnalysis() {
+      if (!analysisResults || Object.keys(analysisResults).length === 0) {
+        alert('No analysis data to export. Please run Full Analysis first.');
+        return;
+      }
+      
+      const blob = new Blob([JSON.stringify(analysisResults, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `twitch-api-analysis-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // EventSub functions
+    async function subscribeToEvent() {
+      const eventType = document.getElementById('event-type-select').value;
+      const statusDiv = document.getElementById('eventsub-status');
+      
+      statusDiv.textContent = 'Creating subscription...';
+      statusDiv.className = 'card-data loading';
+      
+      try {
+        const response = await fetch('/api/eventsub/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: OVERLAY_TOKEN,
+            eventType: eventType
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.data) {
+          statusDiv.textContent = `✅ Successfully subscribed to ${eventType}\nStatus: ${data.data[0].status}\nID: ${data.data[0].id}`;
+          statusDiv.className = 'card-data success';
+        } else {
+          statusDiv.textContent = `❌ Error: ${JSON.stringify(data, null, 2)}`;
+          statusDiv.className = 'card-data error';
+        }
+      } catch (error) {
+        statusDiv.textContent = `❌ Network error: ${error.message}`;
+        statusDiv.className = 'card-data error';
+      }
+    }
+    
+    async function clearEvents() {
+      const eventsDataDiv = document.getElementById('events-data');
+      
+      try {
+        eventsDataDiv.textContent = 'Clearing events...';
+        eventsDataDiv.className = 'card-data loading';
+        
+        const response = await fetch(`/api/twitch/events?token=${OVERLAY_TOKEN}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          eventsDataDiv.textContent = '✅ Events cleared successfully';
+          eventsDataDiv.className = 'card-data success';
+        } else {
+          eventsDataDiv.textContent = `❌ Error: ${data.error}`;
+          eventsDataDiv.className = 'card-data error';
+        }
+      } catch (error) {
+        eventsDataDiv.textContent = `❌ Network error: ${error.message}`;
+        eventsDataDiv.className = 'card-data error';
+      }
+    }
+    
+    function formatEventData(events) {
+      if (!events || events.length === 0) {
+        return 'No recent events found';
+      }
+      
+      return events.map(event => {
+        const eventType = event.subscription.type;
+        const timestamp = new Date(event.timestamp).toLocaleString();
+        
+        let eventInfo = `🕐 ${timestamp} - ${eventType}`;
+        
+        // Format specific event types
+        switch (eventType) {
+          case 'channel.follow':
+            eventInfo += `\n👤 New follower: ${event.event.user_name}`;
+            break;
+          case 'channel.subscribe':
+            eventInfo += `\n⭐ New subscriber: ${event.event.user_name} (Tier ${event.event.tier})`;
+            break;
+          case 'channel.subscription.gift':
+            eventInfo += `\n🎁 Gift sub: ${event.event.user_name} to ${event.event.recipient_user_name}`;
+            break;
+          case 'channel.cheer':
+            eventInfo += `\n💎 ${event.event.user_name} cheered ${event.event.bits} bits`;
+            break;
+          case 'channel.raid':
+            eventInfo += `\n🚀 Raided by ${event.event.from_broadcaster_user_name} (${event.event.viewers} viewers)`;
+            break;
+          case 'stream.online':
+            eventInfo += `\n🔴 Stream went online`;
+            break;
+          case 'stream.offline':
+            eventInfo += `\n⚫ Stream went offline`;
+            break;
+        }
+        
+        return eventInfo;
+      }).join('\n\n');
+    }
+
+    // Legacy function mapping for backwards compatibility
+    function fetchUserInfo() { fetchEndpoint('user', document.querySelector('#user-data').parentElement.querySelector('button')); }
+    function fetchChannelInfo() { fetchEndpoint('channel', document.querySelector('#channel-data').parentElement.querySelector('button')); }
+    function fetchStreamInfo() { fetchEndpoint('stream', document.querySelector('#stream-data').parentElement.querySelector('button')); }
+    function fetchFollowers() { fetchEndpoint('followers', document.querySelector('#followers-data').parentElement.querySelector('button')); }
+    function fetchSubscribers() { fetchEndpoint('subscribers', document.querySelector('#subscribers-data').parentElement.querySelector('button')); }
+    function fetchTokenInfo() { fetchEndpoint('validate', document.querySelector('#validate-data').parentElement.querySelector('button')); }
   </script>
 </body>
 </html>
