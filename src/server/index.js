@@ -75,7 +75,7 @@ const eventStore = {
 console.log('🚀 Starting server setup...');
 
 // HMAC signature verification for EventSub webhooks
-function verifyEventSubSignature(headers, body, secret) {
+function verifyEventSubSignature(headers, rawBody, secret) {
   const messageId = headers['twitch-eventsub-message-id'];
   const timestamp = headers['twitch-eventsub-message-timestamp'];
   const signature = headers['twitch-eventsub-message-signature'];
@@ -85,8 +85,13 @@ function verifyEventSubSignature(headers, body, secret) {
     return false;
   }
   
-  // Verify timestamp is recent (within 10 minutes)  
-  const timestampMs = parseInt(timestamp);
+  // Verify timestamp is valid RFC3339 and recent (within 10 minutes)
+  const timestampMs = Date.parse(timestamp);
+  if (Number.isNaN(timestampMs)) {
+    console.warn('❌ Invalid EventSub timestamp format');
+    return false;
+  }
+
   const now = Date.now();
   if (Math.abs(now - timestampMs) > 10 * 60 * 1000) {
     console.warn('❌ EventSub timestamp too old or in future');
@@ -94,17 +99,32 @@ function verifyEventSubSignature(headers, body, secret) {
   }
   
   // Create HMAC signature
-  const message = messageId + timestamp + body;
-  const expectedSignature = 'sha256=' + crypto
+  const message = messageId + timestamp + rawBody;
+  const expectedDigestHex = crypto
     .createHmac('sha256', secret)
     .update(message, 'utf8')
     .digest('hex');
+
+  const signaturePrefix = 'sha256=';
+  if (!signature.startsWith(signaturePrefix)) {
+    return false;
+  }
+
+  const providedDigestHex = signature.slice(signaturePrefix.length);
+  if (!/^[a-f0-9]{64}$/i.test(providedDigestHex)) {
+    return false;
+  }
+
+  const providedDigest = Buffer.from(providedDigestHex, 'hex');
+  const expectedDigest = Buffer.from(expectedDigestHex, 'hex');
+
+  // Prevent timingSafeEqual from throwing on malformed signatures
+  if (providedDigest.length !== expectedDigest.length) {
+    return false;
+  }
   
-  // Compare signatures using timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(signature, 'utf8'),
-    Buffer.from(expectedSignature, 'utf8')
-  );
+  // Compare digest bytes using timing-safe comparison
+  return crypto.timingSafeEqual(providedDigest, expectedDigest);
 }
 
 function getEventSubWebhookUrl(req) {
@@ -147,7 +167,13 @@ try {
     credentials: true
   };
   app.use(cors(corsOptions));
-  app.use(express.json());
+  app.use(express.json({
+    verify: (req, _res, buf) => {
+      if (req.path === '/webhooks/eventsub') {
+        req.rawBody = buf.toString('utf8');
+      }
+    }
+  }));
   
   // Trust proxy when behind reverse proxy/load balancer
   if (process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production') {
@@ -208,29 +234,25 @@ try {
   });
 
   // EventSub webhook endpoints  
-  app.post('/webhooks/eventsub', express.raw({ type: 'application/json' }), (req, res) => {
+  app.post('/webhooks/eventsub', (req, res) => {
     const messageType = req.headers['twitch-eventsub-message-type'];
 
     if (!EVENTSUB_SECRET) {
       return res.status(503).send('EventSub is not configured');
     }
     
-    // Verify HMAC signature (except for webhook challenge)
-    if (messageType !== 'webhook_callback_verification') {
-      if (!verifyEventSubSignature(req.headers, req.body, EVENTSUB_SECRET)) {
-        console.warn('❌ Invalid EventSub signature, rejecting request');
-        return res.status(403).send('Forbidden: Invalid signature');
-      }
+    // Verify HMAC signature for all EventSub message types, including challenge.
+    if (!req.rawBody) {
+      console.warn('❌ Missing raw body for EventSub signature verification');
+      return res.status(400).send('Invalid request body');
     }
-    
-    // Parse JSON body after signature verification
-    let parsedBody;
-    try {
-      parsedBody = JSON.parse(req.body);
-    } catch (error) {
-      console.error('❌ Failed to parse EventSub body:', error);
-      return res.status(400).send('Invalid JSON');
+
+    if (!verifyEventSubSignature(req.headers, req.rawBody, EVENTSUB_SECRET)) {
+      console.warn('❌ Invalid EventSub signature, rejecting request');
+      return res.status(403).send('Forbidden: Invalid signature');
     }
+
+    const parsedBody = req.body;
     
     if (messageType === 'webhook_callback_verification') {
       // Handle webhook challenge
