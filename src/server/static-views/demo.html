@@ -900,7 +900,7 @@
       
       try {
         eventsDataDiv.textContent = 'Clearing events...';
-        eventsDataDiv.className = 'card-data pending';
+        eventsDataDiv.className = 'card-data loading';
         
         const response = await fetch(`/api/twitch/events?token=${OVERLAY_TOKEN}`, {
           method: 'DELETE'
