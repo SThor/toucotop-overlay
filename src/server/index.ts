@@ -103,8 +103,8 @@ try {
     next();
   });
 
-  // Static file serving
-  app.use(express.static(path.join(__dirname, '../dist')));
+  // Static file serving (index disabled so server-rendered root route takes priority)
+  app.use(express.static(path.join(__dirname, '../dist'), { index: false }));
   // Serve server-rendered template assets (e.g., server-pages.css)
   app.use(express.static(path.join(__dirname, 'static-views')));
   // Also serve under /auth for relative loads from auth HTML pages
