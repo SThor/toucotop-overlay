@@ -1,6 +1,14 @@
+import { useSettings } from '../contexts/SettingsContext';
+import { Navigate } from 'react-router-dom';
 import '../styles/ServerPages.css';
 
 export default function LandingPage() {
+  const { settings } = useSettings();
+
+  if (settings.overlayToken) {
+    return <Navigate to={`/auth/success?token=${encodeURIComponent(settings.overlayToken)}`} replace />;
+  }
+
   return (
     <div className="server-page">
       <div className="container">

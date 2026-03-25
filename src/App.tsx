@@ -14,6 +14,7 @@ import MainPage from './pages/MainPage';
 import ChatOverlay from './pages/ChatOverlay';
 import ClockOverlay from './pages/ClockOverlay';
 import BarOverlay from './pages/BarOverlay';
+import NavMenu from './components/NavMenu';
 import './App.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <TwitchProvider>
           <Router>
             <div className="App">
+              <NavMenu />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth/success" element={<AuthSuccessPage />} />
