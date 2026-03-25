@@ -44,9 +44,6 @@ function validateOverlayToken(getUserByOverlayToken: (token: string) => UserData
 
     const userData = getUserByOverlayToken(token);
     if (!userData) {
-      // Try to determine if it's expired or just invalid
-      const allUserData = typeof getUserByOverlayToken === 'function' && getUserByOverlayToken.length === 1
-        ? undefined : undefined; // placeholder for future logic
       console.warn(`[401] Overlay request invalid or expired token: ${token.slice(0, 12)}...`);
       res.status(401).json({ error: 'Invalid or expired token' });
       return;
