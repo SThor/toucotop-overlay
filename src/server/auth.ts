@@ -218,7 +218,14 @@ router.get('/callback', async (req: Request, res: Response) => {
       displayName: user.display_name
     });
 
-    const overlayExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours from now
+    // Retrieve the actual stored expiry from storage/token manager
+    let overlayExpiresAt: string | undefined = undefined;
+    try {
+      const stored = getUserByOverlayToken(overlayToken);
+      overlayExpiresAt = stored?.expiresAt;
+    } catch (e) {
+      overlayExpiresAt = undefined;
+    }
 
     console.log(`✅ OAuth completed for ${username}${process.env.NODE_ENV !== 'production' ? `, overlay token: ${overlayToken.slice(0, 12)}...` : ''}`);
     
@@ -226,7 +233,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     const successParams = new URLSearchParams({
       token: overlayToken,
       displayName: user.display_name,
-      expiresAt: overlayExpiresAt,
+      ...(overlayExpiresAt ? { expiresAt: overlayExpiresAt } : {})
     });
     res.redirect(`/auth/success?${successParams.toString()}`);
     return;

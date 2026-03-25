@@ -1,24 +1,65 @@
 import { useCallback, useState } from 'react';
 
 export function CopyButton({ text, className }: { text: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const handleCopy = useCallback(async () => {
+    const resetAfterDelay = () => {
+      setTimeout(() => setStatus('idle'), 2000);
+    };
+
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API may not be available
+      if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        setStatus('copied');
+        resetAfterDelay();
+        return;
+      }
+      throw new Error('Clipboard API not available');
+    } catch (err) {
+      let fallbackSucceeded = false;
+
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        fallbackSucceeded = typeof document.execCommand === 'function' && document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } catch {
+        fallbackSucceeded = false;
+      }
+
+      if (fallbackSucceeded) {
+        setStatus('copied');
+        resetAfterDelay();
+      } else {
+        // Clipboard operations failed; surface this for debugging and UX.
+        // eslint-disable-next-line no-console
+        console.error('Failed to copy text to clipboard');
+        setStatus('failed');
+        resetAfterDelay();
+      }
     }
   }, [text]);
 
   return (
     <button
-      className={`copy-btn${copied ? ' copied' : ''}${className ? ` ${className}` : ''}`}
+      className={`copy-btn${status === 'copied' ? ' copied' : ''}${status === 'failed' ? ' failed' : ''}${
+        className ? ` ${className}` : ''
+      }`}
       onClick={handleCopy}
     >
-      {copied ? '✅ Copied!' : '📋 Copy'}
+      {status === 'copied'
+        ? '✅ Copied!'
+        : status === 'failed'
+        ? '❌ Failed to copy'
+        : '📋 Copy'}
     </button>
   );
 }
