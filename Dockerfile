@@ -34,7 +34,7 @@ COPY --from=builder /app/dist /app/dist
 # Copy compiled server JavaScript (not TypeScript source)
 COPY --from=builder /app/dist-server /app/dist-server
 
-# Copy static server views (these are not TypeScript)
+# Copy static server views to correct location for compiled server
 COPY src/server/static-views /app/dist-server/static-views
 
 # Create tokens directory with proper permissions

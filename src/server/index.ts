@@ -3,7 +3,7 @@
  * Main Express server with modular Twitch API integration
  */
 
-import express, { type Request, type Response } from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, statSync } from 'fs';
@@ -67,16 +67,16 @@ try {
   // Trust proxy configuration
   configureTrustProxy(app);
   
-  // Session configuration for OAuth flow
+  // Session configuration for OAuth flow with production safety
   let sessionSecret = process.env.SESSION_SECRET;
   
-  if (process.env.NODE_ENV === 'production' && !sessionSecret) {
-    throw new Error('SESSION_SECRET environment variable must be set in production');
-  }
-  
-  if (!sessionSecret) {
+  if (process.env.NODE_ENV === 'production') {
+    if (!sessionSecret) {
+      throw new Error('SESSION_SECRET environment variable must be set in production');
+    }
+  } else {
     // Safe default for non-production environments only
-    sessionSecret = 'dev-secret-change-in-production';
+    sessionSecret = sessionSecret || 'dev-secret-change-in-production';
   }
   
   app.use(session({
@@ -95,12 +95,28 @@ try {
     app.use(requestLogger());
   }
 
+  // Security headers middleware for auth routes
+  app.use('/auth', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
   // Static file serving
   app.use(express.static(path.join(__dirname, '../dist')));
   // Serve server-rendered template assets (e.g., server-pages.css)
   app.use(express.static(path.join(__dirname, 'static-views')));
   // Also serve under /auth for relative loads from auth HTML pages
   app.use('/auth', express.static(path.join(__dirname, 'static-views')));
+  
+  // Explicit route for server-pages.css for better compatibility
+  app.get('/server-pages.css', (_req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, 'static-views', 'server-pages.css'));
+  });
+  app.get('/auth/server-pages.css', (_req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, 'static-views', 'server-pages.css'));
+  });
 
   // ===== WEBHOOK ROUTES =====
   

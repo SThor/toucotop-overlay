@@ -68,6 +68,7 @@ async function makeTwitchApiCall(
 
 /**
  * Builds standard Twitch API headers for authenticated requests
+ * Validates TWITCH_CLIENT_ID to prevent runtime errors
  */
 function buildTwitchHeaders(userData: UserData): Record<string, string> {
   const clientId = process.env.TWITCH_CLIENT_ID;
@@ -76,9 +77,14 @@ function buildTwitchHeaders(userData: UserData): Record<string, string> {
     throw new Error('TWITCH_CLIENT_ID environment variable is not set');
   }
   
+  // Validate that client ID is not empty string
+  if (clientId.trim() === '') {
+    throw new Error('TWITCH_CLIENT_ID cannot be empty');
+  }
+  
   return {
     'Authorization': `Bearer ${userData.accessToken}`,
-    'Client-Id': clientId
+    'Client-Id': clientId.trim()
   };
 }
 

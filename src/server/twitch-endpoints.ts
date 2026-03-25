@@ -26,6 +26,7 @@ export interface EndpointConfigs {
   [key: string]: EndpointConfig;
 }
 
+// Use proper EventSub types instead of any[]
 export interface EventsResponse {
   events: EventSubEvent[];
   total: number;

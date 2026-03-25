@@ -142,22 +142,28 @@ export class TokenManager {
         userData.refreshToken
       );
       
-      // Update stored tokens with new access token
-      const updatedData: storage.StoredUserData = {
-        ...userData,
+      // Update stored tokens with new access token, preserving overlay metadata
+      const updatedData: storage.TokenData = {
         accessToken: newTokenData.accessToken,
         refreshToken: newTokenData.refreshToken || userData.refreshToken, // Keep old if not provided
+        overlayToken: userData.overlayToken, // Preserve existing overlay token
+        twitchUserId: userData.twitchUserId,
+        displayName: userData.displayName,
         expiresAt: newTokenData.expiresIn
           ? new Date(Date.now() + newTokenData.expiresIn * 1000).toISOString()
           : userData.expiresAt,
-        updatedAt: new Date().toISOString()
+        username: userData.username
       };
 
-      // Store updated tokens
+      // Store updated tokens (this will preserve overlay expiry and createdAt)
       this.storeUserTokens(username, updatedData);
 
       // Read back what was actually persisted to ensure returned data matches storage
-      const storedData = storage.getUserTokens(username) || updatedData;
+      const storedData = storage.getUserTokens(username) || {
+        ...userData,
+        ...updatedData,
+        updatedAt: new Date().toISOString()
+      };
       
       console.log(`✅ Successfully refreshed token for user: ${username}`);
       return storedData;
