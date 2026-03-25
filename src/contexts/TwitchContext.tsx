@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from './SettingsContext';
+import { useChatStream } from '../hooks/useChatStream';
+import { useServerApi } from '../hooks/useServerApi';
 
 export interface TwitchChatMessage {
   id: string;
@@ -96,36 +98,180 @@ type TwitchProviderComponent = React.FC<TwitchProviderProps> & {
   useTwitch: typeof useTwitch;
 };
 
+// Polling intervals
+const STREAM_POLL_MS = 30_000;
+const FOLLOWERS_POLL_MS = 10 * 60_000;
+const SUBSCRIBERS_POLL_MS = 10 * 60_000;
+
+// Twitch API response shapes (subset we need)
+interface TwitchStreamData {
+  id: string;
+  title: string;
+  game_name: string;
+  started_at: string;
+  viewer_count: number;
+}
+
+interface TwitchFollowerData {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  followed_at: string;
+}
+
+interface TwitchSubscriberData {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  tier: string;
+  is_gift: boolean;
+  gifter_name?: string;
+}
+
+interface TwitchEmoteData {
+  id: string;
+  name: string;
+  format: string[];
+  theme_mode: string[];
+  scale: string[];
+}
+
 export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const { settings } = useSettings();
-  const [messages, setMessages] = useState<TwitchChatMessage[]>([]);
-  const [cachedEmotes] = useState<Map<string, CachedEmote>>(new Map());
-  const [streamInfo] = useState<TwitchStreamInfo | null>(null);
-  const [lastFollower] = useState<TwitchFollower | null>(null);
-  const [lastSubscriber] = useState<TwitchSubscriber | null>(null);
-  const [followerCount] = useState(0);
+  const { fetchApi, hasToken } = useServerApi();
+  const { messages, isConnected: chatConnected, error: chatError, clearMessages } = useChatStream();
 
-  // TODO: Phase 3 will wire these to server API via hooks
+  const [streamInfo, setStreamInfo] = useState<TwitchStreamInfo | null>(null);
+  const [isLoadingStreamInfo, setIsLoadingStreamInfo] = useState(false);
+  const [lastFollower, setLastFollower] = useState<TwitchFollower | null>(null);
+  const [lastSubscriber, setLastSubscriber] = useState<TwitchSubscriber | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
 
-  const clearMessages = () => {
-    setMessages([]);
-  };
+  const [cachedEmotes, setCachedEmotes] = useState<Map<string, CachedEmote>>(new Map());
+  const emotesLoadedRef = useRef(false);
 
-  const getEmoteByName = (name: string): CachedEmote | undefined => {
-    return cachedEmotes.get(name.toLowerCase());
-  };
-
-  // Suppress unused variable warning - settings will be used in Phase 3
+  // Suppress unused variable warning — settings may be used for future config
   void settings;
 
+  // --- Stream info polling ---
+  const fetchStreamInfo = useCallback(async () => {
+    const data = await fetchApi<{ data: TwitchStreamData[] }>('stream');
+    if (!data) return;
+
+    if (data.data.length > 0) {
+      const s = data.data[0];
+      setStreamInfo({
+        id: s.id,
+        title: s.title,
+        gameName: s.game_name,
+        startedAt: new Date(s.started_at),
+        viewerCount: s.viewer_count,
+        isLive: true,
+      });
+    } else {
+      setStreamInfo((prev) =>
+        prev ? { ...prev, isLive: false, viewerCount: 0 } : null
+      );
+    }
+    setIsLoadingStreamInfo(false);
+  }, [fetchApi]);
+
+  // --- Followers polling ---
+  const fetchFollowers = useCallback(async () => {
+    const data = await fetchApi<{ data: TwitchFollowerData[]; total: number }>('followers');
+    if (!data) return;
+
+    setFollowerCount(data.total ?? 0);
+    if (data.data.length > 0) {
+      const f = data.data[0];
+      setLastFollower({
+        userId: f.user_id,
+        userName: f.user_login,
+        userDisplayName: f.user_name,
+        followDate: new Date(f.followed_at),
+      });
+    }
+  }, [fetchApi]);
+
+  // --- Subscribers polling ---
+  const fetchSubscribers = useCallback(async () => {
+    const data = await fetchApi<{ data: TwitchSubscriberData[]; total: number }>('subscribers');
+    if (!data) return;
+
+    if (data.data.length > 0) {
+      const s = data.data[0];
+      setLastSubscriber({
+        userId: s.user_id,
+        userName: s.user_login,
+        userDisplayName: s.user_name,
+        tier: s.tier,
+        isGift: s.is_gift,
+        gifterName: s.gifter_name,
+        subscribeDate: new Date(), // Twitch subscriptions API doesn't include date
+      });
+    }
+  }, [fetchApi]);
+
+  // --- Emotes (one-time fetch) ---
+  const fetchEmotes = useCallback(async () => {
+    if (emotesLoadedRef.current) return;
+    const data = await fetchApi<{ data: TwitchEmoteData[] }>('emotes');
+    if (!data) return;
+
+    const map = new Map<string, CachedEmote>();
+    for (const emote of data.data) {
+      const base = `https://static-cdn.jtvnps.net/emoticons/v2/${emote.id}`;
+      map.set(emote.name.toLowerCase(), {
+        id: emote.id,
+        name: emote.name,
+        urls: {
+          '1x': `${base}/default/dark/1.0`,
+          '2x': `${base}/default/dark/2.0`,
+          '3x': `${base}/default/dark/3.0`,
+          '1x_static': `${base}/static/dark/1.0`,
+          '2x_static': `${base}/static/dark/2.0`,
+          '3x_static': `${base}/static/dark/3.0`,
+        },
+      });
+    }
+    setCachedEmotes(map);
+    emotesLoadedRef.current = true;
+  }, [fetchApi]);
+
+  // --- Set up polling and initial fetches ---
+  useEffect(() => {
+    if (!hasToken) return;
+
+    setIsLoadingStreamInfo(true);
+    fetchStreamInfo();
+    fetchFollowers();
+    fetchSubscribers();
+    fetchEmotes();
+
+    const streamTimer = setInterval(fetchStreamInfo, STREAM_POLL_MS);
+    const followersTimer = setInterval(fetchFollowers, FOLLOWERS_POLL_MS);
+    const subscribersTimer = setInterval(fetchSubscribers, SUBSCRIBERS_POLL_MS);
+
+    return () => {
+      clearInterval(streamTimer);
+      clearInterval(followersTimer);
+      clearInterval(subscribersTimer);
+    };
+  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchEmotes]);
+
+  const getEmoteByName = useCallback(
+    (name: string): CachedEmote | undefined => cachedEmotes.get(name.toLowerCase()),
+    [cachedEmotes]
+  );
+
   const value: TwitchContextType = {
-    isConnected: false,
-    isConnecting: false,
-    error: null,
+    isConnected: chatConnected,
+    isConnecting: hasToken && !chatConnected && !chatError,
+    error: chatError,
     messages,
     cachedEmotes,
     streamInfo,
-    isLoadingStreamInfo: false,
+    isLoadingStreamInfo,
     lastFollower,
     lastSubscriber,
     followerCount,
