@@ -35,7 +35,7 @@ COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/dist-server /app/dist-server
 
 # Copy static server views (these are not TypeScript)
-COPY src/server/static-views /app/src/server/static-views
+COPY src/server/static-views /app/dist-server/static-views
 
 # Create tokens directory with proper permissions
 RUN mkdir -p /app/tokens && chmod 700 /app/tokens

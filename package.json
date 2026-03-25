@@ -19,7 +19,7 @@
     "@twurple/chat": "^8.0.3",
     "@twurple/eventsub-http": "^8.0.3",
     "cors": "^2.8.6",
-    "express": "^4.18.2",
+    "express": "^5.0.1",
     "express-session": "^1.19.0",
     "framer-motion": "^12.23.1",
     "react": "^19.1.0",

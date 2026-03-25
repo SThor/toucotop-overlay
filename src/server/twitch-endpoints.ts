@@ -12,6 +12,7 @@ import {
   type UserData,
   type TwitchApiResponse 
 } from './twitch-api-client.js';
+import { EventStore, type EventSubEvent } from './eventsub-handler.js';
 
 // Type definitions for endpoint configuration
 export interface EndpointConfig {
@@ -25,14 +26,8 @@ export interface EndpointConfigs {
   [key: string]: EndpointConfig;
 }
 
-export interface EventStore {
-  events: any[];
-  getEventsByType(type: string, limit: number): any[];
-  getEvents(limit: number): any[];
-}
-
 export interface EventsResponse {
-  events: any[];
+  events: EventSubEvent[];
   total: number;
 }
 

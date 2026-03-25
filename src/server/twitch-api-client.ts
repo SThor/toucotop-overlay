@@ -69,10 +69,16 @@ async function makeTwitchApiCall(
 /**
  * Builds standard Twitch API headers for authenticated requests
  */
-function buildTwitchHeaders(userData: UserData): ApiHeaders {
+function buildTwitchHeaders(userData: UserData): Record<string, string> {
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  
+  if (!clientId) {
+    throw new Error('TWITCH_CLIENT_ID environment variable is not set');
+  }
+  
   return {
     'Authorization': `Bearer ${userData.accessToken}`,
-    'Client-Id': process.env.TWITCH_CLIENT_ID
+    'Client-Id': clientId
   };
 }
 

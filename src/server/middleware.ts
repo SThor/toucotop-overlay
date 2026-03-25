@@ -148,7 +148,7 @@ function validateJsonBody(requiredFields: string[] = []) {
 
     // Check for required fields
     for (const field of requiredFields) {
-      if (!req.body.hasOwnProperty(field)) {
+      if (!Object.prototype.hasOwnProperty.call(req.body, field)) {
         res.status(400).json({ error: `Missing required field: ${field}` });
         return;
       }

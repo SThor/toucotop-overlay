@@ -40,14 +40,17 @@ if (!fs.existsSync(TOKENS_DIR)) {
 export function storeUserTokens(username: string, tokenData: TokenData): void {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
   const now = new Date();
-  const overlayExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+  
+  // Check if user already exists to preserve overlay metadata
+  const existingData = fs.existsSync(tokenFile) ? getUserTokens(username) : null;
   
   const data: StoredUserData = {
     ...tokenData,
     username,
-    createdAt: now.toISOString(),
+    createdAt: existingData?.createdAt || now.toISOString(),
     updatedAt: now.toISOString(),
-    overlayExpiresAt: overlayExpiry.toISOString() // Separate expiry for overlay token
+    overlayExpiresAt: existingData?.overlayExpiresAt || 
+      new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString() // Preserve existing overlay expiry or create new one
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });

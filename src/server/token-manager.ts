@@ -147,17 +147,20 @@ export class TokenManager {
         ...userData,
         accessToken: newTokenData.accessToken,
         refreshToken: newTokenData.refreshToken || userData.refreshToken, // Keep old if not provided
-        expiresAt: newTokenData.expiresIn ? 
-          new Date(Date.now() + newTokenData.expiresIn * 1000).toISOString() : 
-          userData.expiresAt,
+        expiresAt: newTokenData.expiresIn
+          ? new Date(Date.now() + newTokenData.expiresIn * 1000).toISOString()
+          : userData.expiresAt,
         updatedAt: new Date().toISOString()
       };
 
       // Store updated tokens
       this.storeUserTokens(username, updatedData);
+
+      // Read back what was actually persisted to ensure returned data matches storage
+      const storedData = storage.getUserTokens(username) || updatedData;
       
       console.log(`✅ Successfully refreshed token for user: ${username}`);
-      return updatedData;
+      return storedData;
 
     } catch (error) {
       console.error(`❌ Failed to refresh token for user ${username}:`, error);

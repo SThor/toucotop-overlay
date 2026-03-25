@@ -68,8 +68,19 @@ try {
   configureTrustProxy(app);
   
   // Session configuration for OAuth flow
+  let sessionSecret = process.env.SESSION_SECRET;
+  
+  if (process.env.NODE_ENV === 'production' && !sessionSecret) {
+    throw new Error('SESSION_SECRET environment variable must be set in production');
+  }
+  
+  if (!sessionSecret) {
+    // Safe default for non-production environments only
+    sessionSecret = 'dev-secret-change-in-production';
+  }
+  
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -86,6 +97,10 @@ try {
 
   // Static file serving
   app.use(express.static(path.join(__dirname, '../dist')));
+  // Serve server-rendered template assets (e.g., server-pages.css)
+  app.use(express.static(path.join(__dirname, 'static-views')));
+  // Also serve under /auth for relative loads from auth HTML pages
+  app.use('/auth', express.static(path.join(__dirname, 'static-views')));
 
   // ===== WEBHOOK ROUTES =====
   
@@ -257,8 +272,9 @@ try {
   /**
    * Catch-all handler for React Router
    * Serves the main React app for client-side routing
+   * Uses Express 5 named wildcard syntax
    */
-  app.get('*', (_req: Request, res: Response) => {
+  app.get('/{*splat}', (_req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 
