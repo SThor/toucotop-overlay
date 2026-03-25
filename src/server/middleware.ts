@@ -35,15 +35,20 @@ export interface RequestData {
 function validateOverlayToken(getUserByOverlayToken: (token: string) => UserData | null) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const { token } = req.query;
-    
+
     if (!token || typeof token !== 'string') {
+      console.warn('[401] Overlay request missing token');
       res.status(401).json({ error: 'Missing token' });
       return;
     }
 
     const userData = getUserByOverlayToken(token);
     if (!userData) {
-      res.status(401).json({ error: 'Invalid token' });
+      // Try to determine if it's expired or just invalid
+      const allUserData = typeof getUserByOverlayToken === 'function' && getUserByOverlayToken.length === 1
+        ? undefined : undefined; // placeholder for future logic
+      console.warn(`[401] Overlay request invalid or expired token: ${token.slice(0, 12)}...`);
+      res.status(401).json({ error: 'Invalid or expired token' });
       return;
     }
 

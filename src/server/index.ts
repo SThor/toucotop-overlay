@@ -146,24 +146,37 @@ try {
     async (req: Request, res: Response) => {
       const { endpoint } = req.params;
       let { userData } = req; // Attached by validateOverlayToken middleware
-      
+
       if (!userData) {
+        console.warn(`[401] /api/twitch/${endpoint}: No userData after token validation`);
         res.status(401).json({ error: 'User data not found' });
         return;
       }
 
       // If access token is expired, attempt refresh before making API calls
-      if (userData.expiresAt && new Date(userData.expiresAt) <= new Date() && userData.refreshToken) {
-        const refreshed = await defaultTokenManager.refreshUserTokens(userData.username);
-        if (refreshed) {
-          userData = refreshed;
-          req.userData = refreshed;
+      if (userData.expiresAt && new Date(userData.expiresAt) <= new Date()) {
+        if (userData.refreshToken) {
+          console.log(`[INFO] Access token expired for ${userData.username}, attempting refresh...`);
+          const refreshed = await defaultTokenManager.refreshUserTokens(userData.username);
+          if (refreshed) {
+            userData = refreshed;
+            req.userData = refreshed;
+            console.log(`[INFO] Token refresh successful for ${userData.username}`);
+          } else {
+            console.warn(`[401] /api/twitch/${endpoint}: Token refresh failed for ${userData.username}`);
+            res.status(401).json({ error: 'Access token expired and refresh failed' });
+            return;
+          }
+        } else {
+          console.warn(`[401] /api/twitch/${endpoint}: Access token expired and no refresh token for ${userData.username}`);
+          res.status(401).json({ error: 'Access token expired and no refresh token' });
+          return;
         }
       }
-      
+
       try {
         let data;
-        
+
         // Route to appropriate handler based on endpoint type
         if (endpoint === 'events') {
           data = handleEventsEndpoint(req, defaultEventStore);
