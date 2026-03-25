@@ -203,19 +203,28 @@ async function handleGamesEndpoint(userData: UserData, res: Response): Promise<T
 /**
  * Special handler for events endpoint (accesses local storage)
  */
+const MAX_LIMIT = 500;
+
+function parseLimit(value: unknown, defaultValue: number): number {
+  if (typeof value !== 'string') return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) return defaultValue;
+  return Math.min(parsed, MAX_LIMIT);
+}
+
 function handleEventsEndpoint(req: Request, eventStore: EventStore): EventsResponse {
   const { type, limit } = req.query;
   
   if (type && typeof type === 'string') {
-    const limitNum = typeof limit === 'string' ? parseInt(limit) : 20;
+    const limitNum = parseLimit(limit, 20);
     return {
-      events: eventStore.getEventsByType(type, limitNum || 20),
+      events: eventStore.getEventsByType(type, limitNum),
       total: eventStore.events.filter(e => e.subscription.type === type).length
     };
   } else {
-    const limitNum = typeof limit === 'string' ? parseInt(limit) : 50;
+    const limitNum = parseLimit(limit, 50);
     return {
-      events: eventStore.getEvents(limitNum || 50),
+      events: eventStore.getEvents(limitNum),
       total: eventStore.events.length
     };
   }

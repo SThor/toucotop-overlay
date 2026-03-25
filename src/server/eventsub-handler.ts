@@ -85,7 +85,7 @@ export class EventStore {
     this.events.unshift({
       ...event,
       timestamp: new Date().toISOString(),
-      id: `${event.subscription.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      id: `${event.subscription.type}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
     });
     
     // Keep only the most recent events
@@ -274,6 +274,11 @@ async function handleEventSubSubscription(
   }
 
   try {
+    const clientId = process.env.TWITCH_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: 'TWITCH_CLIENT_ID is not configured' });
+    }
+
     const webhookUrl = getEventSubWebhookUrl(req);
     
     const subscriptionData: EventSubSubscriptionData = {
@@ -293,7 +298,7 @@ async function handleEventSubSubscription(
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${userData.accessToken}`,
-        'Client-Id': process.env.TWITCH_CLIENT_ID || '',
+        'Client-Id': clientId,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(subscriptionData)

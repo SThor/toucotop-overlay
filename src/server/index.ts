@@ -160,11 +160,20 @@ try {
     validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
     async (req: Request, res: Response) => {
       const { endpoint } = req.params;
-      const { userData } = req; // Attached by validateOverlayToken middleware
+      let { userData } = req; // Attached by validateOverlayToken middleware
       
       if (!userData) {
         res.status(401).json({ error: 'User data not found' });
         return;
+      }
+
+      // If access token is expired, attempt refresh before making API calls
+      if (userData.expiresAt && new Date(userData.expiresAt) <= new Date() && userData.refreshToken) {
+        const refreshed = await defaultTokenManager.refreshUserTokens(userData.username);
+        if (refreshed) {
+          userData = refreshed;
+          req.userData = refreshed;
+        }
       }
       
       try {

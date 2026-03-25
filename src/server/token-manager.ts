@@ -135,10 +135,18 @@ export class TokenManager {
 
       console.log(`🔄 Refreshing access token for user: ${username}`);
 
+      const clientId = process.env.TWITCH_CLIENT_ID;
+      const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+
+      if (!clientId || !clientSecret) {
+        console.error('❌ Cannot refresh token: TWITCH_CLIENT_ID and/or TWITCH_CLIENT_SECRET not set');
+        return null;
+      }
+
       // Use @twurple/auth to refresh the token
       const newTokenData = await refreshUserToken(
-        process.env.TWITCH_CLIENT_ID || '',
-        process.env.TWITCH_CLIENT_SECRET || '',
+        clientId,
+        clientSecret,
         userData.refreshToken
       );
       
