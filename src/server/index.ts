@@ -28,6 +28,7 @@ import {
   configureTrustProxy 
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
+import { addSSEClient } from './chat-relay.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -182,6 +183,22 @@ try {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ error: 'API request failed', message: errorMessage });
       }
+    }
+  );
+
+  /**
+   * Chat SSE stream endpoint
+   * Streams real-time chat messages for the authenticated user's channel
+   */
+  app.get('/api/chat/stream',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    (req: Request, res: Response) => {
+      const { userData } = req;
+      if (!userData) {
+        res.status(401).json({ error: 'User data not found' });
+        return;
+      }
+      addSSEClient(userData.username, res);
     }
   );
 
