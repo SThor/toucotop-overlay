@@ -1,0 +1,456 @@
+/* Server pages (landing, auth success, errors) - rendered by React */
+
+.server-page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.6;
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.server-page .container {
+  text-align: center;
+  max-width: 500px;
+  padding: 2rem;
+}
+
+.server-page .icon-code {
+  font-size: 6rem;
+  font-weight: 300;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.server-page .icon-code.auth-error,
+.server-page .icon-code.access-denied {
+  color: #dc3545;
+}
+
+.server-page .icon-code.success-code {
+  color: #28a745;
+}
+
+.server-page .page-title {
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin-bottom: 1rem;
+  color: #ccc;
+}
+
+.server-page .page-message {
+  font-size: 1rem;
+  color: #999;
+  margin-bottom: 2rem;
+}
+
+.server-page .path-info,
+.server-page .user-info {
+  font-family: 'Courier New', monospace;
+  background: #2a2a2a;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #aaa;
+  border-left: 3px solid #444;
+  word-break: break-all;
+  margin-bottom: 2rem;
+}
+
+.server-page .user-info {
+  border-left-color: #dc3545;
+}
+
+.server-page .details-section {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.server-page .details-section h3 {
+  color: #ccc;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.server-page .details-section ul,
+.server-page .details-section ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.server-page .details-section li {
+  margin-bottom: 0.3rem;
+}
+
+.server-page .action-btn {
+  display: inline-block;
+  background: #777;
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.server-page .action-btn:hover {
+  background: #888;
+}
+
+/* Success page specific styles */
+.server-page .token-box {
+  font-family: 'Courier New', monospace;
+  background: #2a2a2a;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #aaa;
+  border-left: 3px solid #28a745;
+  word-break: break-all;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.server-page .url-box {
+  font-family: 'Courier New', monospace;
+  background: #2a2a2a;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #aaa;
+  word-break: break-all;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.server-page .copy-btn {
+  background: #666;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.server-page .copy-btn:hover {
+  background: #555;
+}
+
+.server-page .copy-btn.copied {
+  background: #28a745;
+}
+
+.server-page .expiry-info {
+  margin: 15px 0;
+  padding: 12px 15px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.server-page .expiry-info strong {
+  color: #ccc;
+}
+
+.server-page .expiry-time {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .server-page .container {
+    padding: 1rem;
+    margin: 1rem;
+  }
+}
+
+/* ─── Demo dashboard styles ───────────────────────────────────────────────── */
+
+.demo-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #e0e0e0;
+}
+
+.demo-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.demo-header h1 {
+  margin-bottom: 0.5rem;
+  color: #ccc;
+}
+
+.demo-header p {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+}
+
+.demo-header .icon-code {
+  font-size: 6rem;
+  font-weight: 300;
+  color: #28a745;
+  margin-bottom: 1rem;
+}
+
+.global-controls {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.global-controls button {
+  background: #9146ff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 0 8px;
+  transition: background-color 0.2s;
+}
+
+.global-controls button:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.global-controls button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.category-section {
+  margin-bottom: 3rem;
+}
+
+.category-title {
+  font-size: 1.5rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #9146ff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.category-description {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.api-card {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  color: #ccc;
+}
+
+.api-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-color: #9146ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ccc;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.card-icon {
+  font-size: 1.5rem;
+}
+
+.card-description {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.card-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  width: 100%;
+  margin-bottom: 1rem;
+  transition: background-color 0.2s;
+}
+
+.card-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.card-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.card-button.danger {
+  background: #dc3545;
+  width: auto;
+}
+
+.card-button.danger:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.card-data {
+  font-family: 'Courier New', monospace;
+  background: #1a1a1a;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #aaa;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #444;
+}
+
+.card-data.loading {
+  background: #3d3520;
+  color: #e6c84a;
+  border-color: #6b5e2e;
+}
+
+.card-data.error {
+  background: #3d1c20;
+  color: #e88b94;
+  border-color: #6b2e33;
+}
+
+.card-data.success {
+  background: #1a2d3d;
+  color: #7ecce3;
+  border-color: #2e536b;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.status-loading {
+  background: #ffc107;
+}
+
+.status-success {
+  background: #28a745;
+}
+
+.status-error {
+  background: #dc3545;
+}
+
+.analysis-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 3rem;
+}
+
+.analysis-section h2 {
+  margin-top: 0;
+  color: white;
+}
+
+.analysis-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.analysis-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.analysis-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.eventsub-select {
+  padding: 8px;
+  margin-right: 8px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #ccc;
+}
+
+.demo-back-link {
+  background: #6c757d;
+  color: white;
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  display: inline-block;
+  transition: background-color 0.2s;
+}
+
+.demo-back-link:hover {
+  background: #545b62;
+}
+
+@media (max-width: 768px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analysis-actions {
+    flex-direction: column;
+  }
+}

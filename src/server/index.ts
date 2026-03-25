@@ -6,7 +6,7 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync, statSync } from 'fs';
+import { statSync } from 'fs';
 import cors from 'cors';
 import session from 'express-session';
 
@@ -31,17 +31,6 @@ import { defaultTokenManager } from './token-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// HTML escape function to prevent XSS in template replacements
-function escapeHtml(unsafe: unknown): string {
-  if (typeof unsafe !== 'string') return String(unsafe);
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;") 
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -110,20 +99,8 @@ try {
     next();
   });
 
-  // Static file serving (index disabled so server-rendered root route takes priority)
+  // Static file serving for the React SPA build output
   app.use(express.static(path.join(__dirname, '../dist'), { index: false }));
-  // Serve server-rendered template assets (e.g., server-pages.css)
-  app.use(express.static(path.join(__dirname, 'static-views')));
-  // Also serve under /auth for relative loads from auth HTML pages
-  app.use('/auth', express.static(path.join(__dirname, 'static-views')));
-  
-  // Explicit route for server-pages.css for better compatibility
-  app.get('/server-pages.css', (_req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, 'static-views', 'server-pages.css'));
-  });
-  app.get('/auth/server-pages.css', (_req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, 'static-views', 'server-pages.css'));
-  });
 
   // ===== WEBHOOK ROUTES =====
   
@@ -230,77 +207,6 @@ try {
   // Mount OAuth routes
   console.log('🔧 Mounting auth routes at /auth...');
   app.use('/auth', authRoutes.default);
-
-  // ===== STATIC PAGE ROUTES =====
-
-  /**
-   * Root route - landing page or success page based on session
-   */
-  app.get('/', (req: Request, res: Response) => {
-    // Check if user has success data in session
-    if (req.session?.authSuccess) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('✅ Showing success page for user:', req.session.authSuccess.displayName);
-      }
-      
-      try {
-        const successHtml = readFileSync(path.join(__dirname, 'static-views', 'success.html'), 'utf-8');
-        const personalizedHtml = successHtml
-          .replace(/\{\{DISPLAY_NAME\}\}/g, escapeHtml(req.session.authSuccess.displayName))
-          .replace(/\{\{OVERLAY_TOKEN\}\}/g, escapeHtml(req.session.authSuccess.overlayToken))
-          .replace(/\{\{OVERLAY_EXPIRES_AT\}\}/g, req.session.authSuccess.overlayExpiresAt || '')
-          .replace(/\{\{CHAT_URL\}\}/g, `${req.protocol}://${req.get('host')}/chat?token=${encodeURIComponent(req.session.authSuccess.overlayToken)}`)
-          .replace(/\{\{CLOCK_URL\}\}/g, `${req.protocol}://${req.get('host')}/clock?token=${encodeURIComponent(req.session.authSuccess.overlayToken)}`)
-          .replace(/\{\{BAR_URL\}\}/g, `${req.protocol}://${req.get('host')}/bar?token=${encodeURIComponent(req.session.authSuccess.overlayToken)}`);
-        
-        return res.send(personalizedHtml);
-      } catch (error) {
-        console.error('Failed to read success page:', error);
-        // Fall through to landing page
-      }
-    }
-    
-    // Show landing page
-    try {
-      const landingHtml = readFileSync(path.join(__dirname, 'static-views', 'landing.html'), 'utf-8');
-      res.send(landingHtml);
-      return;
-    } catch (error) {
-      console.error('Failed to read landing page:', error);
-      res.status(500).send('Server error');
-      return;
-    }
-  });
-
-  /**
-   * Demo page route with token validation
-   */
-  app.get('/demo', (req: Request, res: Response) => {
-    const { token } = req.query;
-    
-    if (!token || typeof token !== 'string') {
-      return res.redirect('/');
-    }
-
-    // Find user by overlay token
-    const userData = defaultTokenManager.getUserByOverlayToken(token);
-    
-    if (!userData) {
-      return res.redirect('/');
-    }
-
-    try {
-      const demoHtml = readFileSync(path.join(__dirname, 'static-views', 'demo.html'), 'utf-8');
-      const personalizedHtml = demoHtml
-        .replace(/\{\{DISPLAY_NAME\}\}/g, escapeHtml(userData.displayName))
-        .replace(/\{\{OVERLAY_TOKEN\}\}/g, escapeHtml(token));
-      
-      res.send(personalizedHtml);
-    } catch (error) {
-      console.error('Failed to read demo page:', error);
-      res.status(500).send('Server error');
-    }
-  });
 
   // ===== REACT APP ROUTES =====
 
