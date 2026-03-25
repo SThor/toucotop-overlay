@@ -1,13 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 
 export interface Settings {
-  channelName: string;
+  overlayToken: string;
   overlayOpacity: number;
-  previewMode: boolean;
   chatFeedDirection: 'top' | 'bottom';
-  // Twitch integration settings
-  twitchClientId: string;
-  twitchAccessToken: string;
   maxChatMessages: number;
   // CRT visual effects
   crtEffects: boolean;
@@ -25,12 +21,9 @@ interface SettingsContextType {
 }
 
 const defaultSettings: Settings = {
-  channelName: '',
+  overlayToken: '',
   overlayOpacity: 0.9,
-  previewMode: false,
   chatFeedDirection: 'bottom',
-  twitchClientId: '',
-  twitchAccessToken: '',
   maxChatMessages: 50,
   crtEffects: true,
   crtIntensity: 'subtle',
@@ -61,25 +54,18 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const updateUrlParameters = useCallback((settings: Settings) => {
     const url = new URL(window.location.href);
     
-    // Update or remove channelName
-    if (settings.channelName) {
-      url.searchParams.set('channelName', settings.channelName);
+    // Preserve token in URL if present
+    if (settings.overlayToken) {
+      url.searchParams.set('token', settings.overlayToken);
     } else {
-      url.searchParams.delete('channelName');
+      url.searchParams.delete('token');
     }
-    
+
     // Update or remove overlayOpacity (only if different from default)
     if (settings.overlayOpacity !== defaultSettings.overlayOpacity) {
       url.searchParams.set('overlayOpacity', settings.overlayOpacity.toString());
     } else {
       url.searchParams.delete('overlayOpacity');
-    }
-    
-    // Update or remove previewMode (only if different from default)
-    if (settings.previewMode !== defaultSettings.previewMode) {
-      url.searchParams.set('previewMode', settings.previewMode.toString());
-    } else {
-      url.searchParams.delete('previewMode');
     }
 
     // Update or remove chatFeedDirection (only if different from default)
@@ -94,20 +80,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       url.searchParams.set('maxChatMessages', settings.maxChatMessages.toString());
     } else {
       url.searchParams.delete('maxChatMessages');
-    }
-
-    // Update or remove twitchClientId
-    if (settings.twitchClientId) {
-      url.searchParams.set('twitchClientId', settings.twitchClientId);
-    } else {
-      url.searchParams.delete('twitchClientId');
-    }
-
-    // Update or remove twitchAccessToken (Note: be careful with tokens in URLs for security)
-    if (settings.twitchAccessToken) {
-      url.searchParams.set('twitchAccessToken', settings.twitchAccessToken);
-    } else {
-      url.searchParams.delete('twitchAccessToken');
     }
 
     // Update or remove crtEffects (only if different from default)
@@ -169,17 +141,14 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     const urlParams = new URLSearchParams(window.location.search);
     const querySettings: Partial<Settings> = {};
 
-    if (urlParams.has('channelName')) {
-      querySettings.channelName = urlParams.get('channelName') || '';
+    if (urlParams.has('token')) {
+      querySettings.overlayToken = urlParams.get('token') || '';
     }
     if (urlParams.has('overlayOpacity')) {
       const opacity = parseFloat(urlParams.get('overlayOpacity') || '0.9');
       if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) {
         querySettings.overlayOpacity = opacity;
       }
-    }
-    if (urlParams.has('previewMode')) {
-      querySettings.previewMode = urlParams.get('previewMode') === 'true';
     }
     if (urlParams.has('chatFeedDirection')) {
       const direction = urlParams.get('chatFeedDirection');
@@ -188,16 +157,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       }
     }
     if (urlParams.has('maxChatMessages')) {
-      const maxMessages = parseInt(urlParams.get('maxChatMessages') || '50');
+      const maxMessages = parseInt(urlParams.get('maxChatMessages') || '50', 10);
       if (!isNaN(maxMessages) && maxMessages >= 10 && maxMessages <= 100) {
         querySettings.maxChatMessages = maxMessages;
       }
-    }
-    if (urlParams.has('twitchClientId')) {
-      querySettings.twitchClientId = urlParams.get('twitchClientId') || '';
-    }
-    if (urlParams.has('twitchAccessToken')) {
-      querySettings.twitchAccessToken = urlParams.get('twitchAccessToken') || '';
     }
     if (urlParams.has('crtEffects')) {
       querySettings.crtEffects = urlParams.get('crtEffects') === 'true';

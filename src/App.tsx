@@ -18,7 +18,7 @@ function App() {
           <Router>
             <div className="App">
               <Routes>
-                <Route path="/" element={<MainPage />} />
+                <Route path="/settings" element={<MainPage />} />
                 <Route path="/chat" element={<ChatOverlay />} />
                 <Route path="/clock" element={<ClockOverlay />} />
                 <Route path="/bar" element={<BarOverlay />} />

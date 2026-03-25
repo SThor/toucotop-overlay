@@ -96,7 +96,7 @@ const BarOverlayContent = () => {
 
   return (
     <div 
-      className={`bar-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.crtEffects ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
+      className={`bar-overlay ${settings.crtEffects ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
       {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
@@ -182,11 +182,7 @@ const BarOverlayContent = () => {
 };
 
 const BarOverlay = () => {
-  return (
-    <TwitchProvider>
-      <BarOverlayContent />
-    </TwitchProvider>
-  );
+  return <BarOverlayContent />;
 };
 
 export default BarOverlay;
