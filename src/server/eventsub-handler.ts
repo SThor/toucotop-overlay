@@ -258,10 +258,14 @@ async function handleEventSubSubscription(
   res: Response, 
   getUserByOverlayToken: (token: string) => UserData | null
 ): Promise<Response> {
+  if (!req.body || typeof req.body !== 'object') {
+    return res.status(400).json({ error: 'Invalid or missing JSON body' });
+  }
+
   const { token, eventType } = req.body;
   
-  if (!token || !eventType) {
-    return res.status(400).json({ error: 'Missing token or eventType' });
+  if (!token || typeof token !== 'string' || !eventType || typeof eventType !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid token/eventType' });
   }
 
   const userData = getUserByOverlayToken(token);

@@ -21,6 +21,7 @@ import {
 import { 
   validateOverlayToken, 
   validateEndpoint,
+  validateJsonBody,
   errorHandler,
   requestLogger,
   getCorsOptions,
@@ -79,14 +80,20 @@ try {
     sessionSecret = sessionSecret || 'dev-secret-change-in-production';
   }
   
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isSecure = process.env.COOKIE_SECURE === 'true' || isProduction;
+
   app.use(session({
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
+    name: 'oauth_session',
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000, // 15 minutes (just enough for OAuth flow)
+      domain: process.env.COOKIE_DOMAIN || undefined
     }
   }));
 
@@ -204,9 +211,12 @@ try {
   /**
    * EventSub subscription management endpoint
    */
-  app.post('/api/eventsub/subscribe', async (req: Request, res: Response) => {
-    return handleEventSubSubscription(req, res, defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager));
-  });
+  app.post('/api/eventsub/subscribe', 
+    validateJsonBody(['token', 'eventType']),
+    async (req: Request, res: Response) => {
+      return handleEventSubSubscription(req, res, defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager));
+    }
+  );
 
   /**
    * EventSub events deletion endpoint
