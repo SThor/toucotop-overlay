@@ -12,11 +12,15 @@ const NAV_ITEMS = [
   { path: '/demo', label: '🧪 Demo' },
 ];
 
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar'];
+
 export default function NavMenu() {
   const { settings } = useSettings();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const token = settings.overlayToken;
+
+  if (OVERLAY_PATHS.includes(location.pathname)) return null;
 
   function buildTo(path: string) {
     return token ? `${path}?token=${encodeURIComponent(token)}` : path;
