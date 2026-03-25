@@ -1,17 +1,57 @@
-import express from 'express';
+import express, { type Request, type Response, Router } from 'express';
 import { randomUUID } from 'crypto';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { exchangeCode } from '@twurple/auth';
+import { exchangeCode, type AccessToken } from '@twurple/auth';
 import { storeUserTokens, getUserByOverlayToken } from './storage.js';
 
-const router = express.Router();
+// Extend Express Session interface for custom properties
+declare module 'express-session' {
+  interface SessionData {
+    oauthState?: string;
+    authSuccess?: {
+      displayName: string;
+      overlayToken: string;
+      username: string;
+      overlayExpiresAt: string;
+    };
+  }
+}
+
+// Type definitions for Twitch API responses
+interface TwitchUser {
+  id: string;
+  login: string;
+  display_name: string;
+  type: string;
+  broadcaster_type: string;
+  description: string;
+  profile_image_url: string;
+  offline_image_url: string;
+  view_count: number;
+  email?: string;
+  created_at: string;
+}
+
+interface TwitchUsersResponse {
+  data: TwitchUser[];
+}
+
+interface AuthStatusResponse {
+  authenticated: boolean;
+  message?: string;
+  username?: string;
+  displayName?: string;
+  expiresAt?: string;
+}
+
+const router: Router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // HTML escape function to prevent XSS in template replacements
-function escapeHtml(unsafe) {
+function escapeHtml(unsafe: unknown): string {
   if (typeof unsafe !== 'string') return String(unsafe);
   return unsafe
     .replace(/&/g, "&amp;")
@@ -25,7 +65,7 @@ function escapeHtml(unsafe) {
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
-const ALLOWED_USERS = process.env.ALLOWED_USERS 
+const ALLOWED_USERS: string[] = process.env.ALLOWED_USERS 
   ? process.env.ALLOWED_USERS.split(',').map(u => u.trim().toLowerCase()).filter(Boolean)
   : ['toucotop', 'silmassan'];
 
@@ -36,20 +76,20 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-  console.log('🔧 OAuth Configuration:');
-  console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
-  console.log(`   Redirect URI: ${REDIRECT_URI}`);
-  console.log(`   Allowed Users: ${ALLOWED_USERS.join(', ')}`);
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`   Environment ALLOWED_USERS: ${process.env.ALLOWED_USERS || 'Not set'}`);
-  }
-  console.log('🛠️ Auth routes registered: /auth/twitch, /auth/callback, /auth/status');
+console.log('🔧 OAuth Configuration:');
+console.log(`   Client ID: ${CLIENT_ID ? 'Configured ✅' : 'Missing ❌'}`);
+console.log(`   Redirect URI: ${REDIRECT_URI}`);
+console.log(`   Allowed Users: ${ALLOWED_USERS.join(', ')}`);
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`   Environment ALLOWED_USERS: ${process.env.ALLOWED_USERS || 'Not set'}`);
+}
+console.log('🛠️ Auth routes registered: /auth/twitch, /auth/callback, /auth/status');
 
 /**
  * GET /auth/test
  * Simple test endpoint
  */
-router.get('/test', (req, res) => {
+router.get('/test', (_req: Request, res: Response) => {
   res.json({ message: 'Auth routes are working!', timestamp: new Date().toISOString() });
 });
 
@@ -57,7 +97,7 @@ router.get('/test', (req, res) => {
  * GET /auth/twitch
  * Redirect user to Twitch OAuth authorization
  */
-router.get('/twitch', (req, res) => {
+router.get('/twitch', (req: Request, res: Response) => {
   if (!CLIENT_ID) {
     return res.status(500).json({ 
       error: 'OAuth not configured', 
@@ -76,7 +116,7 @@ router.get('/twitch', (req, res) => {
   const state = randomUUID();
   req.session.oauthState = state;
 
-  const scopes = [
+  const scopes: string[] = [
     // Core user data
     'user:read:email',              // Get user info and email
     
@@ -107,13 +147,14 @@ router.get('/twitch', (req, res) => {
 
   console.log(`🔄 Starting OAuth flow for state: ${state}`);
   res.redirect(authUrl);
+  return;
 });
 
 /**
  * GET /auth/callback
  * Handle Twitch OAuth callback
  */
-router.get('/callback', async (req, res) => {
+router.get('/callback', async (req: Request, res: Response) => {
   const { code, state, error } = req.query;
 
   if (process.env.NODE_ENV !== 'production') {
@@ -150,7 +191,7 @@ router.get('/callback', async (req, res) => {
     }
   }
 
-  if (!code) {
+  if (!code || typeof code !== 'string') {
     console.error('❌ Missing authorization code');
     return res.status(400).json({ 
       error: 'Missing code', 
@@ -162,13 +203,13 @@ router.get('/callback', async (req, res) => {
     console.log('🔄 Exchanging code for tokens...');
     
     // Exchange authorization code for access token
-    const tokenData = await exchangeCode(CLIENT_ID, CLIENT_SECRET, code, REDIRECT_URI);
+    const tokenData: AccessToken = await exchangeCode(CLIENT_ID!, CLIENT_SECRET!, code, REDIRECT_URI);
     
     // Get user information
     const userResponse = await fetch('https://api.twitch.tv/helix/users', {
       headers: {
         'Authorization': `Bearer ${tokenData.accessToken}`,
-        'Client-Id': CLIENT_ID
+        'Client-Id': CLIENT_ID!
       }
     });
 
@@ -176,7 +217,7 @@ router.get('/callback', async (req, res) => {
       throw new Error(`Failed to fetch user info: ${userResponse.status}`);
     }
 
-    const userData = await userResponse.json();
+    const userData = await userResponse.json() as TwitchUsersResponse;
     const user = userData.data[0];
     
     if (!user) {
@@ -208,10 +249,10 @@ router.get('/callback', async (req, res) => {
     const overlayToken = `overlay_${username}_${randomUUID().slice(0, 8)}`;
 
     // Store user tokens
-    const expiresAt = new Date(Date.now() + (tokenData.expiresIn * 1000));
+    const expiresAt = new Date(Date.now() + ((tokenData.expiresIn || 3600) * 1000));
     storeUserTokens(username, {
       accessToken: tokenData.accessToken,
-      refreshToken: tokenData.refreshToken || null,
+      refreshToken: tokenData.refreshToken || '',
       overlayToken,
       expiresAt: expiresAt.toISOString(),
       twitchUserId: user.id,
@@ -230,13 +271,16 @@ router.get('/callback', async (req, res) => {
     
     // Redirect to root page which will show success page
     res.redirect('/');
+    return;
 
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ 
       error: 'Authentication failed', 
-      message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+      message: process.env.NODE_ENV === 'production' ? 'Internal server error' : errorMessage
     });
+    return;
   }
 });
 
@@ -244,14 +288,14 @@ router.get('/callback', async (req, res) => {
  * GET /auth/status
  * Check authentication status (for admin/debugging)
  */
-router.get('/status', (req, res) => {
+router.get('/status', (req: Request, res: Response) => {
   const { token } = req.query;
   
-  if (!token) {
+  if (!token || typeof token !== 'string') {
     return res.json({ 
       authenticated: false, 
       message: 'No token provided' 
-    });
+    } as AuthStatusResponse);
   }
 
   // Find user by overlay token
@@ -261,7 +305,7 @@ router.get('/status', (req, res) => {
     return res.json({ 
       authenticated: false, 
       message: 'Invalid or expired token' 
-    });
+    } as AuthStatusResponse);
   }
 
   res.json({
@@ -269,7 +313,8 @@ router.get('/status', (req, res) => {
     username: userData.username,
     displayName: userData.displayName,
     expiresAt: userData.expiresAt
-  });
+  } as AuthStatusResponse);
+  return;
 });
 
 export default router;

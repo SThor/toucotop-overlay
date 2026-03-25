@@ -1,19 +1,20 @@
 # Multi-stage build for React + Express
-# Stage 1: Build React app
+# Stage 1: Build React app and compile server TypeScript
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig*.json ./
 
-# Install dependencies
+# Install dependencies (including dev dependencies for TypeScript compilation)
 RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build React app
+# Build React app and compile all TypeScript (frontend + server)
 RUN npm run build
 
 # Stage 2: Production server
@@ -30,8 +31,14 @@ RUN npm ci --omit=dev
 # Copy built React app from builder stage
 COPY --from=builder /app/dist /app/dist
 
-# Copy server code
-COPY src/server /app/src/server
+# Copy compiled server JavaScript (not TypeScript source)
+COPY --from=builder /app/dist-server /app/dist-server
+
+# Copy static server views (these are not TypeScript)
+COPY src/server/static-views /app/src/server/static-views
+
+# Create tokens directory with proper permissions
+RUN mkdir -p /app/tokens && chmod 700 /app/tokens
 
 # Expose port
 EXPOSE 3000
@@ -40,5 +47,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Start server
-CMD ["node", "src/server/index.js"]
+# Start server using compiled JavaScript
+CMD ["node", "dist-server/index.js"]
