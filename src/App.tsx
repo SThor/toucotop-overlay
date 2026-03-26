@@ -19,13 +19,27 @@ import BarOverlay from './pages/BarOverlay';
 import NavMenu from './components/NavMenu';
 import './App.css';
 
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
 function RequireToken({ children }: { children: React.ReactNode }) {
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const location = useLocation();
+  const [params] = useSearchParams();
   // Allow landing, error, and denied pages without token
   const allowNoToken = [
     '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
   ];
+
+  // Sync token from query param into settings if present
+  useEffect(() => {
+    const token = params.get('token');
+    if (token && token !== settings.overlayToken) {
+      updateSettings({ overlayToken: token });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, settings.overlayToken, updateSettings]);
+
   if (!settings.overlayToken && !allowNoToken.includes(location.pathname)) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
