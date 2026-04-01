@@ -44,13 +44,18 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
   // Check if user already exists to preserve overlay metadata
   const existingData = fs.existsSync(tokenFile) ? getUserTokens(username) : null;
   
+  // Only preserve the existing overlayExpiresAt if it hasn't expired yet
+  const existingOverlayExpiry = existingData?.overlayExpiresAt;
+  const overlayStillValid = existingOverlayExpiry && new Date(existingOverlayExpiry) > now;
+
   const data: StoredUserData = {
     ...tokenData,
     username,
     createdAt: existingData?.createdAt || now.toISOString(),
     updatedAt: now.toISOString(),
-    overlayExpiresAt: existingData?.overlayExpiresAt || 
-      new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString() // Preserve existing overlay expiry or create new one
+    overlayExpiresAt: overlayStillValid
+      ? existingOverlayExpiry
+      : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
