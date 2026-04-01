@@ -59,7 +59,7 @@ const BarOverlayContent = () => {
   };
 
   const formatStreamDuration = () => {
-    if (!twitch.streamInfo?.startedAt) {
+    if (!twitch.streamInfo?.isLive || !twitch.streamInfo?.startedAt) {
       return '00:00:00';
     }
     
@@ -111,7 +111,7 @@ const BarOverlayContent = () => {
 
       {/* Stream Duration Section */}
       <div className="bar-section bar-time-section">
-        <div className="bar-time-label">Stream Time</div>
+        <div className="bar-time-label">Stream Duration</div>
         <div className="bar-time-value">{formatStreamDuration()}</div>
       </div>
 
