@@ -26,7 +26,21 @@ export function useChatStream() {
     if (!token) {
       setIsConnected(false);
       setError('No overlay token');
+      // Clean up any existing connection and pending reconnect
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       return;
+    }
+
+    function scheduleReconnect() {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
     }
 
     function connect() {
@@ -80,17 +94,15 @@ export function useChatStream() {
         }
         setIsConnected(false);
         es.close();
-
-        // Auto-reconnect
-        reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
+        scheduleReconnect();
       });
 
       es.onerror = () => {
-        // EventSource fires generic error on disconnect
+        // EventSource fires a generic error on connection-level disconnect
         if (es.readyState === EventSource.CLOSED) {
           setIsConnected(false);
           setError('Chat connection closed');
-          reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
+          scheduleReconnect();
         }
       };
     }

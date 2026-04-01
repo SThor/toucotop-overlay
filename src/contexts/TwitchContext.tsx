@@ -148,32 +148,35 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const [followerCount, setFollowerCount] = useState(0);
 
   const [cachedEmotes, setCachedEmotes] = useState<Map<string, CachedEmote>>(new Map());
-  const emotesLoadedRef = useRef(false);
+  const emotesLoadedRef = useRef<string>('');
 
   // Suppress unused variable warning — settings may be used for future config
   void settings;
 
   // --- Stream info polling ---
   const fetchStreamInfo = useCallback(async () => {
-    const data = await fetchApi<{ data: TwitchStreamData[] }>('stream');
-    if (!data) return;
+    try {
+      const data = await fetchApi<{ data: TwitchStreamData[] }>('stream');
+      if (!data) return;
 
-    if (data.data.length > 0) {
-      const s = data.data[0];
-      setStreamInfo({
-        id: s.id,
-        title: s.title,
-        gameName: s.game_name,
-        startedAt: new Date(s.started_at),
-        viewerCount: s.viewer_count,
-        isLive: true,
-      });
-    } else {
-      setStreamInfo((prev) =>
-        prev ? { ...prev, isLive: false, viewerCount: 0 } : null
-      );
+      if (data.data.length > 0) {
+        const s = data.data[0];
+        setStreamInfo({
+          id: s.id,
+          title: s.title,
+          gameName: s.game_name,
+          startedAt: new Date(s.started_at),
+          viewerCount: s.viewer_count,
+          isLive: true,
+        });
+      } else {
+        setStreamInfo((prev) =>
+          prev ? { ...prev, isLive: false, viewerCount: 0 } : null
+        );
+      }
+    } finally {
+      setIsLoadingStreamInfo(false);
     }
-    setIsLoadingStreamInfo(false);
   }, [fetchApi]);
 
   // --- Followers polling ---
@@ -212,9 +215,10 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     }
   }, [fetchApi]);
 
-  // --- Emotes (one-time fetch) ---
+  // --- Emotes (one-time fetch per token) ---
   const fetchEmotes = useCallback(async () => {
-    if (emotesLoadedRef.current) return;
+    const currentToken = settings.overlayToken;
+    if (emotesLoadedRef.current === currentToken) return;
     const data = await fetchApi<{ data: TwitchEmoteData[] }>('emotes');
     if (!data) return;
 
@@ -235,8 +239,8 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
       });
     }
     setCachedEmotes(map);
-    emotesLoadedRef.current = true;
-  }, [fetchApi]);
+    emotesLoadedRef.current = currentToken;
+  }, [fetchApi, settings.overlayToken]);
 
   // --- Set up polling and initial fetches ---
   useEffect(() => {

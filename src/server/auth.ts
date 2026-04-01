@@ -218,11 +218,11 @@ router.get('/callback', async (req: Request, res: Response) => {
       displayName: user.display_name
     });
 
-    // Retrieve the actual stored expiry from storage/token manager
+    // Retrieve the actual stored overlay token expiry from storage
     let overlayExpiresAt: string | undefined = undefined;
     try {
       const stored = getUserByOverlayToken(overlayToken);
-      overlayExpiresAt = stored?.expiresAt;
+      overlayExpiresAt = stored?.overlayExpiresAt;
     } catch (e) {
       overlayExpiresAt = undefined;
     }
@@ -277,7 +277,7 @@ router.get('/status', (req: Request, res: Response) => {
     authenticated: true,
     username: userData.username,
     displayName: userData.displayName,
-    expiresAt: userData.expiresAt
+    expiresAt: userData.overlayExpiresAt
   } as AuthStatusResponse);
   return;
 });
