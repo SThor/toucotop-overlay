@@ -29,21 +29,55 @@ export default function AuthSuccessPage() {
   // Seed from URL params (set by OAuth callback), then override from server
   const [displayName, setDisplayName] = useState(params.get('displayName') || '');
   const [expiresAt, setExpiresAt] = useState(params.get('expiresAt') || '');
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
-    if (!overlayToken) return;
+    if (!overlayToken) {
+      setSessionExpired(true);
+      return;
+    }
     fetch(`/auth/status?token=${encodeURIComponent(overlayToken)}`)
       .then((res) => res.json() as Promise<AuthStatus>)
       .then((data) => {
         if (data.authenticated) {
           if (data.displayName) setDisplayName(data.displayName);
           if (data.expiresAt) setExpiresAt(data.expiresAt);
+        } else {
+          setSessionExpired(true);
         }
       })
       .catch(() => {
         // Leave seeded values in place on network error
       });
   }, [overlayToken]);
+
+  // Countdown and auto-redirect when session is expired
+  useEffect(() => {
+    if (!sessionExpired) return;
+    if (countdown <= 0) {
+      window.location.href = '/auth/twitch';
+      return;
+    }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [sessionExpired, countdown]);
+
+  if (sessionExpired) {
+    return (
+      <div className="server-page">
+        <div className="container">
+          <div className="icon-code">⏰</div>
+          <h1 className="page-title">Session Expired</h1>
+          <p className="page-message">
+            Your session has expired. Redirecting you to re-authenticate in{' '}
+            <strong>{countdown}</strong>…
+          </p>
+          <a href="/auth/twitch" className="action-btn">🔄 Re-authenticate now</a>
+        </div>
+      </div>
+    );
+  }
 
   const baseUrl = window.location.origin;
   const chatUrl = `${baseUrl}/chat?token=${encodeURIComponent(overlayToken)}`;
