@@ -45,7 +45,7 @@ const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
 const ALLOWED_USERS: string[] = process.env.ALLOWED_USERS 
   ? process.env.ALLOWED_USERS.split(',').map(u => u.trim().toLowerCase()).filter(Boolean)
-  : ['toucotop', 'silmassan'];
+  : [];
 
 // Validate required environment variables at startup
 if (process.env.NODE_ENV === 'production') {
