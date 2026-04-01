@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 export interface Settings {
   overlayToken: string;
@@ -46,8 +46,65 @@ interface SettingsProviderProps {
   children: React.ReactNode;
 }
 
+function loadInitialSettings(): Settings {
+  // Load from localStorage
+  let base = { ...defaultSettings };
+  try {
+    const saved = localStorage.getItem('toucotop-overlay-settings');
+    if (saved) base = { ...base, ...JSON.parse(saved) };
+  } catch {
+    // ignore corrupt storage
+  }
+
+  // Apply URL param overrides synchronously so first render has correct token
+  const urlParams = new URLSearchParams(window.location.search);
+  const overrides: Partial<Settings> = {};
+
+  if (urlParams.has('token')) {
+    overrides.overlayToken = urlParams.get('token') || '';
+  }
+  if (urlParams.has('overlayOpacity')) {
+    const opacity = parseFloat(urlParams.get('overlayOpacity') || '');
+    if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) overrides.overlayOpacity = opacity;
+  }
+  if (urlParams.has('chatFeedDirection')) {
+    const direction = urlParams.get('chatFeedDirection');
+    if (direction === 'top' || direction === 'bottom') overrides.chatFeedDirection = direction;
+  }
+  if (urlParams.has('maxChatMessages')) {
+    const max = parseInt(urlParams.get('maxChatMessages') || '', 10);
+    if (!isNaN(max) && max >= 10 && max <= 100) overrides.maxChatMessages = max;
+  }
+  if (urlParams.has('crtEffects')) {
+    overrides.crtEffects = urlParams.get('crtEffects') === 'true';
+  }
+  if (urlParams.has('crtIntensity')) {
+    const intensity = urlParams.get('crtIntensity');
+    if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') overrides.crtIntensity = intensity;
+  }
+  if (urlParams.has('crtScanlines')) {
+    overrides.crtScanlines = urlParams.get('crtScanlines') === 'true';
+  }
+  if (urlParams.has('crtAnimation')) {
+    overrides.crtAnimation = urlParams.get('crtAnimation') === 'true';
+  }
+
+  const initial = Object.keys(overrides).length > 0 ? { ...base, ...overrides } : base;
+
+  // Persist immediately so subsequent renders / child components see the token
+  if (Object.keys(overrides).length > 0) {
+    try {
+      localStorage.setItem('toucotop-overlay-settings', JSON.stringify(initial));
+    } catch {
+      // ignore
+    }
+  }
+
+  return initial;
+}
+
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [settings, setSettings] = useState<Settings>(loadInitialSettings);
   const urlUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // URL parameter update function
@@ -124,68 +181,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       updateUrlParameters(settings);
     }, 300); // Wait 300ms after last change before updating URL
   }, [updateUrlParameters]);
-
-  // Load settings from localStorage on component mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('toucotop-overlay-settings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings({ ...defaultSettings, ...parsed });
-      } catch (error) {
-        console.error('Failed to parse saved settings:', error);
-      }
-    }
-
-    // Check for query parameters and override settings
-    const urlParams = new URLSearchParams(window.location.search);
-    const querySettings: Partial<Settings> = {};
-
-    if (urlParams.has('token')) {
-      querySettings.overlayToken = urlParams.get('token') || '';
-    }
-    if (urlParams.has('overlayOpacity')) {
-      const opacity = parseFloat(urlParams.get('overlayOpacity') || '0.9');
-      if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) {
-        querySettings.overlayOpacity = opacity;
-      }
-    }
-    if (urlParams.has('chatFeedDirection')) {
-      const direction = urlParams.get('chatFeedDirection');
-      if (direction === 'top' || direction === 'bottom') {
-        querySettings.chatFeedDirection = direction;
-      }
-    }
-    if (urlParams.has('maxChatMessages')) {
-      const maxMessages = parseInt(urlParams.get('maxChatMessages') || '50', 10);
-      if (!isNaN(maxMessages) && maxMessages >= 10 && maxMessages <= 100) {
-        querySettings.maxChatMessages = maxMessages;
-      }
-    }
-    if (urlParams.has('crtEffects')) {
-      querySettings.crtEffects = urlParams.get('crtEffects') === 'true';
-    }
-    if (urlParams.has('crtIntensity')) {
-      const intensity = urlParams.get('crtIntensity');
-      if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') {
-        querySettings.crtIntensity = intensity;
-      }
-    }
-    if (urlParams.has('crtScanlines')) {
-      querySettings.crtScanlines = urlParams.get('crtScanlines') === 'true';
-    }
-    if (urlParams.has('crtAnimation')) {
-      querySettings.crtAnimation = urlParams.get('crtAnimation') === 'true';
-    }
-
-    if (Object.keys(querySettings).length > 0) {
-      setSettings(prev => {
-        const newSettings = { ...prev, ...querySettings };
-        localStorage.setItem('toucotop-overlay-settings', JSON.stringify(newSettings));
-        return newSettings;
-      });
-    }
-  }, []);
 
   const updateSettings = (newSettings: Partial<Settings>) => {
     setSettings(prev => {
