@@ -26,11 +26,9 @@ export default function AuthSuccessPage() {
   const [params] = useSearchParams();
   const overlayToken = params.get('token') || '';
 
-  // Seed from URL params (set by OAuth callback), then override from server
   const [displayName, setDisplayName] = useState(params.get('displayName') || '');
   const [expiresAt, setExpiresAt] = useState(params.get('expiresAt') || '');
   const [sessionExpired, setSessionExpired] = useState(false);
-  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     if (!overlayToken) {
@@ -52,16 +50,12 @@ export default function AuthSuccessPage() {
       });
   }, [overlayToken]);
 
-  // Countdown and auto-redirect when session is expired
+  // Redirect immediately when session is expired
   useEffect(() => {
-    if (!sessionExpired) return;
-    if (countdown <= 0) {
+    if (sessionExpired) {
       window.location.href = '/auth/twitch';
-      return;
     }
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [sessionExpired, countdown]);
+  }, [sessionExpired]);
 
   if (sessionExpired) {
     return (
@@ -69,10 +63,7 @@ export default function AuthSuccessPage() {
         <div className="container">
           <div className="icon-code">⏰</div>
           <h1 className="page-title">Session Expired</h1>
-          <p className="page-message">
-            Your session has expired. Redirecting you to re-authenticate in{' '}
-            <strong>{countdown}</strong>…
-          </p>
+          <p className="page-message">Redirecting you to re-authenticate…</p>
           <a href="/auth/twitch" className="action-btn">🔄 Re-authenticate now</a>
         </div>
       </div>

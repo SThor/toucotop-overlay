@@ -19,17 +19,27 @@ import BarOverlay from './pages/BarOverlay';
 import NavMenu from './components/NavMenu';
 import './App.css';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
+// Pages that don't need a valid token
+const ALLOW_NO_TOKEN = [
+  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
+];
+
+// Module-level cache so navigation between routes doesn't re-trigger validation
+interface ValidationCache {
+  token: string;
+  validUntil: number;
+}
+let validationCache: ValidationCache | null = null;
+const VALIDATION_TTL_MS = 5 * 60 * 1000; // re-check at most every 5 minutes
 
 function RequireToken({ children }: { children: React.ReactNode }) {
   const { settings, updateSettings } = useSettings();
   const location = useLocation();
   const [params] = useSearchParams();
-  // Allow landing, error, and denied pages without token
-  const allowNoToken = [
-    '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
-  ];
+  const redirectingRef = useRef(false);
 
   // Sync token from query param into settings if present
   useEffect(() => {
@@ -37,10 +47,33 @@ function RequireToken({ children }: { children: React.ReactNode }) {
     if (token && token !== settings.overlayToken) {
       updateSettings({ overlayToken: token });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, settings.overlayToken, updateSettings]);
 
-  if (!settings.overlayToken && !allowNoToken.includes(location.pathname)) {
+  // Validate token with server on protected routes
+  useEffect(() => {
+    const token = settings.overlayToken;
+    if (!token || ALLOW_NO_TOKEN.includes(location.pathname)) return;
+
+    const now = Date.now();
+    if (validationCache && validationCache.token === token && now < validationCache.validUntil) return;
+
+    fetch(`/auth/status?token=${encodeURIComponent(token)}`)
+      .then((res) => res.json() as Promise<{ authenticated: boolean }>)
+      .then((data) => {
+        if (data.authenticated) {
+          validationCache = { token, validUntil: now + VALIDATION_TTL_MS };
+        } else if (!redirectingRef.current) {
+          redirectingRef.current = true;
+          validationCache = null;
+          window.location.href = '/auth/twitch';
+        }
+      })
+      .catch(() => {
+        // Network error — assume valid to avoid spurious redirects
+      });
+  }, [settings.overlayToken, location.pathname]);
+
+  if (!settings.overlayToken && !ALLOW_NO_TOKEN.includes(location.pathname)) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
   return <>{children}</>;
