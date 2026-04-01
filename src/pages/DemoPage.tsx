@@ -265,7 +265,7 @@ function EventSubCard({ token }: { token: string }) {
 export default function DemoPage() {
   const [params] = useSearchParams();
   const token = params.get('token') || '';
-  const [displayName, setDisplayName] = useState(params.get('displayName') || '');
+  const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
     if (!token) return;

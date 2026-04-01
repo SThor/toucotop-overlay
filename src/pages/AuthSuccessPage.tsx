@@ -137,7 +137,7 @@ export default function AuthSuccessPage() {
           <h3>🧪 Testing & Demo</h3>
           <p>Want to see what data is available from your Twitch account?</p>
           <a
-            href={`/demo?token=${encodeURIComponent(overlayToken)}${displayName ? `&displayName=${encodeURIComponent(displayName)}` : ''}`}
+            href={`/demo?token=${encodeURIComponent(overlayToken)}`}
             className="action-btn"
             style={{ marginTop: 10 }}
           >
