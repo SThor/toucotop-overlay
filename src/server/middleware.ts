@@ -8,6 +8,7 @@ import type { Express } from 'express';
 import type { CorsOptions } from 'cors';
 import { validEndpoints } from './twitch-endpoints.js';
 import type { UserData } from './twitch-api-client.js';
+import { extendOverlayToken } from './storage.js';
 
 // Extend Express Request type to include custom properties
 declare global {
@@ -51,6 +52,10 @@ function validateOverlayToken(getUserByOverlayToken: (token: string) => UserData
 
     // Attach user data to request object for use in handlers
     req.userData = userData;
+
+    // Sliding window: extend overlay token expiry on every valid use
+    extendOverlayToken(userData.username);
+
     next();
   };
 }

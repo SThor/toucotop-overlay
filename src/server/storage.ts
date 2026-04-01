@@ -119,6 +119,35 @@ export function getUserByOverlayToken(overlayToken: string): StoredUserData | nu
   }
 }
 
+const OVERLAY_TOKEN_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Only write if expiry would advance by more than this to avoid hammering disk
+const EXTEND_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Extend the overlay token expiry by 24h from now (sliding window).
+ * Only writes to disk if the remaining lifetime is below the threshold.
+ */
+export function extendOverlayToken(username: string): void {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return;
+
+  try {
+    const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    const now = new Date();
+    const newExpiry = new Date(now.getTime() + OVERLAY_TOKEN_WINDOW_MS);
+    const currentExpiry = data.overlayExpiresAt ? new Date(data.overlayExpiresAt) : now;
+
+    // Skip disk write if expiry is already far enough in the future
+    if (currentExpiry.getTime() - now.getTime() > EXTEND_THRESHOLD_MS) return;
+
+    data.overlayExpiresAt = newExpiry.toISOString();
+    data.updatedAt = now.toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error(`❌ Error extending overlay token for ${username}:`, error);
+  }
+}
+
 /**
  * Remove user's tokens (logout)
  */
