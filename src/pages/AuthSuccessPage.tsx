@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CopyButton } from '../components/CopyButton';
 import '../styles/ServerPages.css';
@@ -15,11 +16,34 @@ function formatExpiryDate(isoString: string): string {
   });
 }
 
+interface AuthStatus {
+  authenticated: boolean;
+  displayName?: string;
+  expiresAt?: string;
+}
+
 export default function AuthSuccessPage() {
   const [params] = useSearchParams();
-  const displayName = params.get('displayName') || 'User';
   const overlayToken = params.get('token') || '';
-  const expiresAt = params.get('expiresAt') || '';
+
+  // Seed from URL params (set by OAuth callback), then override from server
+  const [displayName, setDisplayName] = useState(params.get('displayName') || '');
+  const [expiresAt, setExpiresAt] = useState(params.get('expiresAt') || '');
+
+  useEffect(() => {
+    if (!overlayToken) return;
+    fetch(`/auth/status?token=${encodeURIComponent(overlayToken)}`)
+      .then((res) => res.json() as Promise<AuthStatus>)
+      .then((data) => {
+        if (data.authenticated) {
+          if (data.displayName) setDisplayName(data.displayName);
+          if (data.expiresAt) setExpiresAt(data.expiresAt);
+        }
+      })
+      .catch(() => {
+        // Leave seeded values in place on network error
+      });
+  }, [overlayToken]);
 
   const baseUrl = window.location.origin;
   const chatUrl = `${baseUrl}/chat?token=${encodeURIComponent(overlayToken)}`;
@@ -32,7 +56,7 @@ export default function AuthSuccessPage() {
         <div className="icon-code success-code">✅</div>
         <h1 className="page-title">Authentication Successful!</h1>
         <p className="page-message">
-          Welcome, <strong>{displayName}</strong>! Your overlay is now connected to your Twitch account.
+          Welcome, <strong>{displayName || '…'}</strong>! Your overlay is now connected to your Twitch account.
         </p>
 
         <div className="details-section">
@@ -88,7 +112,7 @@ export default function AuthSuccessPage() {
           <h3>🧪 Testing & Demo</h3>
           <p>Want to see what data is available from your Twitch account?</p>
           <a
-            href={`/demo?token=${encodeURIComponent(overlayToken)}&displayName=${encodeURIComponent(displayName)}`}
+            href={`/demo?token=${encodeURIComponent(overlayToken)}${displayName ? `&displayName=${encodeURIComponent(displayName)}` : ''}`}
             className="action-btn"
             style={{ marginTop: 10 }}
           >

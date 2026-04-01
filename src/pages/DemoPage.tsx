@@ -1,5 +1,5 @@
 import { useSearchParams, Link } from 'react-router-dom';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import '../styles/ServerPages.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -265,7 +265,17 @@ function EventSubCard({ token }: { token: string }) {
 export default function DemoPage() {
   const [params] = useSearchParams();
   const token = params.get('token') || '';
-  const displayName = params.get('displayName') || 'User';
+  const [displayName, setDisplayName] = useState(params.get('displayName') || '');
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`/auth/status?token=${encodeURIComponent(token)}`)
+      .then((res) => res.json() as Promise<{ authenticated: boolean; displayName?: string }>)
+      .then((data) => {
+        if (data.authenticated && data.displayName) setDisplayName(data.displayName);
+      })
+      .catch(() => {});
+  }, [token]);
 
   // Card states keyed by endpoint name
   const [cards, setCards] = useState<CardStates>(() => {
@@ -478,7 +488,7 @@ export default function DemoPage() {
         <div className="icon-code">🚀</div>
         <h1>Twitch API Demo Dashboard</h1>
         <p>
-          Authenticated as <strong>{displayName}</strong> - Comprehensive Twitch API Testing
+          Authenticated as <strong>{displayName || '…'}</strong> - Comprehensive Twitch API Testing
         </p>
       </div>
 
