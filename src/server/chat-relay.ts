@@ -6,6 +6,7 @@
 
 import { ChatClient } from '@twurple/chat';
 import type { Response } from 'express';
+import { extendOverlayToken } from './storage.js';
 
 // Payload types matching TwitchContext.tsx interface shapes (serialized for JSON)
 
@@ -159,7 +160,15 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     console.log(`❌ Chat relay disconnected for channel: ${channel}`);
   });
 
-  await chatClient.connect();
+  try {
+    await chatClient.connect();
+  } catch (error) {
+    console.error(`❌ Failed to connect chat relay for channel: ${channel}:`, error);
+    chatClient.quit();
+    channelRelays.delete(channel);
+    throw error;
+  }
+
   return relay;
 }
 
@@ -198,6 +207,9 @@ export function addSSEClient(channel: string, res: Response): void {
       const keepalive = setInterval(() => {
         try {
           res.write(':keepalive\n\n');
+          // Extend overlay token on each keepalive so long-lived SSE
+          // connections don't expire while the overlay is actively in use
+          extendOverlayToken(channel);
         } catch {
           clearInterval(keepalive);
         }

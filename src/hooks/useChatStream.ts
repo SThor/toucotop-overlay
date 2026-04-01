@@ -44,6 +44,8 @@ export function useChatStream() {
     }
 
     function connect() {
+      // Clear messages from any previous connection to avoid cross-session leakage
+      setMessages([]);
       // Clean up previous connection
       eventSourceRef.current?.close();
 
@@ -85,26 +87,24 @@ export function useChatStream() {
         setMessages([]);
       });
 
+      // Single consolidated error handler for both server-sent error events
+      // and connection-level failures (replaces the previous es.onerror duplicate).
       es.addEventListener('error', (e) => {
-        try {
-          const data = JSON.parse((e as MessageEvent).data) as { error: string };
-          setError(data.error);
-        } catch {
-          setError('Chat connection lost');
+        const isConnectionError = es.readyState === EventSource.CLOSED || !(e instanceof MessageEvent) || !e.data;
+        if (isConnectionError) {
+          setError('Chat connection closed');
+        } else {
+          try {
+            const data = JSON.parse((e as MessageEvent).data) as { error: string };
+            setError(data.error);
+          } catch {
+            setError('Chat connection lost');
+          }
         }
         setIsConnected(false);
         es.close();
         scheduleReconnect();
       });
-
-      es.onerror = () => {
-        // EventSource fires a generic error on connection-level disconnect
-        if (es.readyState === EventSource.CLOSED) {
-          setIsConnected(false);
-          setError('Chat connection closed');
-          scheduleReconnect();
-        }
-      };
     }
 
     connect();

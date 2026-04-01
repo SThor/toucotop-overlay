@@ -10,6 +10,10 @@ import { validEndpoints } from './twitch-endpoints.js';
 import type { UserData } from './twitch-api-client.js';
 import { extendOverlayToken } from './storage.js';
 
+// In-memory debounce: skip filesystem work if we extended within this window
+const tokenExtensionLastRun = new Map<string, number>();
+const TOKEN_EXTENSION_DEBOUNCE_MS = 60 * 60 * 1000; // 1 hour
+
 // Extend Express Request type to include custom properties
 declare global {
   namespace Express {
@@ -53,8 +57,14 @@ function validateOverlayToken(getUserByOverlayToken: (token: string) => UserData
     // Attach user data to request object for use in handlers
     req.userData = userData;
 
-    // Sliding window: extend overlay token expiry on every valid use
-    extendOverlayToken(userData.username);
+    // Sliding window: extend overlay token expiry on valid use, but debounce
+    // in-memory to avoid a per-request synchronous disk read under load
+    const now = Date.now();
+    const lastExtended = tokenExtensionLastRun.get(userData.username) ?? 0;
+    if (now - lastExtended > TOKEN_EXTENSION_DEBOUNCE_MS) {
+      tokenExtensionLastRun.set(userData.username, now);
+      extendOverlayToken(userData.username);
+    }
 
     next();
   };
