@@ -140,7 +140,7 @@ interface TwitchEmoteData {
 export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const { settings } = useSettings();
   const { fetchApi, hasToken } = useServerApi();
-  const { messages, isConnected: chatConnected, error: chatError, clearMessages } = useChatStream();
+  const { messages, isConnected: chatConnected, isConnecting: chatConnecting, error: chatError, clearMessages } = useChatStream();
 
   const [streamInfo, setStreamInfo] = useState<TwitchStreamInfo | null>(null);
   const [isLoadingStreamInfo, setIsLoadingStreamInfo] = useState(false);
@@ -271,7 +271,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
 
   const value: TwitchContextType = {
     isConnected: chatConnected,
-    isConnecting: hasToken && !chatConnected,
+    isConnecting: chatConnecting,
     error: chatError,
     messages,
     cachedEmotes,

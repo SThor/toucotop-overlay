@@ -166,17 +166,14 @@ function ApiCard({
 // ─── EventsCard component ────────────────────────────────────────────────────
 
 function EventsCard({
-  token,
   state,
   onFetch,
   onClear,
 }: {
-  token: string;
   state: CardState;
   onFetch: () => void;
   onClear: () => void;
 }) {
-  void token; // used by parent callbacks
   return (
     <div className="api-card">
       <div className="card-header">
@@ -545,7 +542,6 @@ export default function DemoPage() {
         <p className="category-description">EventSub notifications and recent stream events</p>
         <div className="cards-grid">
           <EventsCard
-            token={token}
             state={cards['events'] || { data: 'Click button to load...', status: 'idle' }}
             onFetch={() => fetchEndpoint('events')}
             onClear={clearEvents}

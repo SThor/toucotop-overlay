@@ -53,6 +53,6 @@
 }
 
 .nav-link.active {
-  color: #9146ff;
+  color: var(--Main);
   font-weight: 600;
 }

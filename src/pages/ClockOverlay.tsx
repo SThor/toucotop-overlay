@@ -98,7 +98,7 @@ const ClockOverlay = () => {
         <div className={`time-label ${settings.crtEffects ? 'crt-glow-text-subtle' : ''}`}>Stream Duration</div>
         <div className={`stream-duration ${settings.crtEffects ? 'crt-glow-text-strong' : ''}`}>{streamDuration}</div>
         <div className="stream-info">
-          {streamInfo?.isLive ? 'Live' : 'Offline'}
+          {streamInfo == null ? '—' : streamInfo.isLive ? 'Live' : 'Offline'}
         </div>
       </div>
       

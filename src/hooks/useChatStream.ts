@@ -15,6 +15,7 @@ export function useChatStream() {
 
   const [messages, setMessages] = useState<TwitchChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -25,6 +26,7 @@ export function useChatStream() {
   useEffect(() => {
     if (!token) {
       setIsConnected(false);
+      setIsConnecting(false);
       setError('No overlay token');
       // Clean up any existing connection and pending reconnect
       if (eventSourceRef.current) {
@@ -46,6 +48,7 @@ export function useChatStream() {
     function connect() {
       // Clear messages from any previous connection to avoid cross-session leakage
       setMessages([]);
+      setIsConnecting(true);
       // Clean up previous connection
       eventSourceRef.current?.close();
 
@@ -55,6 +58,7 @@ export function useChatStream() {
 
       es.addEventListener('connected', () => {
         setIsConnected(true);
+        setIsConnecting(false);
         setError(null);
       });
 
@@ -102,6 +106,7 @@ export function useChatStream() {
           }
         }
         setIsConnected(false);
+        setIsConnecting(false);
         es.close();
         scheduleReconnect();
       });
@@ -115,5 +120,5 @@ export function useChatStream() {
     };
   }, [token, maxMessages]);
 
-  return { messages, isConnected, error, clearMessages };
+  return { messages, isConnected, isConnecting, error, clearMessages };
 }
