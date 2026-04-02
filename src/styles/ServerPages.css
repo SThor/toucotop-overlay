@@ -151,6 +151,10 @@
   background: #28a745;
 }
 
+.server-page .copy-btn.failed {
+  background: #dc3545;
+}
+
 .server-page .expiry-info {
   margin: 15px 0;
   padding: 12px 15px;

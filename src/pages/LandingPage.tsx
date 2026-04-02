@@ -6,7 +6,7 @@ export default function LandingPage() {
   const { settings } = useSettings();
 
   if (settings.overlayToken) {
-    return <Navigate to={`/auth/success?token=${encodeURIComponent(settings.overlayToken)}`} replace />;
+    return <Navigate to="/auth/success" replace />;
   }
 
   return (

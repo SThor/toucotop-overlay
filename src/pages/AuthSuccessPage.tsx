@@ -24,7 +24,11 @@ interface AuthStatus {
 
 export default function AuthSuccessPage() {
   const [params] = useSearchParams();
-  const overlayToken = params.get('token') || '';
+  const urlToken = params.get('token') || '';
+  // Fall back to stored token so this page remains functional:
+  // (a) after replaceState() strips the URL params during this visit, and
+  // (b) when navigating here directly from LandingPage without a ?token= param.
+  const overlayToken = urlToken || localStorage.getItem('toucotop-overlay-token') || '';
 
   const [displayName, setDisplayName] = useState(params.get('displayName') || '');
   const [expiresAt, setExpiresAt] = useState(params.get('expiresAt') || '');
@@ -35,14 +39,16 @@ export default function AuthSuccessPage() {
       setSessionExpired(true);
       return;
     }
+    // Strip sensitive query params from the URL immediately after capturing the token,
+    // before the async status fetch, so they never linger regardless of fetch outcome.
+    if (urlToken) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     fetch(`/auth/status?token=${encodeURIComponent(overlayToken)}`)
       .then((res) => res.json() as Promise<AuthStatus>)
       .then((data) => {
         if (data.authenticated) {
           localStorage.setItem('toucotop-overlay-token', overlayToken);
-          // Strip token (and other sensitive params) from the URL so they don't
-          // linger in browser history or leak via referrer headers.
-          window.history.replaceState({}, '', window.location.pathname);
           if (data.displayName) setDisplayName(data.displayName);
           if (data.expiresAt) setExpiresAt(data.expiresAt);
         } else {
@@ -52,7 +58,7 @@ export default function AuthSuccessPage() {
       .catch(() => {
         // Leave seeded values in place on network error
       });
-  }, [overlayToken]);
+  }, [overlayToken, urlToken]);
 
   // Redirect immediately when session is expired
   useEffect(() => {
