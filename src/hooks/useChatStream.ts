@@ -30,6 +30,7 @@ export function useChatStream() {
       setIsConnected(false);
       setIsConnecting(false);
       setError('No overlay token');
+      setMessages([]);
       // Clean up any existing connection and pending reconnect
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
@@ -39,6 +40,7 @@ export function useChatStream() {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
+      reconnectAttemptsRef.current = 0;
       return;
     }
 
