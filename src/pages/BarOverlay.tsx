@@ -170,7 +170,7 @@ const BarOverlayContent = () => {
             <div className="bar-recent-content">
               <div className="bar-recent-name">{twitch.lastSubscriber.userDisplayName}</div>
               <div className="bar-recent-label">
-                Last Sub {formatRelativeTime(twitch.lastSubscriber.subscribeDate)}
+                Last Sub{twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}
                 {twitch.lastSubscriber.isGift && ' (Gift)'}
               </div>
             </div>
