@@ -44,13 +44,20 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
   // Check if user already exists to preserve overlay metadata
   const existingData = fs.existsSync(tokenFile) ? getUserTokens(username) : null;
   
+  // Only preserve the existing overlayExpiresAt if the overlay token is unchanged and hasn't expired.
+  // A new overlayToken always gets a fresh 24h lifetime.
+  const existingOverlayExpiry = existingData?.overlayExpiresAt;
+  const sameOverlayToken = tokenData.overlayToken === existingData?.overlayToken;
+  const overlayStillValid = sameOverlayToken && !!existingOverlayExpiry && new Date(existingOverlayExpiry) > now;
+
   const data: StoredUserData = {
     ...tokenData,
     username,
     createdAt: existingData?.createdAt || now.toISOString(),
     updatedAt: now.toISOString(),
-    overlayExpiresAt: existingData?.overlayExpiresAt || 
-      new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString() // Preserve existing overlay expiry or create new one
+    overlayExpiresAt: overlayStillValid
+      ? existingOverlayExpiry
+      : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
@@ -111,6 +118,35 @@ export function getUserByOverlayToken(overlayToken: string): StoredUserData | nu
   } catch (error) {
     console.error('❌ Error finding user by overlay token:', error);
     return null;
+  }
+}
+
+const OVERLAY_TOKEN_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Only write if expiry would advance by more than this to avoid hammering disk
+const EXTEND_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Extend the overlay token expiry by 24h from now (sliding window).
+ * Only writes to disk if the remaining lifetime is below the threshold.
+ */
+export function extendOverlayToken(username: string): void {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return;
+
+  try {
+    const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    const now = new Date();
+    const newExpiry = new Date(now.getTime() + OVERLAY_TOKEN_WINDOW_MS);
+    const currentExpiry = data.overlayExpiresAt ? new Date(data.overlayExpiresAt) : now;
+
+    // Skip disk write if expiry is already far enough in the future
+    if (currentExpiry.getTime() - now.getTime() > EXTEND_THRESHOLD_MS) return;
+
+    data.overlayExpiresAt = newExpiry.toISOString();
+    data.updatedAt = now.toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error(`❌ Error extending overlay token for ${username}:`, error);
   }
 }
 

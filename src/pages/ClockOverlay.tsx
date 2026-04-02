@@ -10,21 +10,13 @@ const { useTwitch } = TwitchProvider;
 
 const ClockOverlay = () => {
   const { settings } = useSettings();
-  const { streamInfo, fetchStreamInfo } = useTwitch();
+  const { streamInfo } = useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [streamDuration, setStreamDuration] = useState('00:00:00');
   
   // Track previous values for change detection
   const [lastTitle, setLastTitle] = useState('');
   const [lastGame, setLastGame] = useState('');
-
-  // Trigger initial stream info fetch when component mounts or channel changes
-  // Note: TwitchContext handles the periodic refresh automatically
-  useEffect(() => {
-    if (settings.channelName && fetchStreamInfo && !settings.previewMode) {
-      fetchStreamInfo();
-    }
-  }, [settings.channelName, fetchStreamInfo, settings.previewMode]);
 
   // Detect and log changes in stream info
   useEffect(() => {
@@ -90,7 +82,7 @@ const ClockOverlay = () => {
 
   return (
     <div 
-      className={`clock-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
+      className={`clock-overlay ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
       {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
@@ -106,7 +98,7 @@ const ClockOverlay = () => {
         <div className={`time-label ${settings.crtEffects ? 'crt-glow-text-subtle' : ''}`}>Stream Duration</div>
         <div className={`stream-duration ${settings.crtEffects ? 'crt-glow-text-strong' : ''}`}>{streamDuration}</div>
         <div className="stream-info">
-          {settings.channelName ? `${settings.channelName} Live` : 'Live Stream'}
+          {streamInfo == null ? '—' : streamInfo.isLive ? 'Live' : 'Offline'}
         </div>
       </div>
       
@@ -114,17 +106,14 @@ const ClockOverlay = () => {
         <div className="stream-title">
           {streamInfo && streamInfo.isLive 
             ? streamInfo.title 
-            : (settings.previewMode ? 'Preview: Stream Title' : 'Stream Offline')
+            : 'Stream Offline'
           }
         </div>
         <div className="stream-category">
           {streamInfo && streamInfo.isLive && streamInfo.gameName && (
-              <>{streamInfo.gameName}</>
-            )}
-            {settings.previewMode && (
-              <>{`Preview: Game Category`}</>
-            )}
-          </div>
+            <>{streamInfo.gameName}</>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,21 @@ import type { Express } from 'express';
 import type { CorsOptions } from 'cors';
 import { validEndpoints } from './twitch-endpoints.js';
 import type { UserData } from './twitch-api-client.js';
+import { extendOverlayToken } from './storage.js';
+
+// In-memory debounce: skip filesystem work if we extended within this window
+const tokenExtensionLastRun = new Map<string, number>();
+const TOKEN_EXTENSION_DEBOUNCE_MS = 60 * 60 * 1000; // 1 hour
+
+// Prune debounce map entries older than the twice the debounce window to prevent unbounded growth
+function pruneTokenExtensionCache(): void {
+  const cutoff = Date.now() - TOKEN_EXTENSION_DEBOUNCE_MS * 2; // use a window twice as long to be safe against clock skew
+  for (const [key, ts] of tokenExtensionLastRun) {
+    if (ts < cutoff) tokenExtensionLastRun.delete(key);
+  }
+}
+// Run pruning once an hour
+setInterval(pruneTokenExtensionCache, TOKEN_EXTENSION_DEBOUNCE_MS).unref?.();
 
 // Extend Express Request type to include custom properties
 declare global {
@@ -35,20 +50,32 @@ export interface RequestData {
 function validateOverlayToken(getUserByOverlayToken: (token: string) => UserData | null) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const { token } = req.query;
-    
+
     if (!token || typeof token !== 'string') {
+      console.warn('[401] Overlay request missing token');
       res.status(401).json({ error: 'Missing token' });
       return;
     }
 
     const userData = getUserByOverlayToken(token);
     if (!userData) {
-      res.status(401).json({ error: 'Invalid token' });
+      console.warn('[401] Overlay request with invalid or expired token');
+      res.status(401).json({ error: 'Invalid or expired token' });
       return;
     }
 
     // Attach user data to request object for use in handlers
     req.userData = userData;
+
+    // Sliding window: extend overlay token expiry on valid use, but debounce
+    // in-memory to avoid a per-request synchronous disk read under load
+    const now = Date.now();
+    const lastExtended = tokenExtensionLastRun.get(userData.username) ?? 0;
+    if (now - lastExtended > TOKEN_EXTENSION_DEBOUNCE_MS) {
+      tokenExtensionLastRun.set(userData.username, now);
+      extendOverlayToken(userData.username);
+    }
+
     next();
   };
 }

@@ -1,21 +1,12 @@
 import express, { type Request, type Response, Router } from 'express';
 import { randomUUID } from 'crypto';
-import { readFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { exchangeCode, type AccessToken } from '@twurple/auth';
 import { storeUserTokens, getUserByOverlayToken } from './storage.js';
 
-// Extend Express Session interface for custom properties
+// Extend Express Session interface for OAuth state
 declare module 'express-session' {
   interface SessionData {
     oauthState?: string;
-    authSuccess?: {
-      displayName: string;
-      overlayToken: string;
-      username: string;
-      overlayExpiresAt: string;
-    };
   }
 }
 
@@ -47,19 +38,6 @@ interface AuthStatusResponse {
 }
 
 const router: Router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// HTML escape function to prevent XSS in template replacements
-function escapeHtml(unsafe: unknown): string {
-  if (typeof unsafe !== 'string') return String(unsafe);
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;") 
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 // Server-side environment variables (more secure for OAuth)
 const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
@@ -67,7 +45,7 @@ const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://stream-staging.touco.top/auth/callback';
 const ALLOWED_USERS: string[] = process.env.ALLOWED_USERS 
   ? process.env.ALLOWED_USERS.split(',').map(u => u.trim().toLowerCase()).filter(Boolean)
-  : ['toucotop', 'silmassan'];
+  : [];
 
 // Validate required environment variables at startup
 if (process.env.NODE_ENV === 'production') {
@@ -178,17 +156,8 @@ router.get('/callback', async (req: Request, res: Response) => {
       console.log('  - Received:', state);    
     }
     
-    // Serve auth error page
-    try {
-      const errorHtml = readFileSync(path.join(__dirname, 'static-views', 'auth-error.html'), 'utf-8');
-      return res.status(400).send(errorHtml);
-    } catch (error) {
-      console.error('Failed to read auth error page:', error);
-      return res.status(400).json({ 
-        error: 'Invalid request', 
-        message: 'OAuth state mismatch - this can happen if cookies are disabled or the session expired' 
-      });
-    }
+    // Redirect to auth error page
+    return res.redirect('/auth/error');
   }
 
   if (!code || typeof code !== 'string') {
@@ -231,18 +200,8 @@ router.get('/callback', async (req: Request, res: Response) => {
     if (!ALLOWED_USERS.includes(username)) {
       console.error(`❌ User not authorized: ${username}`);
       
-      // Serve access denied page
-      try {
-        const accessDeniedHtml = readFileSync(path.join(__dirname, 'static-views', 'access-denied.html'), 'utf-8');
-        const personalizedHtml = accessDeniedHtml.replace('{{USERNAME}}', escapeHtml(username));
-        return res.status(403).send(personalizedHtml);
-      } catch (error) {
-        console.error('Failed to read access denied page:', error);
-        return res.status(403).json({ 
-          error: 'Access denied', 
-          message: `User '${username}' is not authorized to use this overlay system.` 
-        });
-      }
+      // Redirect to access denied page
+      return res.redirect(`/auth/denied?username=${encodeURIComponent(username)}`);
     }
 
     // Generate unique overlay token for OBS
@@ -259,18 +218,24 @@ router.get('/callback', async (req: Request, res: Response) => {
       displayName: user.display_name
     });
 
-    // Store success data in session for display on root page
-    req.session.authSuccess = {
-      displayName: user.display_name,
-      overlayToken,
-      username,
-      overlayExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
-    };
+    // Retrieve the actual stored overlay token expiry from storage
+    let overlayExpiresAt: string | undefined = undefined;
+    try {
+      const stored = getUserByOverlayToken(overlayToken);
+      overlayExpiresAt = stored?.overlayExpiresAt;
+    } catch (e) {
+      overlayExpiresAt = undefined;
+    }
 
     console.log(`✅ OAuth completed for ${username}${process.env.NODE_ENV !== 'production' ? `, overlay token: ${overlayToken.slice(0, 12)}...` : ''}`);
     
-    // Redirect to root page which will show success page
-    res.redirect('/');
+    // Redirect to React success page with token data in query params
+    const successParams = new URLSearchParams({
+      token: overlayToken,
+      displayName: user.display_name,
+      ...(overlayExpiresAt ? { expiresAt: overlayExpiresAt } : {})
+    });
+    res.redirect(`/auth/success?${successParams.toString()}`);
     return;
 
   } catch (error) {
@@ -312,7 +277,7 @@ router.get('/status', (req: Request, res: Response) => {
     authenticated: true,
     username: userData.username,
     displayName: userData.displayName,
-    expiresAt: userData.expiresAt
+    expiresAt: userData.overlayExpiresAt
   } as AuthStatusResponse);
   return;
 });

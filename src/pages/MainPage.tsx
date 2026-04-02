@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  TextInput, 
   Slider, 
   Switch, 
   Button, 
@@ -22,9 +21,7 @@ import '../styles/MainPage.css';
 
 const MainPage = () => {
   const { settings, updateSettings, resetSettings } = useSettings();
-  const [localChannelName, setLocalChannelName] = useState(settings.channelName);
   const [localOpacity, setLocalOpacity] = useState(settings.overlayOpacity);
-  const [localPreviewMode, setLocalPreviewMode] = useState(settings.previewMode);
   const [localChatFeedDirection, setLocalChatFeedDirection] = useState(settings.chatFeedDirection);
   const [localMaxChatMessages, setLocalMaxChatMessages] = useState(settings.maxChatMessages);
   const [localCrtEffects, setLocalCrtEffects] = useState(settings.crtEffects);
@@ -36,9 +33,7 @@ const MainPage = () => {
 
   // Sync local state with settings when they change (e.g., from query params)
   useEffect(() => {
-    setLocalChannelName(settings.channelName);
     setLocalOpacity(settings.overlayOpacity);
-    setLocalPreviewMode(settings.previewMode);
     setLocalChatFeedDirection(settings.chatFeedDirection);
     setLocalMaxChatMessages(settings.maxChatMessages);
     setLocalCrtEffects(settings.crtEffects);
@@ -57,19 +52,9 @@ const MainPage = () => {
     setTimeout(() => setShowSavedIndicator(false), 1500);
   };
 
-  const handleChannelNameChange = (value: string) => {
-    setLocalChannelName(value);
-    autoSave({ channelName: value });
-  };
-
   const handleOpacityChange = (value: number) => {
     setLocalOpacity(value);
     autoSave({ overlayOpacity: value });
-  };
-
-  const handlePreviewModeChange = (value: boolean) => {
-    setLocalPreviewMode(value);
-    autoSave({ previewMode: value });
   };
 
   const handleOverlayFullWidthChange = (value: boolean) => {
@@ -111,15 +96,12 @@ const MainPage = () => {
   const createOverlayUrl = (path: string) => {
     const url = new URL(path, window.location.origin);
     
-    // Add current settings as query parameters
-    if (settings.channelName) {
-      url.searchParams.set('channelName', settings.channelName);
+    // Add token if available
+    if (settings.overlayToken) {
+      url.searchParams.set('token', settings.overlayToken);
     }
     if (settings.overlayOpacity !== 0.9) {
       url.searchParams.set('overlayOpacity', settings.overlayOpacity.toString());
-    }
-    if (settings.previewMode) {
-      url.searchParams.set('previewMode', 'true');
     }
     if (settings.overlayFullWidth) {
       url.searchParams.set('overlayFullWidth', 'true');
@@ -130,16 +112,16 @@ const MainPage = () => {
     if (settings.maxChatMessages !== 50) {
       url.searchParams.set('maxChatMessages', settings.maxChatMessages.toString());
     }
-    if (settings.crtEffects !== true) { // true is default
+    if (settings.crtEffects !== true) {
       url.searchParams.set('crtEffects', settings.crtEffects.toString());
     }
-    if (settings.crtIntensity !== 'subtle') { // subtle is default
+    if (settings.crtIntensity !== 'subtle') {
       url.searchParams.set('crtIntensity', settings.crtIntensity);
     }
-    if (settings.crtScanlines !== true) { // true is default
+    if (settings.crtScanlines !== true) {
       url.searchParams.set('crtScanlines', settings.crtScanlines.toString());
     }
-    if (settings.crtAnimation !== true) { // true is default
+    if (settings.crtAnimation !== true) {
       url.searchParams.set('crtAnimation', settings.crtAnimation.toString());
     }
     
@@ -186,12 +168,6 @@ const MainPage = () => {
             <span className="section-title">Settings</span>
           </Title>
           <Stack gap="lg">
-            <TextInput
-              label="Channel Name"
-              placeholder="Enter your Twitch channel name"
-              value={localChannelName}
-              onChange={(e) => handleChannelNameChange(e.currentTarget.value)}
-            />
             <div>
               <Text size="sm" fw={500} mb="xs">
                 Overlay Opacity: {Math.round(localOpacity * 100)}%
@@ -204,12 +180,6 @@ const MainPage = () => {
                 step={0.1}
               />
             </div>
-
-            <Switch
-              label="Preview Mode (shows overlays in smaller containers for development)"
-              checked={localPreviewMode}
-              onChange={(e) => handlePreviewModeChange(e.currentTarget.checked)}
-            />
 
             <Switch
               label="Full Width Overlays (removes padding and borders for edge-to-edge appearance)"
@@ -232,41 +202,6 @@ const MainPage = () => {
               </Radio.Group>
             </div>
 
-            <Group justify="space-between" mt="md">
-              <Button variant="outline" color="brand" onClick={resetSettings}>
-                Reset to Defaults
-              </Button>
-              {showSavedIndicator && (
-                <Text c="brand" size="sm" fw={600}>
-                  ✓ Saved!
-                </Text>
-              )}
-            </Group>
-          </Stack>
-        </Paper>
-
-        {/* Twitch API Settings */}
-        <Paper p="xl" radius="md" withBorder shadow="sm">
-          <Title order={2} mb="lg">
-            <span className="section-title">Twitch Integration</span>
-          </Title>
-          <Stack gap="lg">
-            <div>
-              <Text size="sm" c="dimmed" mb="sm">
-                <strong>Basic Features:</strong> Chat overlay works without any configuration! Just enter your channel name above.
-              </Text>
-              <Text size="sm" c="dimmed" mb="sm">
-                <strong>Advanced Features:</strong> Stream title, duration, and enhanced functionality require Twitch API credentials configured via environment variables (.env file).
-              </Text>
-              <Text size="sm" c="dimmed">
-                <strong>Environment Status:</strong> {
-                  import.meta.env.VITE_TWITCH_CLIENT_ID 
-                    ? '✅ Twitch API credentials configured' 
-                    : '⚠️ No API credentials - basic functionality only'
-                }
-              </Text>
-            </div>
-
             <div>
               <Text size="sm" fw={500} mb="xs">
                 Maximum Chat Messages: {localMaxChatMessages}
@@ -285,37 +220,16 @@ const MainPage = () => {
               />
             </div>
 
-            <Paper p="md" withBorder className="tip-paper">
-              <Text size="sm" fw={500} mb="xs">
-                📖 Quick Start:
-              </Text>
-              <List size="sm" spacing="xs">
-                <List.Item>
-                  <strong>Simple Setup:</strong> Just enter your channel name above - chat will work instantly!
-                </List.Item>
-                <List.Item>
-                  <strong>Advanced Setup (Optional):</strong> Get credentials for API features:
-                </List.Item>
-                <List.Item style={{ marginLeft: '1rem' }}>
-                  Visit{' '}
-                  <Code>
-                    <a href="https://dev.twitch.tv/console" target="_blank" rel="noopener noreferrer">
-                      Twitch Developer Console
-                    </a>
-                  </Code>{' '}
-                  for Client ID
-                </List.Item>
-                <List.Item style={{ marginLeft: '1rem' }}>
-                  Use{' '}
-                  <Code>
-                    <a href="https://twitchtokengenerator.com" target="_blank" rel="noopener noreferrer">
-                      twitchtokengenerator.com
-                    </a>
-                  </Code>{' '}
-                  for access token
-                </List.Item>
-              </List>
-            </Paper>
+            <Group justify="space-between" mt="md">
+              <Button variant="outline" color="brand" onClick={resetSettings}>
+                Reset to Defaults
+              </Button>
+              {showSavedIndicator && (
+                <Text c="brand" size="sm" fw={600}>
+                  ✓ Saved!
+                </Text>
+              )}
+            </Group>
           </Stack>
         </Paper>
 
@@ -426,7 +340,7 @@ const MainPage = () => {
                 Settings are automatically applied to overlay URLs and persist across sessions. 
                 You can also override any setting by adding URL parameters like:
               </Text>
-              <Code block>?channelName=YourChannel&overlayOpacity=0.8&previewMode=true</Code>
+              <Code block>?token=your_overlay_token&overlayOpacity=0.8</Code>
             </Paper>
           </Stack>
         </Paper>

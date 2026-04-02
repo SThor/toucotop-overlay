@@ -59,7 +59,7 @@ const BarOverlayContent = () => {
   };
 
   const formatStreamDuration = () => {
-    if (!twitch.streamInfo?.startedAt) {
+    if (!twitch.streamInfo?.isLive || !twitch.streamInfo?.startedAt) {
       return '00:00:00';
     }
     
@@ -96,7 +96,7 @@ const BarOverlayContent = () => {
 
   return (
     <div 
-      className={`bar-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.crtEffects ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
+      className={`bar-overlay ${settings.crtEffects ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
       {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
@@ -111,7 +111,7 @@ const BarOverlayContent = () => {
 
       {/* Stream Duration Section */}
       <div className="bar-section bar-time-section">
-        <div className="bar-time-label">Stream Time</div>
+        <div className="bar-time-label">Stream Duration</div>
         <div className="bar-time-value">{formatStreamDuration()}</div>
       </div>
 
@@ -170,7 +170,7 @@ const BarOverlayContent = () => {
             <div className="bar-recent-content">
               <div className="bar-recent-name">{twitch.lastSubscriber.userDisplayName}</div>
               <div className="bar-recent-label">
-                Last Sub {formatRelativeTime(twitch.lastSubscriber.subscribeDate)}
+                Last Sub{twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}
                 {twitch.lastSubscriber.isGift && ' (Gift)'}
               </div>
             </div>
@@ -182,11 +182,7 @@ const BarOverlayContent = () => {
 };
 
 const BarOverlay = () => {
-  return (
-    <TwitchProvider>
-      <BarOverlayContent />
-    </TwitchProvider>
-  );
+  return <BarOverlayContent />;
 };
 
 export default BarOverlay;
