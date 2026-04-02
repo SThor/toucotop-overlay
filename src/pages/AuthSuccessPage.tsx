@@ -39,6 +39,7 @@ export default function AuthSuccessPage() {
       .then((res) => res.json() as Promise<AuthStatus>)
       .then((data) => {
         if (data.authenticated) {
+          localStorage.setItem('toucotop-overlay-token', overlayToken);
           if (data.displayName) setDisplayName(data.displayName);
           if (data.expiresAt) setExpiresAt(data.expiresAt);
         } else {

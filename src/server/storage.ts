@@ -46,7 +46,7 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
   
   // Only preserve the existing overlayExpiresAt if it hasn't expired yet
   const existingOverlayExpiry = existingData?.overlayExpiresAt;
-  const overlayStillValid = existingOverlayExpiry && new Date(existingOverlayExpiry) > now;
+  const overlayStillValid = !!existingOverlayExpiry && new Date(existingOverlayExpiry) > now;
 
   const data: StoredUserData = {
     ...tokenData,

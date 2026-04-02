@@ -56,6 +56,12 @@ function loadInitialSettings(): Settings {
     // ignore corrupt storage
   }
 
+  // Fallback: if settings have no token, check the dedicated token key
+  if (!base.overlayToken) {
+    const savedToken = localStorage.getItem('toucotop-overlay-token');
+    if (savedToken) base.overlayToken = savedToken;
+  }
+
   // Apply URL param overrides synchronously so first render has correct token
   const urlParams = new URLSearchParams(window.location.search);
   const overrides: Partial<Settings> = {};
@@ -114,12 +120,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const updateUrlParameters = useCallback((settings: Settings) => {
     const url = new URL(window.location.href);
     
-    // Preserve token in URL if present
-    if (settings.overlayToken) {
-      url.searchParams.set('token', settings.overlayToken);
-    } else {
-      url.searchParams.delete('token');
-    }
+    // Token is stored in localStorage only — not kept in URL to avoid leakage
+    // (OBS source URLs generated on /auth/success still carry the token in their own URLs)
 
     // Update or remove overlayOpacity (only if different from default)
     if (settings.overlayOpacity !== defaultSettings.overlayOpacity) {

@@ -34,6 +34,8 @@ interface ValidationCache {
 }
 let validationCache: ValidationCache | null = null;
 const VALIDATION_TTL_MS = 5 * 60 * 1000; // re-check at most every 5 minutes
+let validationErrorCount = 0;
+const MAX_VALIDATION_ERRORS = 3; // fail closed after 3 consecutive network errors
 
 function RequireToken({ children }: { children: React.ReactNode }) {
   const { settings, updateSettings } = useSettings();
@@ -41,11 +43,21 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   const [params] = useSearchParams();
   const redirectingRef = useRef(false);
 
-  // Sync token from query param into settings if present
+  // Sync token: URL takes precedence, otherwise fall back to dedicated localStorage key
   useEffect(() => {
-    const token = params.get('token');
-    if (token && token !== settings.overlayToken) {
-      updateSettings({ overlayToken: token });
+    const urlToken = params.get('token');
+    if (urlToken) {
+      if (urlToken !== settings.overlayToken) {
+        updateSettings({ overlayToken: urlToken });
+      }
+      return;
+    }
+    // No URL token — try dedicated localStorage key as fallback
+    if (!settings.overlayToken) {
+      const savedToken = localStorage.getItem('toucotop-overlay-token');
+      if (savedToken) {
+        updateSettings({ overlayToken: savedToken });
+      }
     }
   }, [params, settings.overlayToken, updateSettings]);
 
@@ -61,6 +73,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
       .then((res) => res.json() as Promise<{ authenticated: boolean }>)
       .then((data) => {
         if (data.authenticated) {
+          validationErrorCount = 0;
           validationCache = { token, validUntil: now + VALIDATION_TTL_MS };
         } else if (!redirectingRef.current) {
           redirectingRef.current = true;
@@ -69,7 +82,14 @@ function RequireToken({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        // Network error — assume valid to avoid spurious redirects
+        // Count consecutive network errors; fail closed after threshold to avoid
+        // leaving protected routes accessible with an invalid/expired token
+        validationErrorCount++;
+        if (validationErrorCount >= MAX_VALIDATION_ERRORS && !redirectingRef.current) {
+          redirectingRef.current = true;
+          validationCache = null;
+          window.location.href = '/auth/twitch';
+        }
       });
   }, [settings.overlayToken, location.pathname]);
 
