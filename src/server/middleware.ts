@@ -14,6 +14,16 @@ import { extendOverlayToken } from './storage.js';
 const tokenExtensionLastRun = new Map<string, number>();
 const TOKEN_EXTENSION_DEBOUNCE_MS = 60 * 60 * 1000; // 1 hour
 
+// Prune debounce map entries older than the debounce window to prevent unbounded growth
+function pruneTokenExtensionCache(): void {
+  const cutoff = Date.now() - TOKEN_EXTENSION_DEBOUNCE_MS;
+  for (const [key, ts] of tokenExtensionLastRun) {
+    if (ts < cutoff) tokenExtensionLastRun.delete(key);
+  }
+}
+// Run pruning once an hour
+setInterval(pruneTokenExtensionCache, TOKEN_EXTENSION_DEBOUNCE_MS).unref?.();
+
 // Extend Express Request type to include custom properties
 declare global {
   namespace Express {

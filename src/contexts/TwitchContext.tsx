@@ -62,7 +62,8 @@ export interface TwitchSubscriber {
   tier: string;
   isGift: boolean;
   gifterName?: string;
-  subscribeDate: Date;
+  /** May be undefined when the API response doesn't include a timestamp (e.g. subscriptions endpoint) */
+  subscribeDate?: Date;
 }
 
 interface TwitchContextType {
@@ -155,6 +156,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
 
   // --- Stream info polling ---
   const fetchStreamInfo = useCallback(async () => {
+    setIsLoadingStreamInfo(true);
     try {
       const data = await fetchApi<{ data: TwitchStreamData[] }>('stream');
       if (!data) return;
@@ -210,7 +212,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
         tier: s.tier,
         isGift: s.is_gift,
         gifterName: s.gifter_name,
-        subscribeDate: new Date(), // Twitch subscriptions API doesn't include date
+        // subscribeDate intentionally omitted — subscriptions API doesn't include a timestamp
       });
     }
   }, [fetchApi]);
@@ -246,7 +248,6 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   useEffect(() => {
     if (!hasToken) return;
 
-    setIsLoadingStreamInfo(true);
     fetchStreamInfo();
     fetchFollowers();
     fetchSubscribers();
@@ -270,7 +271,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
 
   const value: TwitchContextType = {
     isConnected: chatConnected,
-    isConnecting: hasToken && !chatConnected && !chatError,
+    isConnecting: hasToken && !chatConnected,
     error: chatError,
     messages,
     cachedEmotes,

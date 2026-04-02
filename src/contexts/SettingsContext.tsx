@@ -88,6 +88,9 @@ function loadInitialSettings(): Settings {
   if (urlParams.has('crtAnimation')) {
     overrides.crtAnimation = urlParams.get('crtAnimation') === 'true';
   }
+  if (urlParams.has('overlayFullWidth')) {
+    overrides.overlayFullWidth = urlParams.get('overlayFullWidth') === 'true';
+  }
 
   const initial = Object.keys(overrides).length > 0 ? { ...base, ...overrides } : base;
 
@@ -165,6 +168,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       url.searchParams.set('crtAnimation', settings.crtAnimation.toString());
     } else {
       url.searchParams.delete('crtAnimation');
+    }
+
+    // Update or remove overlayFullWidth (only if different from default)
+    if (settings.overlayFullWidth !== defaultSettings.overlayFullWidth) {
+      url.searchParams.set('overlayFullWidth', settings.overlayFullWidth.toString());
+    } else {
+      url.searchParams.delete('overlayFullWidth');
     }
     
     // Update the URL without triggering a page reload

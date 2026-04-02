@@ -52,6 +52,9 @@ interface ChannelRelay {
 
 const CLEANUP_DELAY_MS = 30_000;
 const KEEPALIVE_INTERVAL_MS = 15_000;
+// Only extend the overlay token at most once per hour per channel on keepalive
+const KEEPALIVE_EXTEND_DEBOUNCE_MS = 60 * 60 * 1000;
+const keepaliveExtendLastRun = new Map<string, number>();
 
 const channelRelays = new Map<string, ChannelRelay>();
 
@@ -207,9 +210,14 @@ export function addSSEClient(channel: string, res: Response): void {
       const keepalive = setInterval(() => {
         try {
           res.write(':keepalive\n\n');
-          // Extend overlay token on each keepalive so long-lived SSE
-          // connections don't expire while the overlay is actively in use
-          extendOverlayToken(channel);
+          // Extend overlay token on keepalive, debounced per channel to avoid
+          // per-client periodic disk reads
+          const now = Date.now();
+          const lastExtended = keepaliveExtendLastRun.get(channel) ?? 0;
+          if (now - lastExtended > KEEPALIVE_EXTEND_DEBOUNCE_MS) {
+            keepaliveExtendLastRun.set(channel, now);
+            extendOverlayToken(channel);
+          }
         } catch {
           clearInterval(keepalive);
         }
@@ -219,6 +227,8 @@ export function addSSEClient(channel: string, res: Response): void {
         clearInterval(keepalive);
         relay.clients.delete(client);
         console.log(`👋 SSE client disconnected from channel: ${channel} (${relay.clients.size} remaining)`);
+        // Clean up debounce entry when last client disconnects
+        if (relay.clients.size === 0) keepaliveExtendLastRun.delete(channel);
         scheduleCleanup(channel);
       });
 

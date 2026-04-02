@@ -28,11 +28,11 @@ export default function NavMenu() {
 
   return (
     <nav className={`nav-menu ${open ? 'open' : ''}`}>
-      <button className="nav-toggle" onClick={() => setOpen(!open)} aria-label="Toggle navigation">
+      <button className="nav-toggle" onClick={() => setOpen(!open)} aria-label="Toggle navigation" aria-expanded={open} aria-controls="nav-links">
         ☰
       </button>
       {open && (
-        <div className="nav-links">
+        <div className="nav-links" id="nav-links">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.path}
