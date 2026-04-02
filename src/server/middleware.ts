@@ -14,9 +14,9 @@ import { extendOverlayToken } from './storage.js';
 const tokenExtensionLastRun = new Map<string, number>();
 const TOKEN_EXTENSION_DEBOUNCE_MS = 60 * 60 * 1000; // 1 hour
 
-// Prune debounce map entries older than the debounce window to prevent unbounded growth
+// Prune debounce map entries older than the twice the debounce window to prevent unbounded growth
 function pruneTokenExtensionCache(): void {
-  const cutoff = Date.now() - TOKEN_EXTENSION_DEBOUNCE_MS;
+  const cutoff = Date.now() - TOKEN_EXTENSION_DEBOUNCE_MS * 2; // use a window twice as long to be safe against clock skew
   for (const [key, ts] of tokenExtensionLastRun) {
     if (ts < cutoff) tokenExtensionLastRun.delete(key);
   }
