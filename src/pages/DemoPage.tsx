@@ -1,5 +1,6 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useSettings } from '../contexts/SettingsContext';
 import '../styles/ServerPages.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -92,6 +93,13 @@ const EVENT_TYPES = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function toStringSafe(value: unknown): string {
+  if (value === null || value === undefined) return 'unknown';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try { return JSON.stringify(value); } catch { return String(value); }
+}
+
 function formatEventData(events: Array<{ subscription: { type: string }; timestamp: string; event: Record<string, unknown> }>): string {
   if (!events || events.length === 0) return 'No recent events found';
 
@@ -101,21 +109,31 @@ function formatEventData(events: Array<{ subscription: { type: string }; timesta
       const ts = new Date(ev.timestamp).toLocaleString();
       let info = `🕐 ${ts} - ${type}`;
       switch (type) {
-        case 'channel.follow':
-          info += `\n👤 New follower: ${ev.event.user_name}`;
+        case 'channel.follow': {
+          const e = ev.event as { user_name?: unknown };
+          info += `\n👤 New follower: ${toStringSafe(e.user_name)}`;
           break;
-        case 'channel.subscribe':
-          info += `\n⭐ New subscriber: ${ev.event.user_name} (Tier ${ev.event.tier})`;
+        }
+        case 'channel.subscribe': {
+          const e = ev.event as { user_name?: unknown; tier?: unknown };
+          info += `\n⭐ New subscriber: ${toStringSafe(e.user_name)} (Tier ${toStringSafe(e.tier)})`;
           break;
-        case 'channel.subscription.gift':
-          info += `\n🎁 Gift sub: ${ev.event.user_name} to ${ev.event.recipient_user_name}`;
+        }
+        case 'channel.subscription.gift': {
+          const e = ev.event as { user_name?: unknown; recipient_user_name?: unknown };
+          info += `\n🎁 Gift sub: ${toStringSafe(e.user_name)} to ${toStringSafe(e.recipient_user_name)}`;
           break;
-        case 'channel.cheer':
-          info += `\n💎 ${ev.event.user_name} cheered ${ev.event.bits} bits`;
+        }
+        case 'channel.cheer': {
+          const e = ev.event as { user_name?: unknown; bits?: unknown };
+          info += `\n💎 ${toStringSafe(e.user_name)} cheered ${toStringSafe(e.bits)} bits`;
           break;
-        case 'channel.raid':
-          info += `\n🚀 Raided by ${ev.event.from_broadcaster_user_name} (${ev.event.viewers} viewers)`;
+        }
+        case 'channel.raid': {
+          const e = ev.event as { from_broadcaster_user_name?: unknown; viewers?: unknown };
+          info += `\n🚀 Raided by ${toStringSafe(e.from_broadcaster_user_name)} (${toStringSafe(e.viewers)} viewers)`;
           break;
+        }
         case 'stream.online':
           info += '\n🔴 Stream went online';
           break;
@@ -261,7 +279,9 @@ function EventSubCard({ token }: { token: string }) {
 
 export default function DemoPage() {
   const [params] = useSearchParams();
-  const token = params.get('token') || '';
+  const { settings } = useSettings();
+  // URL token takes precedence; fall back to settings (loaded from localStorage) when navigating directly
+  const token = params.get('token') || settings.overlayToken;
   const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {

@@ -122,6 +122,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     
     // Token is stored in localStorage only — not kept in URL to avoid leakage
     // (OBS source URLs generated on /auth/success still carry the token in their own URLs)
+    url.searchParams.delete('token');
 
     // Update or remove overlayOpacity (only if different from default)
     if (settings.overlayOpacity !== defaultSettings.overlayOpacity) {

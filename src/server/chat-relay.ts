@@ -201,9 +201,29 @@ export function addSSEClient(channel: string, res: Response): void {
   });
 
   const client: SSEClient = { res };
+  let aborted = false;
+
+  // Register close handler immediately — before the async relay setup — so a
+  // disconnect during IRC connect doesn't leave this client stranded in relay.clients.
+  res.on('close', () => {
+    aborted = true;
+    const relay = channelRelays.get(channel);
+    if (relay) {
+      relay.clients.delete(client);
+      console.log(`👋 SSE client disconnected from channel: ${channel} (${relay.clients.size} remaining)`);
+      if (relay.clients.size === 0) keepaliveExtendLastRun.delete(channel);
+      scheduleCleanup(channel);
+    }
+  });
 
   getOrCreateRelay(channel)
     .then((relay) => {
+      // Client may have disconnected while the relay was starting up
+      if (aborted) {
+        scheduleCleanup(channel);
+        return;
+      }
+
       relay.clients.add(client);
       sendSSE(client, 'connected', { channel });
 
@@ -223,11 +243,12 @@ export function addSSEClient(channel: string, res: Response): void {
         }
       }, KEEPALIVE_INTERVAL_MS);
 
+      // Replace the early close handler with one that also clears the keepalive timer
+      res.removeAllListeners('close');
       res.on('close', () => {
         clearInterval(keepalive);
         relay.clients.delete(client);
         console.log(`👋 SSE client disconnected from channel: ${channel} (${relay.clients.size} remaining)`);
-        // Clean up debounce entry when last client disconnects
         if (relay.clients.size === 0) keepaliveExtendLastRun.delete(channel);
         scheduleCleanup(channel);
       });

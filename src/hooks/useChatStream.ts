@@ -4,6 +4,7 @@ import type { TwitchChatMessage } from '../contexts/TwitchContext';
 
 const MAX_MESSAGES = 200;
 const RECONNECT_DELAY_MS = 3000;
+const MAX_RECONNECT_ATTEMPTS = 10;
 
 /**
  * Hook that connects to the server SSE chat stream and returns live messages.
@@ -20,6 +21,7 @@ export function useChatStream() {
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
 
   const clearMessages = useCallback(() => setMessages([]), []);
 
@@ -41,6 +43,11 @@ export function useChatStream() {
     }
 
     function scheduleReconnect() {
+      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        setError('Chat connection failed: max retries reached. Re-authenticate to reconnect.');
+        return;
+      }
+      reconnectAttemptsRef.current++;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
     }
@@ -57,6 +64,7 @@ export function useChatStream() {
       eventSourceRef.current = es;
 
       es.addEventListener('connected', () => {
+        reconnectAttemptsRef.current = 0;
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
