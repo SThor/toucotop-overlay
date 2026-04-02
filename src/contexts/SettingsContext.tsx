@@ -210,7 +210,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const resetSettings = () => {
     setSettings(defaultSettings);
     localStorage.removeItem('toucotop-overlay-settings');
-    
+    // Also clear the dedicated token key so the token isn't re-hydrated on next load
+    localStorage.removeItem('toucotop-overlay-token');
     // Clear URL parameters immediately (no debouncing for reset)
     updateUrlParameters(defaultSettings);
   };

@@ -1,11 +1,19 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function CopyButton({ text, className }: { text: string; className?: string }) {
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = useCallback(async () => {
     const resetAfterDelay = () => {
-      setTimeout(() => setStatus('idle'), 2000);
+      if (resetTimerRef.current !== null) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => setStatus('idle'), 2000);
     };
 
     try {

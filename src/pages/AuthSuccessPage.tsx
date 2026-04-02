@@ -40,6 +40,9 @@ export default function AuthSuccessPage() {
       .then((data) => {
         if (data.authenticated) {
           localStorage.setItem('toucotop-overlay-token', overlayToken);
+          // Strip token (and other sensitive params) from the URL so they don't
+          // linger in browser history or leak via referrer headers.
+          window.history.replaceState({}, '', window.location.pathname);
           if (data.displayName) setDisplayName(data.displayName);
           if (data.expiresAt) setExpiresAt(data.expiresAt);
         } else {

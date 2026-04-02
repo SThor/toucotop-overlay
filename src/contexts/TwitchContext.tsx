@@ -173,7 +173,9 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
         });
       } else {
         setStreamInfo((prev) =>
-          prev ? { ...prev, isLive: false, viewerCount: 0 } : null
+          prev
+            ? { ...prev, isLive: false, viewerCount: 0 }
+            : { id: '', title: '', gameName: '', startedAt: new Date(), viewerCount: 0, isLive: false }
         );
       }
     } finally {

@@ -66,6 +66,12 @@ function RequireToken({ children }: { children: React.ReactNode }) {
     const token = settings.overlayToken;
     if (!token || ALLOW_NO_TOKEN.includes(location.pathname)) return;
 
+    // Reset error count when a different token is being validated so a new/updated
+    // token doesn't inherit the previous token's consecutive network error count.
+    if (validationCache?.token !== token) {
+      validationErrorCount = 0;
+    }
+
     const now = Date.now();
     if (validationCache && validationCache.token === token && now < validationCache.validUntil) return;
 
