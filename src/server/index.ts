@@ -218,8 +218,14 @@ try {
 
   /**
    * Overlay settings endpoint (GET + PATCH)
+   * Mounted behind validateOverlayToken so the sliding-window token extension
+   * applies to dashboard usage and req.userData is available in the router.
    */
-  app.use('/api/settings', settingsRouter);
+  app.use(
+    '/api/settings',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    settingsRouter
+  );
 
   /**
    * EventSub subscription management endpoint
