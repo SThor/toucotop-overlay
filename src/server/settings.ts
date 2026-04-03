@@ -14,8 +14,8 @@ const router: Router = express.Router();
  * Returns the stored overlay settings for the token owner.
  */
 router.get('/', (req: Request, res: Response) => {
-  const token = (req.query['token'] as string) || '';
-  if (!token) {
+  const token = req.query['token'];
+  if (typeof token !== 'string' || !token) {
     res.status(401).json({ error: 'Missing token' });
     return;
   }
@@ -34,8 +34,8 @@ router.get('/', (req: Request, res: Response) => {
  * Merges the provided partial settings into the stored settings.
  */
 router.patch('/', express.json(), (req: Request, res: Response) => {
-  const token = (req.query['token'] as string) || '';
-  if (!token) {
+  const token = req.query['token'];
+  if (typeof token !== 'string' || !token) {
     res.status(401).json({ error: 'Missing token' });
     return;
   }
@@ -47,7 +47,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
   }
 
   const body = req.body as Partial<OverlaySettings>;
-  if (typeof body !== 'object' || body === null) {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     res.status(400).json({ error: 'Request body must be a JSON object' });
     return;
   }
@@ -71,8 +71,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     return;
   }
 
-  const updated = getUserByOverlayToken(token);
-  res.json({ settings: updated?.overlaySettings ?? defaultOverlaySettings });
+  res.json({ settings: { ...user.overlaySettings, ...patch } });
 });
 
 export default router;

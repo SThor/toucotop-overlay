@@ -166,7 +166,7 @@ export function extendOverlayToken(username: string): void {
 }
 
 /**
- * Update overlay settings for a user identified by overlay token
+ * Update overlay settings for a user identified by username
  */
 export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): boolean {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
@@ -174,7 +174,22 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
 
   try {
     const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-    data.overlaySettings = { ...(data.overlaySettings ?? defaultOverlaySettings), ...settings };
+    const base = data.overlaySettings ?? defaultOverlaySettings;
+    data.overlaySettings = {
+      ...defaultOverlaySettings,
+      ...base,
+      ...settings,
+      themeSettings: {
+        ...defaultOverlaySettings.themeSettings,
+        ...base.themeSettings,
+        ...settings.themeSettings,
+        crt: {
+          ...defaultOverlaySettings.themeSettings.crt,
+          ...base.themeSettings?.crt,
+          ...settings.themeSettings?.crt,
+        },
+      },
+    };
     data.updatedAt = new Date().toISOString();
     fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
     return true;

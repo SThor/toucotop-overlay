@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container,
@@ -43,6 +43,7 @@ export default function AuthSuccessPage() {
   );
   const [sessionExpired, setSessionExpired] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Strip all URL params and persist the token via updateSettings (handles both localStorage keys)
   useEffect(() => {
@@ -81,8 +82,9 @@ export default function AuthSuccessPage() {
           crt: { ...settings.themeSettings.crt, ...patch },
         },
       });
+      if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
       setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 1500);
+      showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
     },
     [updateSettings, settings.themeSettings],
   );
@@ -90,8 +92,9 @@ export default function AuthSuccessPage() {
   const save = useCallback(
     (patch: Parameters<typeof updateSettings>[0]) => {
       updateSettings(patch);
+      if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
       setShowSaved(true);
-      setTimeout(() => setShowSaved(false), 1500);
+      showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
     },
     [updateSettings],
   );
@@ -102,7 +105,7 @@ export default function AuthSuccessPage() {
         <div className="container">
           <div className="icon-code">⏰</div>
           <h1 className="page-title">Session Expired</h1>
-          <p className="page-message">Redirecting you to re-authenticate…</p>
+          <p className="page-message">Your session has expired.</p>
           <a href="/auth/twitch" className="action-btn">🔄 Re-authenticate now</a>
         </div>
       </div>

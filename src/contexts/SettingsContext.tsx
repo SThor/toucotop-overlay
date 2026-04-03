@@ -52,13 +52,12 @@ function parseUrlOverrides(): Partial<OverlaySettings> {
   }
   if (p.has('crtEffects')) o.theme = p.get('crtEffects') === 'true' ? 'crt' : 'default';
   if (p.has('crtIntensity') || p.has('crtScanlines') || p.has('crtAnimation')) {
-    const crtBase = defaultOverlaySettings.themeSettings.crt;
-    const crt = { ...crtBase };
+    const crt: Partial<OverlaySettings['themeSettings']['crt']> = {};
     const intensity = p.get('crtIntensity');
     if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') crt.intensity = intensity;
     if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') === 'true';
     if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') === 'true';
-    o.themeSettings = { crt };
+    o.themeSettings = { crt } as OverlaySettings['themeSettings'];
   }
   if (p.has('overlayFullWidth')) o.overlayFullWidth = p.get('overlayFullWidth') === 'true';
 
@@ -101,12 +100,14 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       setServerSettings(defaultOverlaySettings);
       return;
     }
+    const controller = new AbortController();
     setIsLoadingSettings(true);
-    fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`)
+    fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
       .then((res) => res.json() as Promise<{ settings: OverlaySettings }>)
       .then(({ settings }) => setServerSettings({ ...defaultOverlaySettings, ...settings }))
-      .catch(() => { /* network error — keep defaults */ })
+      .catch((err) => { if (err.name !== 'AbortError') { /* network error — keep defaults */ } })
       .finally(() => setIsLoadingSettings(false));
+    return () => controller.abort();
   }, [overlayToken]);
 
   // Merged view: defaults → server settings → URL param overrides (session-only)
@@ -121,6 +122,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     if ('overlayToken' in newSettings && newSettings.overlayToken !== undefined) {
       const token = newSettings.overlayToken;
       setOverlayToken(token);
+      overlayTokenRef.current = token;
       localStorage.setItem('toucotop-overlay-token', token);
       // Keep legacy key in sync for backward compat
       try {
