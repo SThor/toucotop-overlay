@@ -104,17 +104,38 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     setIsLoadingSettings(true);
     fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
       .then((res) => res.json() as Promise<{ settings: OverlaySettings }>)
-      .then(({ settings }) => setServerSettings({ ...defaultOverlaySettings, ...settings }))
+      .then(({ settings }) => setServerSettings({
+        ...defaultOverlaySettings,
+        ...settings,
+        themeSettings: {
+          ...defaultOverlaySettings.themeSettings,
+          ...(settings.themeSettings ?? {}),
+          crt: {
+            ...defaultOverlaySettings.themeSettings.crt,
+            ...(settings.themeSettings?.crt ?? {}),
+          },
+        },
+      }))
       .catch((err) => { if (err.name !== 'AbortError') { /* network error — keep defaults */ } })
       .finally(() => setIsLoadingSettings(false));
     return () => controller.abort();
   }, [overlayToken]);
 
   // Merged view: defaults → server settings → URL param overrides (session-only)
+  // themeSettings is deep-merged so a single URL param (e.g. crtScanlines) doesn't
+  // wipe the other crt fields stored server-side.
   const settings: Settings = {
     overlayToken,
     ...serverSettings,
     ...urlOverrides.current,
+    themeSettings: {
+      ...serverSettings.themeSettings,
+      ...urlOverrides.current.themeSettings,
+      crt: {
+        ...serverSettings.themeSettings.crt,
+        ...urlOverrides.current.themeSettings?.crt,
+      },
+    },
   };
 
   const updateSettings = useCallback((newSettings: Partial<Settings>) => {

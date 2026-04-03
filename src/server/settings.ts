@@ -26,7 +26,20 @@ router.get('/', (req: Request, res: Response) => {
     return;
   }
 
-  res.json({ settings: user.overlaySettings ?? defaultOverlaySettings });
+  const raw = user.overlaySettings ?? defaultOverlaySettings;
+  const normalized: OverlaySettings = {
+    ...defaultOverlaySettings,
+    ...raw,
+    themeSettings: {
+      ...defaultOverlaySettings.themeSettings,
+      ...(raw.themeSettings ?? {}),
+      crt: {
+        ...defaultOverlaySettings.themeSettings.crt,
+        ...(raw.themeSettings?.crt ?? {}),
+      },
+    },
+  };
+  res.json({ settings: normalized });
 });
 
 /**

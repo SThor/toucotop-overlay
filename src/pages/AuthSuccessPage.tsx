@@ -44,6 +44,11 @@ export default function AuthSuccessPage() {
   const [showSaved, setShowSaved] = useState(false);
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clear pending timer on unmount to avoid setState on an unmounted component
+  useEffect(() => () => {
+    if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
+  }, []);
+
   // Strip all URL params and persist the token via updateSettings (handles both localStorage keys)
   useEffect(() => {
     if (urlToken) {

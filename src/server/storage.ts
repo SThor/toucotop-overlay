@@ -181,12 +181,12 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...settings,
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
-        ...base.themeSettings,
-        ...settings.themeSettings,
+        ...(base.themeSettings ?? {}),
+        ...(settings.themeSettings ?? {}),
         crt: {
           ...defaultOverlaySettings.themeSettings.crt,
-          ...base.themeSettings?.crt,
-          ...settings.themeSettings?.crt,
+          ...(base.themeSettings?.crt ?? {}),
+          ...(settings.themeSettings?.crt ?? {}),
         },
       },
     };
