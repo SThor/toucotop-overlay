@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export type { OverlaySettings } from '../server/shared/overlaySettings';
 import type { OverlaySettings } from '../server/shared/overlaySettings';
@@ -34,8 +35,8 @@ interface SettingsProviderProps {
 }
 
 // Parse URL parameter overrides (session-only — not saved to server)
-function parseUrlOverrides(): Partial<OverlaySettings> {
-  const p = new URLSearchParams(window.location.search);
+function parseUrlOverrides(search: string): Partial<OverlaySettings> {
+  const p = new URLSearchParams(search);
   const o: Partial<OverlaySettings> = {};
 
   if (p.has('overlayOpacity')) {
@@ -88,8 +89,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [serverSettings, setServerSettings] = useState<OverlaySettings>(defaultOverlaySettings);
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 
-  // URL overrides are parsed once at mount and applied on top of server settings
-  const urlOverrides = useRef<Partial<OverlaySettings>>(parseUrlOverrides());
+  // URL overrides are re-derived whenever the location search string changes so they
+  // don't persist across SPA navigation to a route with different (or no) query params.
+  const { search } = useLocation();
+  const urlOverrides = useMemo(() => parseUrlOverrides(search), [search]);
 
   // Debounce timer for server saves
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,13 +148,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const settings: Settings = {
     overlayToken,
     ...serverSettings,
-    ...urlOverrides.current,
+    ...urlOverrides,
     themeSettings: {
       ...serverSettings.themeSettings,
-      ...urlOverrides.current.themeSettings,
+      ...urlOverrides.themeSettings,
       crt: {
         ...serverSettings.themeSettings.crt,
-        ...urlOverrides.current.themeSettings?.crt,
+        ...urlOverrides.themeSettings?.crt,
       },
     },
   };

@@ -116,9 +116,9 @@ function RequireToken({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
-      <SettingsProvider>
-        <TwitchProvider>
-          <Router>
+      <Router>
+        <SettingsProvider>
+          <TwitchProvider>
             <RequireToken>
               <div className="App">
                 <NavMenu />
@@ -135,9 +135,9 @@ function App() {
                 </Routes>
               </div>
             </RequireToken>
-          </Router>
-        </TwitchProvider>
-      </SettingsProvider>
+          </TwitchProvider>
+        </SettingsProvider>
+      </Router>
     </MantineProvider>
   );
 }

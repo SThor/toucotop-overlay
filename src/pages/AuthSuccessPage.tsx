@@ -40,7 +40,9 @@ export default function AuthSuccessPage() {
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(
     urlDisplayName ? { displayName: urlDisplayName, expiresAt: urlExpiresAt ?? '' } : null,
   );
-  const [sessionExpired, setSessionExpired] = useState(false);
+  // Guard synchronously: if there's no token anywhere on first render, show the
+  // expired UI immediately rather than flashing valid-looking URLs for one frame.
+  const [sessionExpired, setSessionExpired] = useState(() => !overlayToken && !urlToken);
   const [showSaved, setShowSaved] = useState(false);
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
