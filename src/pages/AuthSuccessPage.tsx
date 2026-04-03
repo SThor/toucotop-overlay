@@ -215,8 +215,8 @@ export default function AuthSuccessPage() {
                   onChange={(v) => save({ chatFeedDirection: v as 'top' | 'bottom' })}
                 >
                   <Stack gap="xs">
-                    <Radio value="bottom" label="Feed from bottom (new messages appear at bottom)" />
-                    <Radio value="top" label="Feed from top (new messages appear at top)" />
+                    <Radio color="violet" value="bottom" label="Feed from bottom (new messages appear at bottom)" />
+                    <Radio color="violet" value="top" label="Feed from top (new messages appear at top)" />
                   </Stack>
                 </Radio.Group>
               </div>
@@ -277,9 +277,9 @@ export default function AuthSuccessPage() {
                       onChange={(v) => updateCrtSettings({ intensity: v as 'minimal' | 'subtle' | 'medium' })}
                     >
                       <Stack gap="xs">
-                        <Radio value="minimal" label="Minimal — very subtle effects" />
-                        <Radio value="subtle" label="Subtle — balanced for streaming (recommended)" />
-                        <Radio value="medium" label="Medium — more pronounced effects" />
+                        <Radio color="violet" value="minimal" label="Minimal — very subtle effects" />
+                        <Radio color="violet" value="subtle" label="Subtle — balanced for streaming (recommended)" />
+                        <Radio color="violet" value="medium" label="Medium — more pronounced effects" />
                       </Stack>
                     </Radio.Group>
                   </div>
