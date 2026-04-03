@@ -40,7 +40,7 @@ function parseUrlOverrides(): Partial<OverlaySettings> {
 
   if (p.has('overlayOpacity')) {
     const v = parseFloat(p.get('overlayOpacity') || '');
-    if (!isNaN(v) && v >= 0 && v <= 1) o.overlayOpacity = v;
+    if (!isNaN(v) && v >= 0.1 && v <= 1) o.overlayOpacity = v;
   }
   if (p.has('chatFeedDirection')) {
     const v = p.get('chatFeedDirection');
@@ -96,29 +96,47 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   // Fetch settings from server whenever the token changes
   useEffect(() => {
+    let isCurrent = true;
+
     if (!overlayToken) {
       setServerSettings(defaultOverlaySettings);
-      return;
+      setIsLoadingSettings(false);
+      return () => { isCurrent = false; };
     }
     const controller = new AbortController();
     setIsLoadingSettings(true);
     fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
-      .then((res) => res.json() as Promise<{ settings: OverlaySettings }>)
-      .then(({ settings }) => setServerSettings({
-        ...defaultOverlaySettings,
-        ...settings,
-        themeSettings: {
-          ...defaultOverlaySettings.themeSettings,
-          ...(settings.themeSettings ?? {}),
-          crt: {
-            ...defaultOverlaySettings.themeSettings.crt,
-            ...(settings.themeSettings?.crt ?? {}),
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const data = await res.json() as { settings?: OverlaySettings } | null;
+        if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
+        return data.settings;
+      })
+      .then((fetched) => {
+        if (!isCurrent) return;
+        if (!fetched) {
+          setServerSettings(defaultOverlaySettings);
+          return;
+        }
+        setServerSettings({
+          ...defaultOverlaySettings,
+          ...fetched,
+          themeSettings: {
+            ...defaultOverlaySettings.themeSettings,
+            ...(fetched.themeSettings ?? {}),
+            crt: {
+              ...defaultOverlaySettings.themeSettings.crt,
+              ...(fetched.themeSettings?.crt ?? {}),
+            },
           },
-        },
-      }))
+        });
+      })
       .catch((err) => { if (err.name !== 'AbortError') { /* network error — keep defaults */ } })
-      .finally(() => setIsLoadingSettings(false));
-    return () => controller.abort();
+      .finally(() => { if (isCurrent) setIsLoadingSettings(false); });
+    return () => {
+      isCurrent = false;
+      controller.abort();
+    };
   }, [overlayToken]);
 
   // Merged view: defaults → server settings → URL param overrides (session-only)

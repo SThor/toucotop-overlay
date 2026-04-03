@@ -51,7 +51,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
 
   if ('overlayOpacity' in body) {
     const v = body.overlayOpacity;
-    if (typeof v !== 'number' || v < 0.1 || v > 1) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.1 || v > 1) {
       errors.push('overlayOpacity must be a number between 0.1 and 1');
     } else {
       patch.overlayOpacity = v;
@@ -126,8 +126,15 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
           }
         }
         if (Object.keys(crtPatch).length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          patch.themeSettings = { crt: crtPatch } as any;
+          patch.themeSettings = {
+            ...defaultOverlaySettings.themeSettings,
+            ...(patch.themeSettings ?? {}),
+            crt: {
+              ...defaultOverlaySettings.themeSettings.crt,
+              ...(patch.themeSettings?.crt ?? {}),
+              ...crtPatch,
+            },
+          };
         }
       }
     }
