@@ -36,6 +36,8 @@ export default function AuthSuccessPage() {
   const urlExpiresAt = params.get('expiresAt');
   const overlayToken = settings.overlayToken;
 
+  console.log('[AuthSuccessPage] mounted — overlayToken:', overlayToken ? overlayToken.slice(0,12)+'...' : '(empty)', '| urlToken:', urlToken ? urlToken.slice(0,12)+'...' : null);
+
   // Seed auth info immediately from URL params when present (avoids a redundant round-trip)
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(
     urlDisplayName ? { displayName: urlDisplayName, expiresAt: urlExpiresAt ?? '' } : null,

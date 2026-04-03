@@ -83,7 +83,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // Token is managed via localStorage only (not a server setting)
   const [overlayToken, setOverlayToken] = useState<string>(loadInitialToken);
   const overlayTokenRef = useRef(overlayToken);
-  useEffect(() => { overlayTokenRef.current = overlayToken; }, [overlayToken]);
+  useEffect(() => {
+    console.log('[SettingsProvider] overlayToken state changed:', overlayToken ? overlayToken.slice(0,12)+'...' : '(empty)');
+    overlayTokenRef.current = overlayToken;
+  }, [overlayToken]);
 
   // Server-side overlay settings, fetched async after token is available
   const [serverSettings, setServerSettings] = useState<OverlaySettings>(defaultOverlaySettings);
@@ -92,7 +95,11 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // URL overrides are re-derived whenever the location search string changes so they
   // don't persist across SPA navigation to a route with different (or no) query params.
   const { search } = useLocation();
-  const urlOverrides = useMemo(() => parseUrlOverrides(search), [search]);
+  const urlOverrides = useMemo(() => {
+    const overrides = parseUrlOverrides(search);
+    console.log('[SettingsProvider] urlOverrides recomputed for search:', search || '(empty)', '| keys:', Object.keys(overrides));
+    return overrides;
+  }, [search]);
 
   // Debounce timer for server saves
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

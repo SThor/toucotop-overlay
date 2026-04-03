@@ -45,6 +45,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   // Sync token: URL takes precedence, otherwise fall back to dedicated localStorage key
   useEffect(() => {
     const urlToken = params.get('token');
+    console.log('[RequireToken:syncEffect] path:', location.pathname, '| urlToken:', urlToken ? urlToken.slice(0,12)+'...' : null, '| storedToken:', settings.overlayToken ? settings.overlayToken.slice(0,12)+'...' : '(empty)');
     if (urlToken) {
       if (urlToken !== settings.overlayToken) {
         updateSettings({ overlayToken: urlToken });
@@ -72,6 +73,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   // Validate token with server on protected routes
   useEffect(() => {
     const token = settings.overlayToken;
+    console.log('[RequireToken:validateEffect] path:', location.pathname, '| token:', token ? token.slice(0,12)+'...' : '(empty)', '| allowed:', ALLOW_NO_TOKEN.includes(location.pathname));
     if (!token || ALLOW_NO_TOKEN.includes(location.pathname)) return;
 
     // Reset error count when a different token is being validated so a new/updated
@@ -86,20 +88,25 @@ function RequireToken({ children }: { children: React.ReactNode }) {
     fetch(`/auth/status?token=${encodeURIComponent(token)}`)
       .then((res) => res.json() as Promise<{ authenticated: boolean }>)
       .then((data) => {
+        console.log('[RequireToken:validateEffect] /auth/status response:', data, '| token:', token.slice(0,12)+'...');
         if (data.authenticated) {
           validationErrorCount = 0;
           validationCache = { token, validUntil: now + VALIDATION_TTL_MS };
         } else if (!redirectingRef.current) {
+          console.warn('[RequireToken:validateEffect] token invalid — redirecting to /auth/twitch');
           redirectingRef.current = true;
           validationCache = null;
           window.location.href = '/auth/twitch';
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('[RequireToken:validateEffect] /auth/status fetch error:', err);
         // Count consecutive network errors; fail closed after threshold to avoid
         // leaving protected routes accessible with an invalid/expired token
         validationErrorCount++;
+        console.warn('[RequireToken:validateEffect] validationErrorCount now:', validationErrorCount);
         if (validationErrorCount >= MAX_VALIDATION_ERRORS && !redirectingRef.current) {
+          console.warn('[RequireToken:validateEffect] too many errors — redirecting to /auth/twitch');
           redirectingRef.current = true;
           validationCache = null;
           window.location.href = '/auth/twitch';
