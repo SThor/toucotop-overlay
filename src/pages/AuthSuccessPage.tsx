@@ -192,7 +192,7 @@ export default function AuthSuccessPage() {
                   Overlay Opacity: {Math.round(settings.overlayOpacity * 100)}%
                 </Text>
                 <Slider
-                  color="gray"
+                  color="violet"
                   value={settings.overlayOpacity}
                   onChange={(v) => save({ overlayOpacity: v })}
                   min={0.1} max={1} step={0.05}
@@ -200,7 +200,7 @@ export default function AuthSuccessPage() {
               </div>
 
               <Switch
-                color="gray"
+                color="violet"
                 label="Full Width Overlays"
                 description="Removes padding and borders for edge-to-edge appearance"
                 checked={settings.overlayFullWidth}
@@ -210,6 +210,7 @@ export default function AuthSuccessPage() {
               <div>
                 <Text size="sm" fw={500} mb="xs">Chat Feed Direction</Text>
                 <Radio.Group
+                  color="violet"
                   value={settings.chatFeedDirection}
                   onChange={(v) => save({ chatFeedDirection: v as 'top' | 'bottom' })}
                 >
@@ -225,7 +226,7 @@ export default function AuthSuccessPage() {
                   Maximum Chat Messages: {settings.maxChatMessages}
                 </Text>
                 <Slider
-                  color="gray"
+                  color="violet"
                   value={settings.maxChatMessages}
                   onChange={(v) => save({ maxChatMessages: v })}
                   min={10} max={100} step={1}
@@ -238,10 +239,10 @@ export default function AuthSuccessPage() {
               </div>
 
               <Group justify="space-between" mt="sm">
-                <Button variant="default" onClick={resetSettings}>
+                <Button variant="light" color="violet" onClick={resetSettings}>
                   Reset to Defaults
                 </Button>
-                {showSaved && <Text c="green" size="sm" fw={600}>✓ Saved!</Text>}
+                {showSaved && <Text c="violet" size="sm" fw={600}>✓ Saved!</Text>}
               </Group>
             </Stack>
           )}
@@ -260,7 +261,7 @@ export default function AuthSuccessPage() {
                 Configure CRT-style visual effects for a retro gaming aesthetic.
               </Text>
               <Switch
-                color="gray"
+                color="violet"
                 label="Enable CRT Effects"
                 description="Toggle between CRT effects and animated background"
                 checked={settings.theme === 'crt'}
@@ -271,6 +272,7 @@ export default function AuthSuccessPage() {
                   <div>
                     <Text size="sm" fw={500} mb="xs">CRT Intensity</Text>
                     <Radio.Group
+                      color="violet"
                       value={crt.intensity}
                       onChange={(v) => updateCrtSettings({ intensity: v as 'minimal' | 'subtle' | 'medium' })}
                     >
@@ -282,14 +284,14 @@ export default function AuthSuccessPage() {
                     </Radio.Group>
                   </div>
                   <Switch
-                    color="gray"
+                    color="violet"
                     label="Scanlines"
                     description="Horizontal lines across the display"
                     checked={crt.scanlines}
                     onChange={(e) => updateCrtSettings({ scanlines: e.currentTarget.checked })}
                   />
                   <Switch
-                    color="gray"
+                    color="violet"
                     label="Scan Animation"
                     description="Occasional scanning sweep effect"
                     checked={crt.animation}
