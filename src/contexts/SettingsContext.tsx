@@ -157,8 +157,20 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     const { overlayToken: _tok, ...overlayPatch } = newSettings;
     if (Object.keys(overlayPatch).length === 0) return;
 
-    // Apply locally immediately for responsive UI
-    setServerSettings((prev) => ({ ...prev, ...overlayPatch }));
+    // Apply locally immediately for responsive UI (deep-merge themeSettings so partial
+    // nested updates don't wipe sibling fields stored in serverSettings)
+    setServerSettings((prev) => ({
+      ...prev,
+      ...overlayPatch,
+      themeSettings: {
+        ...prev.themeSettings,
+        ...(overlayPatch.themeSettings ?? {}),
+        crt: {
+          ...prev.themeSettings.crt,
+          ...(overlayPatch.themeSettings?.crt ?? {}),
+        },
+      },
+    }));
 
     // Debounced save to server
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);

@@ -77,20 +77,17 @@ export default function AuthSuccessPage() {
       .catch(() => { /* keep rendering on network error */ });
   }, [overlayToken, urlDisplayName]);
 
-  // Helper for CRT sub-settings: always sends the full themeSettings to avoid shallow-merge loss
+  // Helper for CRT sub-settings: sends only the changed CRT fields so session-only
+  // URL overrides in the effective `settings` view are never persisted to the server.
+  // Both client (updateSettings) and server (updateUserSettings) deep-merge themeSettings.crt.
   const updateCrtSettings = useCallback(
     (patch: Partial<typeof settings.themeSettings.crt>) => {
-      updateSettings({
-        themeSettings: {
-          ...settings.themeSettings,
-          crt: { ...settings.themeSettings.crt, ...patch },
-        },
-      });
+      updateSettings({ themeSettings: { crt: patch } as typeof settings.themeSettings });
       if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
       setShowSaved(true);
       showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
     },
-    [updateSettings, settings.themeSettings],
+    [updateSettings],
   );
 
   const save = useCallback(
