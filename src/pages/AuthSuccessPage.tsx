@@ -6,7 +6,6 @@ import {
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
 import '../styles/ServerPages.css';
-import '../styles/MainPage.css';
 
 function formatExpiryDate(isoString: string): string {
   const date = new Date(isoString);

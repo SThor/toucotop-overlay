@@ -458,3 +458,18 @@
     flex-direction: column;
   }
 }
+
+/* ─── Auth success dashboard styles ──────────────────────────────────────── */
+
+.main-page [data-paper] {
+  background: rgba(var(--LightRGBA), 0.03) !important;
+  border-color: rgba(var(--LightRGBA), 0.1) !important;
+}
+
+.main-title {
+  color: var(--Main);
+}
+
+.section-title {
+  color: rgba(var(--LightRGBA), 0.8);
+}
