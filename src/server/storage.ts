@@ -8,7 +8,46 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-// Type definitions for token data
+// Settings stored server-side per user (avoids baking them into OBS source URLs)
+// DUPLICATED CODE : Must match the interface in SettingsContext.tsx (minus the token) and the defaultOverlaySettings
+export interface OverlaySettings {
+  overlayOpacity: number;
+  chatFeedDirection: 'top' | 'bottom';
+  maxChatMessages: number;
+  theme: string;
+  themeSettings: {
+    crt: {
+      intensity: 'minimal' | 'subtle' | 'medium';
+      scanlines: boolean;
+      animation: boolean;
+    };
+  };
+  overlayFullWidth: boolean;
+}
+
+export const defaultOverlaySettings: OverlaySettings = {
+  overlayOpacity: 0.9,
+  chatFeedDirection: 'bottom',
+  maxChatMessages: 50,
+  theme: 'crt',
+  themeSettings: {
+    crt : {
+      intensity: 'subtle',
+      scanlines: true,
+      animation: true,
+    }
+  },
+  overlayFullWidth: false,
+};
+
+// TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
+// All auth-critical fields are required; housekeeping fields (username, timestamps, settings) are
+// optional because they don't exist yet at the point of calling storeUserTokens().
+//
+// StoredUserData: the persisted shape — what you read back out of the JSON file.
+// Extends TokenData with all optional fields made required, because storeUserTokens() fills them
+// in (from existing data or fresh defaults) before writing. Code that reads a token file can
+// therefore rely on every field being present.
 export interface TokenData {
   accessToken: string;
   refreshToken: string;
@@ -17,6 +56,7 @@ export interface TokenData {
   displayName: string;
   expiresAt: string;
   overlayExpiresAt?: string;
+  overlaySettings?: OverlaySettings;
   username?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -27,6 +67,7 @@ export interface StoredUserData extends TokenData {
   createdAt: string;
   updatedAt: string;
   overlayExpiresAt: string;
+  overlaySettings: OverlaySettings;
 }
 
 // Ensure tokens directory exists with restrictive permissions
@@ -58,6 +99,8 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlayExpiresAt: overlayStillValid
       ? existingOverlayExpiry
       : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    // Preserve existing settings; new users get defaults
+    overlaySettings: existingData?.overlaySettings ?? { ...defaultOverlaySettings },
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
@@ -147,6 +190,25 @@ export function extendOverlayToken(username: string): void {
     fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
   } catch (error) {
     console.error(`❌ Error extending overlay token for ${username}:`, error);
+  }
+}
+
+/**
+ * Update overlay settings for a user identified by overlay token
+ */
+export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): boolean {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return false;
+
+  try {
+    const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    data.overlaySettings = { ...(data.overlaySettings ?? defaultOverlaySettings), ...settings };
+    data.updatedAt = new Date().toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
+    return true;
+  } catch (error) {
+    console.error(`❌ Error updating settings for ${username}:`, error);
+    return false;
   }
 }
 

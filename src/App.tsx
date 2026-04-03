@@ -12,7 +12,6 @@ import AuthErrorPage from './pages/AuthErrorPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DemoPage from './pages/DemoPage';
-import MainPage from './pages/MainPage';
 import ChatOverlay from './pages/ChatOverlay';
 import ClockOverlay from './pages/ClockOverlay';
 import BarOverlay from './pages/BarOverlay';
@@ -129,7 +128,6 @@ function App() {
                   <Route path="/auth/error" element={<AuthErrorPage />} />
                   <Route path="/auth/denied" element={<AccessDeniedPage />} />
                   <Route path="/demo" element={<DemoPage />} />
-                  <Route path="/settings" element={<MainPage />} />
                   <Route path="/chat" element={<ChatOverlay />} />
                   <Route path="/clock" element={<ClockOverlay />} />
                   <Route path="/bar" element={<BarOverlay />} />

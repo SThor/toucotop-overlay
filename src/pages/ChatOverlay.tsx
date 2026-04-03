@@ -41,9 +41,9 @@ const ChatOverlay = () => {
       className={`chat-overlay ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
-      {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
+      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       <div className="chat-header">
-        <h3 className={settings.crtEffects ? 'crt-glow-text' : ''}>
+        <h3 className={settings.theme === 'crt' ? 'crt-glow-text' : ''}>
           💬 Stream Chat
           {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
           {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
@@ -85,7 +85,7 @@ const ChatOverlay = () => {
               }}
             >
               <span 
-                className={`username ${settings.crtEffects ? 'crt-glow-text' : ''}`} 
+                className={`username ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`} 
                 style={{ color: msg.color }}
               >
                 {msg.displayName || msg.username}:

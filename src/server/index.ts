@@ -29,6 +29,7 @@ import {
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
 import { addSSEClient } from './chat-relay.js';
+import settingsRouter from './settings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -214,6 +215,11 @@ try {
       addSSEClient(userData.username, res);
     }
   );
+
+  /**
+   * Overlay settings endpoint (GET + PATCH)
+   */
+  app.use('/api/settings', settingsRouter);
 
   /**
    * EventSub subscription management endpoint
