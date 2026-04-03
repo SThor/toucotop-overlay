@@ -8,46 +8,14 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-// Settings stored server-side per user (avoids baking them into OBS source URLs)
-// DUPLICATED CODE : Must match the interface in SettingsContext.tsx (minus the token) and the defaultOverlaySettings
-export interface OverlaySettings {
-  overlayOpacity: number;
-  chatFeedDirection: 'top' | 'bottom';
-  maxChatMessages: number;
-  theme: string;
-  themeSettings: {
-    crt: {
-      intensity: 'minimal' | 'subtle' | 'medium';
-      scanlines: boolean;
-      animation: boolean;
-    };
-  };
-  overlayFullWidth: boolean;
-}
-
-export const defaultOverlaySettings: OverlaySettings = {
-  overlayOpacity: 0.9,
-  chatFeedDirection: 'bottom',
-  maxChatMessages: 50,
-  theme: 'crt',
-  themeSettings: {
-    crt : {
-      intensity: 'subtle',
-      scanlines: true,
-      animation: true,
-    }
-  },
-  overlayFullWidth: false,
-};
+export type { OverlaySettings } from './shared/overlaySettings.js';
+export { defaultOverlaySettings } from './shared/overlaySettings.js';
+import type { OverlaySettings } from './shared/overlaySettings.js';
+import { defaultOverlaySettings } from './shared/overlaySettings.js';
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
 // All auth-critical fields are required; housekeeping fields (username, timestamps, settings) are
 // optional because they don't exist yet at the point of calling storeUserTokens().
-//
-// StoredUserData: the persisted shape — what you read back out of the JSON file.
-// Extends TokenData with all optional fields made required, because storeUserTokens() fills them
-// in (from existing data or fresh defaults) before writing. Code that reads a token file can
-// therefore rely on every field being present.
 export interface TokenData {
   accessToken: string;
   refreshToken: string;
@@ -62,6 +30,10 @@ export interface TokenData {
   updatedAt?: string;
 }
 
+// StoredUserData: the persisted shape — what you read back out of the JSON file.
+// Extends TokenData with all optional fields made required, because storeUserTokens() fills them
+// in (from existing data or fresh defaults) before writing. Code that reads a token file can
+// therefore rely on every field being present.
 export interface StoredUserData extends TokenData {
   username: string;
   createdAt: string;

@@ -1,21 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 
-// Overlay settings stored server-side per user (no token — that's auth, not settings)
-// DUPLICATED CODE : Must match the interface in storage.ts and the defaultOverlaySettings
-export interface OverlaySettings {
-  overlayOpacity: number;
-  chatFeedDirection: 'top' | 'bottom';
-  maxChatMessages: number;
-  theme: string;
-  themeSettings: {
-    crt: {
-      intensity: 'minimal' | 'subtle' | 'medium';
-      scanlines: boolean;
-      animation: boolean;
-    };
-  };
-  overlayFullWidth: boolean;
-}
+export type { OverlaySettings } from '../server/shared/overlaySettings';
+import type { OverlaySettings } from '../server/shared/overlaySettings';
 
 // Full settings including auth token (kept for backwards compat with consumers)
 export interface Settings extends OverlaySettings {
@@ -30,20 +16,8 @@ interface SettingsContextType {
   resetSettings: () => void;
 }
 
-export const defaultOverlaySettings: OverlaySettings = {
-  overlayOpacity: 0.9,
-  chatFeedDirection: 'bottom',
-  maxChatMessages: 50,
-  theme: 'crt',
-  themeSettings: {
-    crt : {
-      intensity: 'subtle',
-      scanlines: true,
-      animation: true,
-    }
-  },
-  overlayFullWidth: false,
-};
+export { defaultOverlaySettings } from '../server/shared/overlaySettings';
+import { defaultOverlaySettings } from '../server/shared/overlaySettings';
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
