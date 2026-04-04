@@ -146,32 +146,13 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
   }
 
   const username = req.userData!.username;
-  // Read current settings before update so we can compute the response accurately
-  const base = getUserTokens(username)?.overlaySettings ?? defaultOverlaySettings;
 
-  const ok = updateUserSettings(username, patch);
-  if (!ok) {
+  // updateUserSettings reads, deep-merges, writes, and returns the persisted result in one pass
+  const persisted = updateUserSettings(username, patch);
+  if (!persisted) {
     res.status(500).json({ error: 'Failed to save settings' });
     return;
   }
-
-  // Compute the deep-merged result (mirrors updateUserSettings logic) so the
-  // response reflects what was actually persisted rather than the stale pre-update value.
-  const persisted: OverlaySettings = {
-    ...defaultOverlaySettings,
-    ...base,
-    ...patch,
-    themeSettings: {
-      ...defaultOverlaySettings.themeSettings,
-      ...(base.themeSettings ?? {}),
-      ...(patch.themeSettings ?? {}),
-      crt: {
-        ...defaultOverlaySettings.themeSettings.crt,
-        ...(base.themeSettings?.crt ?? {}),
-        ...(patch.themeSettings?.crt ?? {}),
-      },
-    },
-  };
 
   res.json({ settings: persisted });
 });

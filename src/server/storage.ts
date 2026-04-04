@@ -8,10 +8,10 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-export type { OverlaySettings } from './shared/overlaySettings.js';
-export { defaultOverlaySettings } from './shared/overlaySettings.js';
+export type { OverlaySettings, OverlayTheme } from './shared/overlaySettings.js';
 import type { OverlaySettings } from './shared/overlaySettings.js';
 import { defaultOverlaySettings } from './shared/overlaySettings.js';
+export { defaultOverlaySettings };
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
 // All auth-critical fields are required; housekeeping fields (username, timestamps, settings) are
@@ -166,16 +166,17 @@ export function extendOverlayToken(username: string): void {
 }
 
 /**
- * Update overlay settings for a user identified by username
+ * Update overlay settings for a user identified by username.
+ * Returns the fully-merged persisted settings on success, or null on failure.
  */
-export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): boolean {
+export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): OverlaySettings | null {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
-  if (!fs.existsSync(tokenFile)) return false;
+  if (!fs.existsSync(tokenFile)) return null;
 
   try {
     const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
     const base = data.overlaySettings ?? defaultOverlaySettings;
-    data.overlaySettings = {
+    const merged: OverlaySettings = {
       ...defaultOverlaySettings,
       ...base,
       ...settings,
@@ -190,12 +191,13 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
         },
       },
     };
+    data.overlaySettings = merged;
     data.updatedAt = new Date().toISOString();
     fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
-    return true;
+    return merged;
   } catch (error) {
     console.error(`❌ Error updating settings for ${username}:`, error);
-    return false;
+    return null;
   }
 }
 

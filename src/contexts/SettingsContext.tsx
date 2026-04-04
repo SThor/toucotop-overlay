@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
-export type { OverlaySettings } from '../server/shared/overlaySettings';
 import type { OverlaySettings } from '../server/shared/overlaySettings';
+import { defaultOverlaySettings } from '../server/shared/overlaySettings';
+export type { OverlaySettings };
+export { defaultOverlaySettings };
 
 // Full settings including auth token (kept for backwards compat with consumers)
 export interface Settings extends OverlaySettings {
@@ -16,9 +18,6 @@ interface SettingsContextType {
   updateSettings: (newSettings: Partial<Settings>) => void;
   resetSettings: () => void;
 }
-
-export { defaultOverlaySettings } from '../server/shared/overlaySettings';
-import { defaultOverlaySettings } from '../server/shared/overlaySettings';
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
