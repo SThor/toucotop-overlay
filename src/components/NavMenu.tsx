@@ -5,7 +5,6 @@ import '../styles/NavMenu.css';
 
 const NAV_ITEMS = [
   { path: '/', label: '🏠 Home' },
-  { path: '/settings', label: '⚙️ Settings' },
   { path: '/chat', label: '💬 Chat' },
   { path: '/clock', label: '🕐 Clock' },
   { path: '/bar', label: '📊 Bar' },

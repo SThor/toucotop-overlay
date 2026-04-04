@@ -96,10 +96,10 @@ const BarOverlayContent = () => {
 
   return (
     <div 
-      className={`bar-overlay ${settings.crtEffects ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
+      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
-      {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
+      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       
       {/* Current Time Section */}
       <div className="bar-section bar-time-section">

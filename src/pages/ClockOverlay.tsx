@@ -85,18 +85,18 @@ const ClockOverlay = () => {
       className={`clock-overlay ${settings.overlayFullWidth ? 'full-width' : ''}`}
       style={{ opacity: settings.overlayOpacity }}
     >
-      {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
+      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       <div className="current-time-section">
-        <div className={`time-label ${settings.crtEffects ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
-        <div className={`current-time ${settings.crtEffects ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>
+        <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
+        <div className={`current-time ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>
         <div className="current-date">{formatDate(currentTime)}</div>
       </div>
       
       <div className="divider"></div>
       
       <div className="stream-time-section">
-        <div className={`time-label ${settings.crtEffects ? 'crt-glow-text-subtle' : ''}`}>Stream Duration</div>
-        <div className={`stream-duration ${settings.crtEffects ? 'crt-glow-text-strong' : ''}`}>{streamDuration}</div>
+        <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Stream Duration</div>
+        <div className={`stream-duration ${settings.theme === 'crt' ? 'crt-glow-text-strong' : ''}`}>{streamDuration}</div>
         <div className="stream-info">
           {streamInfo == null ? '—' : streamInfo.isLive ? 'Live' : 'Offline'}
         </div>

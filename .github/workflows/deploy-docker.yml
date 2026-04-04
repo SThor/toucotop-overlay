@@ -1,15 +1,18 @@
 name: Deploy Overlay
 
 on:
-  push:
-    branches: [ docker-migration, dev/react-refactor-foundation ]
   pull_request:
-    branches: [ docker-migration ]
+    branches: [ main, docker-migration ]
   workflow_dispatch:
 
 jobs:
   build-and-deploy-staging:
     runs-on: ubuntu-latest
+    # only run for maintainers/admins to avoid deploying
+    # untrusted code to staging.
+    if: |
+      github.event_name != 'pull_request' ||
+      contains(fromJson('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
     
     steps:
     - name: Checkout code

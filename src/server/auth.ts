@@ -1,7 +1,7 @@
 import express, { type Request, type Response, Router } from 'express';
 import { randomUUID } from 'crypto';
 import { exchangeCode, type AccessToken } from '@twurple/auth';
-import { storeUserTokens, getUserByOverlayToken } from './storage.js';
+import { storeUserTokens, getUserByOverlayToken, getUserTokens } from './storage.js';
 
 // Extend Express Session interface for OAuth state
 declare module 'express-session' {
@@ -204,8 +204,10 @@ router.get('/callback', async (req: Request, res: Response) => {
       return res.redirect(`/auth/denied?username=${encodeURIComponent(username)}`);
     }
 
-    // Generate unique overlay token for OBS
-    const overlayToken = `overlay_${username}_${randomUUID().slice(0, 8)}`;
+    // Reuse the existing overlay token so OBS source URLs remain valid after re-auth.
+    // Only generate a new one if this user has never authenticated before.
+    const existingUser = getUserTokens(username);
+    const overlayToken = existingUser?.overlayToken ?? `overlay_${username}_${randomUUID().slice(0, 8)}`;
 
     // Store user tokens
     const expiresAt = new Date(Date.now() + ((tokenData.expiresIn || 3600) * 1000));
@@ -227,7 +229,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       overlayExpiresAt = undefined;
     }
 
-    console.log(`✅ OAuth completed for ${username}${process.env.NODE_ENV !== 'production' ? `, overlay token: ${overlayToken.slice(0, 12)}...` : ''}`);
+    console.log(`✅ OAuth completed for ${username}`);
     
     // Redirect to React success page with token data in query params
     const successParams = new URLSearchParams({

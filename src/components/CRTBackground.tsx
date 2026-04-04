@@ -2,38 +2,25 @@ import React from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import './CRTBackground.css';
 
-interface CRTBackgroundProps {
-  intensity?: 'minimal' | 'subtle' | 'medium';
-  enableScanlines?: boolean;
-  enableAnimation?: boolean;
-}
-
-const CRTBackground: React.FC<CRTBackgroundProps> = ({
-  intensity,
-  enableScanlines,
-  enableAnimation
-}) => {
+const CRTBackground: React.FC = () => {
   const { settings } = useSettings();
-  
-  // Use props or fall back to settings
-  const effectIntensity = intensity || settings.crtIntensity;
-  const showScanlines = enableScanlines !== undefined ? enableScanlines : settings.crtScanlines;
-  const showAnimation = enableAnimation !== undefined ? enableAnimation : settings.crtAnimation;
 
-  if (!settings.crtEffects) {
+  if (settings.theme !== 'crt') {
     return null;
   }
 
+  const { intensity, scanlines, animation } = settings.themeSettings.crt;
+
   return (
-    <div className={`crt-background crt-intensity-${effectIntensity}`}>
+    <div className={`crt-background crt-intensity-${intensity}`}>
       {/* Main CRT glow container */}
       <div className="crt-glow" />
-      
+
       {/* Static scanlines */}
-      {showScanlines && <div className="crt-scanlines" />}
-      
+      {scanlines && <div className="crt-scanlines" />}
+
       {/* Animated scan sweep */}
-      {showAnimation && <div className="crt-scan-sweep" />}
+      {animation && <div className="crt-scan-sweep" />}
     </div>
   );
 };

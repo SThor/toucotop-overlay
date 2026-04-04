@@ -8,7 +8,13 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-// Type definitions for token data
+import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme } from './shared/overlaySettings.js';
+export type { OverlaySettings, OverlayTheme };
+export { defaultOverlaySettings };
+
+// TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
+// All auth-critical fields are required; housekeeping fields (username, timestamps, settings) are
+// optional because they don't exist yet at the point of calling storeUserTokens().
 export interface TokenData {
   accessToken: string;
   refreshToken: string;
@@ -17,16 +23,22 @@ export interface TokenData {
   displayName: string;
   expiresAt: string;
   overlayExpiresAt?: string;
+  overlaySettings?: OverlaySettings;
   username?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
+// StoredUserData: the persisted shape — what you read back out of the JSON file.
+// Extends TokenData with all optional fields made required, because storeUserTokens() fills them
+// in (from existing data or fresh defaults) before writing. Code that reads a token file can
+// therefore rely on every field being present.
 export interface StoredUserData extends TokenData {
   username: string;
   createdAt: string;
   updatedAt: string;
   overlayExpiresAt: string;
+  overlaySettings: OverlaySettings;
 }
 
 // Ensure tokens directory exists with restrictive permissions
@@ -58,6 +70,8 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlayExpiresAt: overlayStillValid
       ? existingOverlayExpiry
       : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    // Preserve existing settings; new users get defaults
+    overlaySettings: existingData?.overlaySettings ?? { ...defaultOverlaySettings },
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
@@ -106,7 +120,7 @@ export function getUserByOverlayToken(overlayToken: string): StoredUserData | nu
       if (data.overlayToken === overlayToken) {
         // Check if overlay token is expired (separate from access token)
         if (data.overlayExpiresAt && new Date(data.overlayExpiresAt) < new Date()) {
-          console.log(`⚠️ Expired overlay token used: ${overlayToken.slice(0, 12)}...`);
+          console.log(`⚠️ Expired overlay token used`);
           return null;
         }
         
@@ -147,6 +161,42 @@ export function extendOverlayToken(username: string): void {
     fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
   } catch (error) {
     console.error(`❌ Error extending overlay token for ${username}:`, error);
+  }
+}
+
+/**
+ * Update overlay settings for a user identified by username.
+ * Returns the fully-merged persisted settings on success, or null on failure.
+ */
+export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): OverlaySettings | null {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return null;
+
+  try {
+    const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    const base = data.overlaySettings ?? defaultOverlaySettings;
+    const merged: OverlaySettings = {
+      ...defaultOverlaySettings,
+      ...base,
+      ...settings,
+      themeSettings: {
+        ...defaultOverlaySettings.themeSettings,
+        ...(base.themeSettings ?? {}),
+        ...(settings.themeSettings ?? {}),
+        crt: {
+          ...defaultOverlaySettings.themeSettings.crt,
+          ...(base.themeSettings?.crt ?? {}),
+          ...(settings.themeSettings?.crt ?? {}),
+        },
+      },
+    };
+    data.overlaySettings = merged;
+    data.updatedAt = new Date().toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
+    return merged;
+  } catch (error) {
+    console.error(`❌ Error updating settings for ${username}:`, error);
+    return null;
   }
 }
 

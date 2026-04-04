@@ -29,6 +29,7 @@ import {
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
 import { addSSEClient } from './chat-relay.js';
+import settingsRouter from './settings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -213,6 +214,17 @@ try {
       }
       addSSEClient(userData.username, res);
     }
+  );
+
+  /**
+   * Overlay settings endpoint (GET + PATCH)
+   * Mounted behind validateOverlayToken so the sliding-window token extension
+   * applies to dashboard usage and req.userData is available in the router.
+   */
+  app.use(
+    '/api/settings',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    settingsRouter
   );
 
   /**

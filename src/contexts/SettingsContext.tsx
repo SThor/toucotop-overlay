@@ -1,36 +1,20 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
-export interface Settings {
+import { defaultOverlaySettings, type OverlaySettings } from '../server/shared/overlaySettings';
+
+// Full settings including auth token (kept for backwards compat with consumers)
+export interface Settings extends OverlaySettings {
   overlayToken: string;
-  overlayOpacity: number;
-  chatFeedDirection: 'top' | 'bottom';
-  maxChatMessages: number;
-  // CRT visual effects
-  crtEffects: boolean;
-  crtIntensity: 'minimal' | 'subtle' | 'medium';
-  crtScanlines: boolean;
-  crtAnimation: boolean;
-  // Overlay appearance mode
-  overlayFullWidth: boolean;
 }
 
 interface SettingsContextType {
   settings: Settings;
+  /** True while loading settings from the server for the first time */
+  isLoadingSettings: boolean;
   updateSettings: (newSettings: Partial<Settings>) => void;
   resetSettings: () => void;
 }
-
-const defaultSettings: Settings = {
-  overlayToken: '',
-  overlayOpacity: 0.9,
-  chatFeedDirection: 'bottom',
-  maxChatMessages: 50,
-  crtEffects: true,
-  crtIntensity: 'subtle',
-  crtScanlines: true,
-  crtAnimation: true,
-  overlayFullWidth: false,
-};
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
@@ -46,178 +30,204 @@ interface SettingsProviderProps {
   children: React.ReactNode;
 }
 
-function loadInitialSettings(): Settings {
-  // Load from localStorage
-  let base = { ...defaultSettings };
+// Parse URL parameter overrides (session-only — not saved to server)
+function parseUrlOverrides(search: string): Partial<OverlaySettings> {
+  const p = new URLSearchParams(search);
+  const o: Partial<OverlaySettings> = {};
+
+  if (p.has('overlayOpacity')) {
+    const v = parseFloat(p.get('overlayOpacity') || '');
+    if (!isNaN(v) && v >= 0.1 && v <= 1) o.overlayOpacity = v;
+  }
+  if (p.has('chatFeedDirection')) {
+    const v = p.get('chatFeedDirection');
+    if (v === 'top' || v === 'bottom') o.chatFeedDirection = v;
+  }
+  if (p.has('maxChatMessages')) {
+    const v = parseInt(p.get('maxChatMessages') || '', 10);
+    if (!isNaN(v) && v >= 10 && v <= 100) o.maxChatMessages = v;
+  }
+  if (p.has('crtEffects')) o.theme = p.get('crtEffects') === 'true' ? 'crt' : 'default';
+  if (p.has('crtIntensity') || p.has('crtScanlines') || p.has('crtAnimation')) {
+    const crt: Partial<OverlaySettings['themeSettings']['crt']> = {};
+    const intensity = p.get('crtIntensity');
+    if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') crt.intensity = intensity;
+    if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') === 'true';
+    if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') === 'true';
+    o.themeSettings = { crt } as OverlaySettings['themeSettings'];
+  }
+  if (p.has('overlayFullWidth')) o.overlayFullWidth = p.get('overlayFullWidth') === 'true';
+
+  return o;
+}
+
+// Load overlay token synchronously from URL or localStorage
+function loadInitialToken(): string {
+  const urlToken = new URLSearchParams(window.location.search).get('token');
+  if (urlToken) return urlToken;
   try {
     const saved = localStorage.getItem('toucotop-overlay-settings');
-    if (saved) base = { ...base, ...JSON.parse(saved) };
-  } catch {
-    // ignore corrupt storage
-  }
-
-  // Fallback: if settings have no token, check the dedicated token key
-  if (!base.overlayToken) {
-    const savedToken = localStorage.getItem('toucotop-overlay-token');
-    if (savedToken) base.overlayToken = savedToken;
-  }
-
-  // Apply URL param overrides synchronously so first render has correct token
-  const urlParams = new URLSearchParams(window.location.search);
-  const overrides: Partial<Settings> = {};
-
-  if (urlParams.has('token')) {
-    overrides.overlayToken = urlParams.get('token') || '';
-  }
-  if (urlParams.has('overlayOpacity')) {
-    const opacity = parseFloat(urlParams.get('overlayOpacity') || '');
-    if (!isNaN(opacity) && opacity >= 0 && opacity <= 1) overrides.overlayOpacity = opacity;
-  }
-  if (urlParams.has('chatFeedDirection')) {
-    const direction = urlParams.get('chatFeedDirection');
-    if (direction === 'top' || direction === 'bottom') overrides.chatFeedDirection = direction;
-  }
-  if (urlParams.has('maxChatMessages')) {
-    const max = parseInt(urlParams.get('maxChatMessages') || '', 10);
-    if (!isNaN(max) && max >= 10 && max <= 100) overrides.maxChatMessages = max;
-  }
-  if (urlParams.has('crtEffects')) {
-    overrides.crtEffects = urlParams.get('crtEffects') === 'true';
-  }
-  if (urlParams.has('crtIntensity')) {
-    const intensity = urlParams.get('crtIntensity');
-    if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') overrides.crtIntensity = intensity;
-  }
-  if (urlParams.has('crtScanlines')) {
-    overrides.crtScanlines = urlParams.get('crtScanlines') === 'true';
-  }
-  if (urlParams.has('crtAnimation')) {
-    overrides.crtAnimation = urlParams.get('crtAnimation') === 'true';
-  }
-  if (urlParams.has('overlayFullWidth')) {
-    overrides.overlayFullWidth = urlParams.get('overlayFullWidth') === 'true';
-  }
-
-  const initial = Object.keys(overrides).length > 0 ? { ...base, ...overrides } : base;
-
-  // Persist immediately so subsequent renders / child components see the token
-  if (Object.keys(overrides).length > 0) {
-    try {
-      localStorage.setItem('toucotop-overlay-settings', JSON.stringify(initial));
-    } catch {
-      // ignore
+    if (saved) {
+      const parsed = JSON.parse(saved) as { overlayToken?: string };
+      if (parsed.overlayToken) return parsed.overlayToken;
     }
-  }
-
-  return initial;
+  } catch { /* ignore corrupt storage */ }
+  return localStorage.getItem('toucotop-overlay-token') || '';
 }
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
-  const [settings, setSettings] = useState<Settings>(loadInitialSettings);
-  const urlUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Token is managed via localStorage only (not a server setting)
+  const [overlayToken, setOverlayToken] = useState<string>(loadInitialToken);
+  const overlayTokenRef = useRef(overlayToken);
+  useEffect(() => {
+    console.log('[SettingsProvider] overlayToken state changed:', overlayToken ? '(set)' : '(empty)');
+    overlayTokenRef.current = overlayToken;
+  }, [overlayToken]);
 
-  // URL parameter update function
-  const updateUrlParameters = useCallback((settings: Settings) => {
-    const url = new URL(window.location.href);
-    
-    // Token is stored in localStorage only — not kept in URL to avoid leakage
-    // (OBS source URLs generated on /auth/success still carry the token in their own URLs)
-    url.searchParams.delete('token');
+  // Server-side overlay settings, fetched async after token is available
+  const [serverSettings, setServerSettings] = useState<OverlaySettings>(defaultOverlaySettings);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 
-    // Update or remove overlayOpacity (only if different from default)
-    if (settings.overlayOpacity !== defaultSettings.overlayOpacity) {
-      url.searchParams.set('overlayOpacity', settings.overlayOpacity.toString());
-    } else {
-      url.searchParams.delete('overlayOpacity');
+  // URL overrides are re-derived whenever the location search string changes so they
+  // don't persist across SPA navigation to a route with different (or no) query params.
+  const { search } = useLocation();
+  const urlOverrides = useMemo(() => {
+    const overrides = parseUrlOverrides(search);
+    console.log('[SettingsProvider] urlOverrides recomputed for search:', search || '(empty)', '| keys:', Object.keys(overrides));
+    return overrides;
+  }, [search]);
+
+  // Debounce timer for server saves
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch settings from server whenever the token changes
+  useEffect(() => {
+    let isCurrent = true;
+
+    if (!overlayToken) {
+      setServerSettings(defaultOverlaySettings);
+      setIsLoadingSettings(false);
+      return () => { isCurrent = false; };
+    }
+    const controller = new AbortController();
+    setIsLoadingSettings(true);
+    fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const data = await res.json() as { settings?: OverlaySettings } | null;
+        if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
+        return data.settings;
+      })
+      .then((fetched) => {
+        if (!isCurrent) return;
+        if (!fetched) {
+          setServerSettings(defaultOverlaySettings);
+          return;
+        }
+        setServerSettings({
+          ...defaultOverlaySettings,
+          ...fetched,
+          themeSettings: {
+            ...defaultOverlaySettings.themeSettings,
+            ...(fetched.themeSettings ?? {}),
+            crt: {
+              ...defaultOverlaySettings.themeSettings.crt,
+              ...(fetched.themeSettings?.crt ?? {}),
+            },
+          },
+        });
+      })
+      .catch((err) => { if (err.name !== 'AbortError') { /* network error — keep defaults */ } })
+      .finally(() => { if (isCurrent) setIsLoadingSettings(false); });
+    return () => {
+      isCurrent = false;
+      controller.abort();
+    };
+  }, [overlayToken]);
+
+  // Merged view: defaults → server settings → URL param overrides (session-only)
+  // themeSettings is deep-merged so a single URL param (e.g. crtScanlines) doesn't
+  // wipe the other crt fields stored server-side.
+  const settings: Settings = {
+    overlayToken,
+    ...serverSettings,
+    ...urlOverrides,
+    themeSettings: {
+      ...serverSettings.themeSettings,
+      ...urlOverrides.themeSettings,
+      crt: {
+        ...serverSettings.themeSettings.crt,
+        ...urlOverrides.themeSettings?.crt,
+      },
+    },
+  };
+
+  const updateSettings = useCallback((newSettings: Partial<Settings>) => {
+    // Handle token update separately (localStorage only — not a server setting)
+    if ('overlayToken' in newSettings && newSettings.overlayToken !== undefined) {
+      const token = newSettings.overlayToken;
+      setOverlayToken(token);
+      overlayTokenRef.current = token;
+      localStorage.setItem('toucotop-overlay-token', token);
+      // Keep legacy key in sync for backward compat
+      try {
+        const raw = localStorage.getItem('toucotop-overlay-settings');
+        const existing = raw ? (JSON.parse(raw) as Partial<Settings>) : {};
+        localStorage.setItem('toucotop-overlay-settings', JSON.stringify({ ...existing, overlayToken: token }));
+      } catch { /* ignore */ }
     }
 
-    // Update or remove chatFeedDirection (only if different from default)
-    if (settings.chatFeedDirection !== defaultSettings.chatFeedDirection) {
-      url.searchParams.set('chatFeedDirection', settings.chatFeedDirection);
-    } else {
-      url.searchParams.delete('chatFeedDirection');
-    }
+    // Extract overlay settings patch (everything except overlayToken)
+    const { overlayToken: _tok, ...overlayPatch } = newSettings;
+    if (Object.keys(overlayPatch).length === 0) return;
 
-    // Update or remove maxChatMessages (only if different from default)
-    if (settings.maxChatMessages !== defaultSettings.maxChatMessages) {
-      url.searchParams.set('maxChatMessages', settings.maxChatMessages.toString());
-    } else {
-      url.searchParams.delete('maxChatMessages');
-    }
+    // Apply locally immediately for responsive UI (deep-merge themeSettings so partial
+    // nested updates don't wipe sibling fields stored in serverSettings)
+    setServerSettings((prev) => ({
+      ...prev,
+      ...overlayPatch,
+      themeSettings: {
+        ...prev.themeSettings,
+        ...(overlayPatch.themeSettings ?? {}),
+        crt: {
+          ...prev.themeSettings.crt,
+          ...(overlayPatch.themeSettings?.crt ?? {}),
+        },
+      },
+    }));
 
-    // Update or remove crtEffects (only if different from default)
-    if (settings.crtEffects !== defaultSettings.crtEffects) {
-      url.searchParams.set('crtEffects', settings.crtEffects.toString());
-    } else {
-      url.searchParams.delete('crtEffects');
-    }
-
-    // Update or remove crtIntensity (only if different from default)
-    if (settings.crtIntensity !== defaultSettings.crtIntensity) {
-      url.searchParams.set('crtIntensity', settings.crtIntensity);
-    } else {
-      url.searchParams.delete('crtIntensity');
-    }
-
-    // Update or remove crtScanlines (only if different from default)
-    if (settings.crtScanlines !== defaultSettings.crtScanlines) {
-      url.searchParams.set('crtScanlines', settings.crtScanlines.toString());
-    } else {
-      url.searchParams.delete('crtScanlines');
-    }
-
-    // Update or remove crtAnimation (only if different from default)
-    if (settings.crtAnimation !== defaultSettings.crtAnimation) {
-      url.searchParams.set('crtAnimation', settings.crtAnimation.toString());
-    } else {
-      url.searchParams.delete('crtAnimation');
-    }
-
-    // Update or remove overlayFullWidth (only if different from default)
-    if (settings.overlayFullWidth !== defaultSettings.overlayFullWidth) {
-      url.searchParams.set('overlayFullWidth', settings.overlayFullWidth.toString());
-    } else {
-      url.searchParams.delete('overlayFullWidth');
-    }
-    
-    // Update the URL without triggering a page reload
-    window.history.replaceState({}, '', url.toString());
+    // Debounced save to server
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const token = overlayTokenRef.current;
+      if (!token) return;
+      fetch(`/api/settings?token=${encodeURIComponent(token)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(overlayPatch),
+      }).catch((err) => console.warn('Failed to save settings to server:', err));
+    }, 500);
   }, []);
 
-  // Debounced URL parameter update function
-  const debouncedUpdateUrlParameters = useCallback((settings: Settings) => {
-    if (urlUpdateTimeoutRef.current) {
-      clearTimeout(urlUpdateTimeoutRef.current);
-    }
-    
-    urlUpdateTimeoutRef.current = setTimeout(() => {
-      updateUrlParameters(settings);
-    }, 300); // Wait 300ms after last change before updating URL
-  }, [updateUrlParameters]);
-
-  const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      localStorage.setItem('toucotop-overlay-settings', JSON.stringify(updated));
-      
-      // Debounced URL parameter update
-      debouncedUpdateUrlParameters(updated);
-      
-      return updated;
-    });
-  };
-
-  const resetSettings = () => {
-    setSettings(defaultSettings);
+  const resetSettings = useCallback(() => {
+    setServerSettings(defaultOverlaySettings);
     localStorage.removeItem('toucotop-overlay-settings');
-    // Also clear the dedicated token key so the token isn't re-hydrated on next load
     localStorage.removeItem('toucotop-overlay-token');
-    // Clear URL parameters immediately (no debouncing for reset)
-    updateUrlParameters(defaultSettings);
-  };
+    setOverlayToken('');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    // Reset on server too if we have a token
+    const token = overlayTokenRef.current;
+    if (token) {
+      fetch(`/api/settings?token=${encodeURIComponent(token)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(defaultOverlaySettings),
+      }).catch(() => { /* ignore */ });
+    }
+  }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, resetSettings }}>
+    <SettingsContext.Provider value={{ settings, isLoadingSettings, updateSettings, resetSettings }}>
       {children}
     </SettingsContext.Provider>
   );
