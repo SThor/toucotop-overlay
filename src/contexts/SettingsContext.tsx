@@ -41,7 +41,7 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
   }
   if (p.has('fontSize')) {
     const v = parseFloat(p.get('fontSize') || '');
-    if (!isNaN(v) && v >= 0.5 && v <= 2) o.fontSize = v;
+    if (!isNaN(v) && v >= 0.5 && v <= 10) o.fontSize = v;
   }
   // Per-overlay opacity: ?opacityChat=0.8&opacityClock=0.7&opacityBar=0.6
   const perOpacity: OverlaySettings['perOverlayOpacity'] = {};
@@ -58,7 +58,7 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
   for (const [key, param] of [['chat', 'fontSizeChat'], ['clock', 'fontSizeClock'], ['bar', 'fontSizeBar']] as const) {
     if (p.has(param)) {
       const v = parseFloat(p.get(param) || '');
-      if (!isNaN(v) && v >= 0.5 && v <= 2) perFont[key] = v;
+      if (!isNaN(v) && v >= 0.5 && v <= 10) perFont[key] = v;
     }
   }
   if (Object.keys(perFont).length > 0) o.perOverlayFontSize = perFont;

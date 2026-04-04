@@ -201,14 +201,12 @@ export default function AuthSuccessPage() {
                   Global Opacity: {Math.round(settings.overlayOpacity * 100)}%
                 </Text>
                 <Slider
-                  color="violet"
                   value={settings.overlayOpacity}
                   onChange={(v) => save({ overlayOpacity: v })}
                   min={0.1} max={1} step={0.05}
                 />
               </div>
               <Switch
-                color="violet"
                 label="Per-overlay opacity overrides"
                 description="Set a different opacity for each overlay"
                 checked={showPerOpacity}
@@ -227,7 +225,6 @@ export default function AuthSuccessPage() {
                         {settings.perOverlayOpacity[key] == null ? ' (using global)' : ''}
                       </Text>
                       <Slider
-                        color="violet"
                         value={settings.perOverlayOpacity[key] ?? settings.overlayOpacity}
                         onChange={(v) => save({ perOverlayOpacity: { ...settings.perOverlayOpacity, [key]: v } })}
                         min={0.1} max={1} step={0.05}
@@ -243,20 +240,18 @@ export default function AuthSuccessPage() {
                   Global Font Size: {settings.fontSize.toFixed(2)}×
                 </Text>
                 <Slider
-                  color="violet"
                   value={settings.fontSize}
                   onChange={(v) => save({ fontSize: v })}
-                  min={0.5} max={2} step={0.05}
+                  min={0.5} max={10} step={0.05}
                   marks={[
                     { value: 0.5, label: '0.5×' },
                     { value: 1, label: '1×' },
-                    { value: 1.5, label: '1.5×' },
-                    { value: 2, label: '2×' },
+                    { value: 5, label: '5×' },
+                    { value: 10, label: '10×' },
                   ]}
                 />
               </div>
               <Switch
-                color="violet"
                 label="Per-overlay font size overrides"
                 description="Set a different scale for each overlay"
                 checked={showPerFontSize}
@@ -275,27 +270,32 @@ export default function AuthSuccessPage() {
                         {settings.perOverlayFontSize[key] == null ? ' (using global)' : ''}
                       </Text>
                       <Slider
-                        color="violet"
                         value={settings.perOverlayFontSize[key] ?? settings.fontSize}
                         onChange={(v) => save({ perOverlayFontSize: { ...settings.perOverlayFontSize, [key]: v } })}
-                        min={0.5} max={2} step={0.05}
+                        min={0.5} max={10} step={0.05}
                       />
                     </div>
                   ))}
                 </Stack>
               )}
 
+              <Switch
+                label="Floating Bar"
+                description="Bar overlay appears as a centered floating pill instead of full-width"
+                checked={settings.barFloating}
+                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
+              />
+
               {/* Chat */}
               <div>
                 <Text size="sm" fw={500} mb="xs">Chat Feed Direction</Text>
                 <Radio.Group
-                  color="violet"
                   value={settings.chatFeedDirection}
                   onChange={(v) => save({ chatFeedDirection: v as 'top' | 'bottom' })}
                 >
                   <Stack gap="xs">
-                    <Radio color="violet" value="bottom" label="Feed from bottom (new messages appear at bottom)" />
-                    <Radio color="violet" value="top" label="Feed from top (new messages appear at top)" />
+                    <Radio value="bottom" label="Feed from bottom (new messages appear at bottom)" />
+                    <Radio value="top" label="Feed from top (new messages appear at top)" />
                   </Stack>
                 </Radio.Group>
               </div>
@@ -305,7 +305,6 @@ export default function AuthSuccessPage() {
                   Maximum Chat Messages: {settings.maxChatMessages}
                 </Text>
                 <Slider
-                  color="violet"
                   value={settings.maxChatMessages}
                   onChange={(v) => save({ maxChatMessages: v })}
                   min={10} max={100} step={1}
@@ -318,7 +317,7 @@ export default function AuthSuccessPage() {
               </div>
 
               <Group justify="space-between" mt="sm">
-                <Button variant="light" color="violet" onClick={resetSettings}>
+                <Button variant="light" onClick={resetSettings}>
                   Reset to Defaults
                 </Button>
                 {showSaved && <Text c="violet" size="sm" fw={600}>✓ Saved!</Text>}
@@ -336,18 +335,11 @@ export default function AuthSuccessPage() {
             <Text c="dimmed" size="sm">Loading settings…</Text>
           ) : (
             <Stack gap="lg">
-              <Switch
-                color="violet"
-                label="Floating Bar"
-                description="Bar overlay appears as a centered floating pill instead of full-width"
-                checked={settings.barFloating}
-                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
-              />
+
               <Text size="sm" c="dimmed">
                 Configure CRT-style visual effects for a retro gaming aesthetic.
               </Text>
               <Switch
-                color="violet"
                 label="Enable CRT Effects"
                 description="Toggle between CRT effects and animated background"
                 checked={settings.theme === 'crt'}
@@ -358,26 +350,23 @@ export default function AuthSuccessPage() {
                   <div>
                     <Text size="sm" fw={500} mb="xs">CRT Intensity</Text>
                     <Radio.Group
-                      color="violet"
                       value={crt.intensity}
                       onChange={(v) => updateCrtSettings({ intensity: v as 'minimal' | 'subtle' | 'medium' })}
                     >
                       <Stack gap="xs">
-                        <Radio color="violet" value="minimal" label="Minimal — very subtle effects" />
-                        <Radio color="violet" value="subtle" label="Subtle — balanced for streaming (recommended)" />
-                        <Radio color="violet" value="medium" label="Medium — more pronounced effects" />
+                        <Radio value="minimal" label="Minimal — very subtle effects" />
+                        <Radio value="subtle" label="Subtle — balanced for streaming (recommended)" />
+                        <Radio value="medium" label="Medium — more pronounced effects" />
                       </Stack>
                     </Radio.Group>
                   </div>
                   <Switch
-                    color="violet"
                     label="Scanlines"
                     description="Horizontal lines across the display"
                     checked={crt.scanlines}
                     onChange={(e) => updateCrtSettings({ scanlines: e.currentTarget.checked })}
                   />
                   <Switch
-                    color="violet"
                     label="Scan Animation"
                     description="Occasional scanning sweep effect"
                     checked={crt.animation}

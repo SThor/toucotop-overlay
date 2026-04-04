@@ -89,8 +89,8 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
 
   if ('fontSize' in body) {
     const v = body.fontSize;
-    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.5 || v > 2) {
-      errors.push('fontSize must be a number between 0.5 and 2');
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.5 || v > 10) {
+      errors.push('fontSize must be a number between 0.5 and 10');
     } else {
       patch.fontSize = v;
     }
@@ -136,8 +136,8 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         if (key in v) {
           const val = v[key];
           if (val === undefined) continue;
-          if (typeof val !== 'number' || !Number.isFinite(val) || val < 0.5 || val > 2) {
-            errors.push(`perOverlayFontSize.${key} must be a number between 0.5 and 2`);
+          if (typeof val !== 'number' || !Number.isFinite(val) || val < 0.5 || val > 10) {
+            errors.push(`perOverlayFontSize.${key} must be a number between 0.5 and 10`);
           } else {
             perFont[key] = val;
           }
