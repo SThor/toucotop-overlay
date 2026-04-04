@@ -124,48 +124,63 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // Debounce timer for server saves
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch settings from server whenever the token changes
+  // Fetch settings from server whenever the token changes, with retry-with-backoff
+  // so overlays recover automatically after a server restart / deploy.
   useEffect(() => {
     let isCurrent = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     if (!overlayToken) {
       setServerSettings(defaultOverlaySettings);
       setIsLoadingSettings(false);
       return () => { isCurrent = false; };
     }
-    const controller = new AbortController();
-    setIsLoadingSettings(true);
-    fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const data = await res.json() as { settings?: OverlaySettings } | null;
-        if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
-        return data.settings;
-      })
-      .then((fetched) => {
-        if (!isCurrent) return;
-        if (!fetched) {
-          setServerSettings(defaultOverlaySettings);
-          return;
-        }
-        setServerSettings({
-          ...defaultOverlaySettings,
-          ...fetched,
-          themeSettings: {
-            ...defaultOverlaySettings.themeSettings,
-            ...(fetched.themeSettings ?? {}),
-            crt: {
-              ...defaultOverlaySettings.themeSettings.crt,
-              ...(fetched.themeSettings?.crt ?? {}),
+
+    const attemptFetch = (attempt: number) => {
+      if (attempt === 0) setIsLoadingSettings(true);
+
+      fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`)
+        .then(async (res) => {
+          if (!res.ok) return null;
+          const data = await res.json() as { settings?: OverlaySettings } | null;
+          if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
+          return data.settings;
+        })
+        .then((fetched) => {
+          if (!isCurrent) return;
+          setIsLoadingSettings(false);
+          if (!fetched) {
+            setServerSettings(defaultOverlaySettings);
+            return;
+          }
+          setServerSettings({
+            ...defaultOverlaySettings,
+            ...fetched,
+            themeSettings: {
+              ...defaultOverlaySettings.themeSettings,
+              ...(fetched.themeSettings ?? {}),
+              crt: {
+                ...defaultOverlaySettings.themeSettings.crt,
+                ...(fetched.themeSettings?.crt ?? {}),
+              },
             },
-          },
+          });
+        })
+        .catch((err) => {
+          if (!isCurrent || err.name === 'AbortError') return;
+          // Network error — server may be restarting. Retry with exponential backoff
+          // (5 s → 10 s → 20 s → … capped at 60 s).
+          if (attempt === 0) setIsLoadingSettings(false);
+          const delay = Math.min(5_000 * 2 ** attempt, 60_000);
+          retryTimer = setTimeout(() => { if (isCurrent) attemptFetch(attempt + 1); }, delay);
         });
-      })
-      .catch((err) => { if (err.name !== 'AbortError') { /* network error — keep defaults */ } })
-      .finally(() => { if (isCurrent) setIsLoadingSettings(false); });
+    };
+
+    attemptFetch(0);
+
     return () => {
       isCurrent = false;
-      controller.abort();
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [overlayToken]);
 
