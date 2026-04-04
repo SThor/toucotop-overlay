@@ -269,10 +269,10 @@ export function getLastEvents(username: string): { lastFollower?: LastFollowerDa
   if (!fs.existsSync(tokenFile)) return {};
   try {
     const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-    return {
-      lastFollower: stored.lastFollower,
-      lastSubscriber: stored.lastSubscriber,
-    };
+    const result: { lastFollower?: LastFollowerData; lastSubscriber?: LastSubscriberData } = {};
+    if (stored.lastFollower !== undefined) result.lastFollower = stored.lastFollower;
+    if (stored.lastSubscriber !== undefined) result.lastSubscriber = stored.lastSubscriber;
+    return result;
   } catch {
     return {};
   }

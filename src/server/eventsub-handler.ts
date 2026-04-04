@@ -255,13 +255,14 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           followedAt: String(eventData['followed_at'] ?? new Date().toISOString()),
         });
       } else if (subType === 'channel.subscribe') {
+        const gifterLogin = typeof eventData['gifter_login'] === 'string' ? eventData['gifter_login'] : undefined;
         updateLastSubscriber(broadcasterLogin, {
           userId: String(eventData['user_id'] ?? ''),
           userName: String(eventData['user_login'] ?? ''),
           userDisplayName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
           tier: String(eventData['tier'] ?? '1000'),
           isGift: Boolean(eventData['is_gift']),
-          gifterName: typeof eventData['gifter_login'] === 'string' ? eventData['gifter_login'] : undefined,
+          ...(gifterLogin !== undefined ? { gifterName: gifterLogin } : {}),
           subscribedAt: new Date().toISOString(),
         });
       }
