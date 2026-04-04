@@ -47,6 +47,8 @@ export default function AuthSuccessPage() {
   const [sessionExpired, setSessionExpired] = useState(() => !overlayToken && !urlToken);
   const [showSaved, setShowSaved] = useState(false);
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showPerOpacity, setShowPerOpacity] = useState(() => Object.keys(settings.perOverlayOpacity).length > 0);
+  const [showPerFontSize, setShowPerFontSize] = useState(() => Object.keys(settings.perOverlayFontSize).length > 0);
 
   // Clear pending timer on unmount to avoid setState on an unmounted component
   useEffect(() => () => {
@@ -193,9 +195,10 @@ export default function AuthSuccessPage() {
             <Text c="dimmed" size="sm">Loading settings…</Text>
           ) : (
             <Stack gap="lg">
+              {/* Opacity */}
               <div>
                 <Text size="sm" fw={500} mb="xs">
-                  Overlay Opacity: {Math.round(settings.overlayOpacity * 100)}%
+                  Global Opacity: {Math.round(settings.overlayOpacity * 100)}%
                 </Text>
                 <Slider
                   color="violet"
@@ -204,15 +207,85 @@ export default function AuthSuccessPage() {
                   min={0.1} max={1} step={0.05}
                 />
               </div>
-
               <Switch
                 color="violet"
-                label="Floating Bar"
-                description="Bar overlay appears as a centered floating pill instead of full-width"
-                checked={settings.barFloating}
-                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
+                label="Per-overlay opacity overrides"
+                description="Set a different opacity for each overlay"
+                checked={showPerOpacity}
+                onChange={(e) => {
+                  const on = e.currentTarget.checked;
+                  setShowPerOpacity(on);
+                  if (!on) save({ perOverlayOpacity: {} });
+                }}
               />
+              {showPerOpacity && (
+                <Stack gap="md" pl="md">
+                  {(['chat', 'clock', 'bar'] as const).map((key) => (
+                    <div key={key}>
+                      <Text size="sm" fw={500} mb="xs" tt="capitalize">
+                        {key}: {Math.round((settings.perOverlayOpacity[key] ?? settings.overlayOpacity) * 100)}%
+                        {settings.perOverlayOpacity[key] == null ? ' (using global)' : ''}
+                      </Text>
+                      <Slider
+                        color="violet"
+                        value={settings.perOverlayOpacity[key] ?? settings.overlayOpacity}
+                        onChange={(v) => save({ perOverlayOpacity: { ...settings.perOverlayOpacity, [key]: v } })}
+                        min={0.1} max={1} step={0.05}
+                      />
+                    </div>
+                  ))}
+                </Stack>
+              )}
 
+              {/* Font Size */}
+              <div>
+                <Text size="sm" fw={500} mb="xs">
+                  Global Font Size: {settings.fontSize.toFixed(2)}×
+                </Text>
+                <Slider
+                  color="violet"
+                  value={settings.fontSize}
+                  onChange={(v) => save({ fontSize: v })}
+                  min={0.5} max={2} step={0.05}
+                  marks={[
+                    { value: 0.5, label: '0.5×' },
+                    { value: 1, label: '1×' },
+                    { value: 1.5, label: '1.5×' },
+                    { value: 2, label: '2×' },
+                  ]}
+                />
+              </div>
+              <Switch
+                color="violet"
+                label="Per-overlay font size overrides"
+                description="Set a different scale for each overlay"
+                checked={showPerFontSize}
+                onChange={(e) => {
+                  const on = e.currentTarget.checked;
+                  setShowPerFontSize(on);
+                  if (!on) save({ perOverlayFontSize: {} });
+                }}
+              />
+              {showPerFontSize && (
+                <Stack gap="md" pl="md">
+                  {(['chat', 'clock', 'bar'] as const).map((key) => (
+                    <div key={key}>
+                      <Text size="sm" fw={500} mb="xs" tt="capitalize">
+                        {key}: {(settings.perOverlayFontSize[key] ?? settings.fontSize).toFixed(2)}×
+                        {settings.perOverlayFontSize[key] == null ? ' (using global)' : ''}
+                      </Text>
+                      <Slider
+                        color="violet"
+                        value={settings.perOverlayFontSize[key] ?? settings.fontSize}
+                        onChange={(v) => save({ perOverlayFontSize: { ...settings.perOverlayFontSize, [key]: v } })}
+                        min={0.5} max={2} step={0.05}
+                      />
+                    </div>
+                  ))}
+                </Stack>
+              )}
+
+              {/* Chat */}
               <div>
                 <Text size="sm" fw={500} mb="xs">Chat Feed Direction</Text>
                 <Radio.Group
@@ -263,6 +336,13 @@ export default function AuthSuccessPage() {
             <Text c="dimmed" size="sm">Loading settings…</Text>
           ) : (
             <Stack gap="lg">
+              <Switch
+                color="violet"
+                label="Floating Bar"
+                description="Bar overlay appears as a centered floating pill instead of full-width"
+                checked={settings.barFloating}
+                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
+              />
               <Text size="sm" c="dimmed">
                 Configure CRT-style visual effects for a retro gaming aesthetic.
               </Text>
