@@ -228,7 +228,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
 
     const map = new Map<string, CachedEmote>();
     for (const emote of data.data) {
-      const base = `https://static-cdn.jtvnps.net/emoticons/v2/${emote.id}`;
+      const base = `https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}`;
       map.set(emote.name.toLowerCase(), {
         id: emote.id,
         name: emote.name,
