@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select,
 } from '@mantine/core';
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
@@ -210,7 +210,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;crtEffects=false</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt</code>
             </Text>
           </details>
         </Paper>
@@ -366,13 +366,18 @@ export default function AuthSuccessPage() {
             <Stack gap="lg">
 
               <Text size="sm" c="dimmed">
-                Configure CRT-style visual effects for a retro gaming aesthetic.
+                Configure visual effects for your overlays.
               </Text>
-              <Switch
-                label="Enable CRT Effects"
-                description="Toggle between CRT effects and animated background"
-                checked={settings.theme === 'crt'}
-                onChange={(e) => save({ theme: e.currentTarget.checked ? 'crt' : 'default' })}
+              <Select
+                label="Theme"
+                description="Choose the visual style for all overlays"
+                value={settings.theme}
+                onChange={(v) => { if (v) save({ theme: v as import('../server/shared/overlaySettings').OverlayTheme }); }}
+                data={[
+                  { value: 'default', label: 'Animated background' },
+                  { value: 'crt', label: 'CRT effects' },
+                ]}
+                allowDeselect={false}
               />
               {settings.theme === 'crt' && (
                 <>
