@@ -29,6 +29,23 @@ export interface TokenData {
   updatedAt?: string;
 }
 
+export interface LastFollowerData {
+  userId: string;
+  userName: string;
+  userDisplayName: string;
+  followedAt: string; // ISO string
+}
+
+export interface LastSubscriberData {
+  userId: string;
+  userName: string;
+  userDisplayName: string;
+  tier: string;
+  isGift: boolean;
+  gifterName?: string;
+  subscribedAt: string; // ISO string
+}
+
 // StoredUserData: the persisted shape — what you read back out of the JSON file.
 // Extends TokenData with all optional fields made required, because storeUserTokens() fills them
 // in (from existing data or fresh defaults) before writing. Code that reads a token file can
@@ -39,6 +56,8 @@ export interface StoredUserData extends TokenData {
   updatedAt: string;
   overlayExpiresAt: string;
   overlaySettings: OverlaySettings;
+  lastFollower?: LastFollowerData;
+  lastSubscriber?: LastSubscriberData;
 }
 
 // Ensure tokens directory exists with restrictive permissions
@@ -179,6 +198,16 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...defaultOverlaySettings,
       ...base,
       ...settings,
+      perOverlayOpacity: {
+        ...defaultOverlaySettings.perOverlayOpacity,
+        ...(base.perOverlayOpacity ?? {}),
+        ...(settings.perOverlayOpacity ?? {}),
+      },
+      perOverlayFontSize: {
+        ...defaultOverlaySettings.perOverlayFontSize,
+        ...(base.perOverlayFontSize ?? {}),
+        ...(settings.perOverlayFontSize ?? {}),
+      },
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
         ...(base.themeSettings ?? {}),
@@ -197,6 +226,38 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
   } catch (error) {
     console.error(`❌ Error updating settings for ${username}:`, error);
     return null;
+  }
+}
+
+/**
+ * Update the last follower for a user.
+ */
+export function updateLastFollower(username: string, data: LastFollowerData): void {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return;
+  try {
+    const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    stored.lastFollower = data;
+    stored.updatedAt = new Date().toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(stored, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error(`❌ Error updating lastFollower for ${username}:`, error);
+  }
+}
+
+/**
+ * Update the last subscriber for a user.
+ */
+export function updateLastSubscriber(username: string, data: LastSubscriberData): void {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return;
+  try {
+    const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    stored.lastSubscriber = data;
+    stored.updatedAt = new Date().toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(stored, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error(`❌ Error updating lastSubscriber for ${username}:`, error);
   }
 }
 

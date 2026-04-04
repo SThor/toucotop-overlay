@@ -2,10 +2,20 @@
 // src/server/storage.ts (server) and src/contexts/SettingsContext.tsx (client)
 export type OverlayTheme = 'crt' | 'default';
 
+export interface PerOverlayNumber {
+  chat?: number;
+  clock?: number;
+  bar?: number;
+}
+
 export interface OverlaySettings {
   overlayOpacity: number;
+  perOverlayOpacity: PerOverlayNumber;
+  fontSize: number;
+  perOverlayFontSize: PerOverlayNumber;
   chatFeedDirection: 'top' | 'bottom';
   maxChatMessages: number;
+  barFloating: boolean;
   theme: OverlayTheme;
   themeSettings: {
     crt: {
@@ -14,13 +24,16 @@ export interface OverlaySettings {
       animation: boolean;
     };
   };
-  overlayFullWidth: boolean;
 }
 
 export const defaultOverlaySettings: OverlaySettings = {
   overlayOpacity: 0.9,
+  perOverlayOpacity: {},
+  fontSize: 1.0,
+  perOverlayFontSize: {},
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
+  barFloating: true,
   theme: 'crt',
   themeSettings: {
     crt: {
@@ -29,5 +42,4 @@ export const defaultOverlaySettings: OverlaySettings = {
       animation: true,
     }
   },
-  overlayFullWidth: false,
 };
