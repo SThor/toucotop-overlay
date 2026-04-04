@@ -11,7 +11,7 @@ import cors from 'cors';
 import session from 'express-session';
 
 // Import new modular components
-import { handleTwitchApiEndpoint, handleGamesEndpoint, handleEventsEndpoint } from './twitch-endpoints.js';
+import { handleTwitchApiEndpoint, handleGamesEndpoint, handleEventsEndpoint, handleLastEventsEndpoint } from './twitch-endpoints.js';
 import { 
   handleEventSubWebhook, 
   handleEventSubSubscription, 
@@ -181,6 +181,8 @@ try {
         // Route to appropriate handler based on endpoint type
         if (endpoint === 'events') {
           data = handleEventsEndpoint(req, defaultEventStore);
+        } else if (endpoint === 'last-events') {
+          data = handleLastEventsEndpoint(userData.username);
         } else if (endpoint === 'games') {
           data = await handleGamesEndpoint(userData, res);
         } else {

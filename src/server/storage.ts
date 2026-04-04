@@ -262,6 +262,23 @@ export function updateLastSubscriber(username: string, data: LastSubscriberData)
 }
 
 /**
+ * Get persisted last follow/subscribe events for a user.
+ */
+export function getLastEvents(username: string): { lastFollower?: LastFollowerData; lastSubscriber?: LastSubscriberData } {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return {};
+  try {
+    const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    return {
+      lastFollower: stored.lastFollower,
+      lastSubscriber: stored.lastSubscriber,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Remove user's tokens (logout)
  */
 export function removeUserTokens(username: string): void {

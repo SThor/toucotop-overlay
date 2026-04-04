@@ -103,6 +103,7 @@ type TwitchProviderComponent = React.FC<TwitchProviderProps> & {
 const STREAM_POLL_MS = 30_000;
 const FOLLOWERS_POLL_MS = 10 * 60_000;
 const SUBSCRIBERS_POLL_MS = 10 * 60_000;
+const LAST_EVENTS_POLL_MS = 30_000;
 
 // Twitch API response shapes (subset we need)
 interface TwitchStreamData {
@@ -219,6 +220,48 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     }
   }, [fetchApi]);
 
+  // --- Last events (persisted follow/sub from server storage) ---
+  const fetchLastEvents = useCallback(async () => {
+    const data = await fetchApi<{
+      lastFollower?: { userId: string; userName: string; userDisplayName: string; followedAt: string };
+      lastSubscriber?: { userId: string; userName: string; userDisplayName: string; tier: string; isGift: boolean; gifterName?: string; subscribedAt: string };
+    }>('last-events');
+    if (!data) return;
+
+    if (data.lastFollower) {
+      const storedDate = new Date(data.lastFollower.followedAt);
+      setLastFollower(prev => {
+        if (!prev || storedDate > prev.followDate) {
+          return {
+            userId: data.lastFollower!.userId,
+            userName: data.lastFollower!.userName,
+            userDisplayName: data.lastFollower!.userDisplayName,
+            followDate: storedDate,
+          };
+        }
+        return prev;
+      });
+    }
+
+    if (data.lastSubscriber) {
+      const storedDate = new Date(data.lastSubscriber.subscribedAt);
+      setLastSubscriber(prev => {
+        if (!prev || !prev.subscribeDate || storedDate > prev.subscribeDate) {
+          return {
+            userId: data.lastSubscriber!.userId,
+            userName: data.lastSubscriber!.userName,
+            userDisplayName: data.lastSubscriber!.userDisplayName,
+            tier: data.lastSubscriber!.tier,
+            isGift: data.lastSubscriber!.isGift,
+            gifterName: data.lastSubscriber!.gifterName,
+            subscribeDate: storedDate,
+          };
+        }
+        return prev;
+      });
+    }
+  }, [fetchApi]);
+
   // --- Emotes (one-time fetch per token) ---
   const fetchEmotes = useCallback(async () => {
     const currentToken = settings.overlayToken;
@@ -253,18 +296,21 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     fetchStreamInfo();
     fetchFollowers();
     fetchSubscribers();
+    fetchLastEvents();
     fetchEmotes();
 
     const streamTimer = setInterval(fetchStreamInfo, STREAM_POLL_MS);
     const followersTimer = setInterval(fetchFollowers, FOLLOWERS_POLL_MS);
     const subscribersTimer = setInterval(fetchSubscribers, SUBSCRIBERS_POLL_MS);
+    const lastEventsTimer = setInterval(fetchLastEvents, LAST_EVENTS_POLL_MS);
 
     return () => {
       clearInterval(streamTimer);
       clearInterval(followersTimer);
       clearInterval(subscribersTimer);
+      clearInterval(lastEventsTimer);
     };
-  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchEmotes]);
+  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents, fetchEmotes]);
 
   const getEmoteByName = useCallback(
     (name: string): CachedEmote | undefined => cachedEmotes.get(name.toLowerCase()),

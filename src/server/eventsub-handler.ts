@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import type { UserData } from './twitch-api-client.js';
+import { updateLastFollower, updateLastSubscriber } from './storage.js';
 
 // EventSub configuration constants
 const MIN_EVENTSUB_SECRET_LENGTH = 32;
@@ -237,6 +238,35 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
   if (messageType === 'notification') {
     // Handle actual event notification
     eventStore.addEvent(parsedBody);
+
+    const eventData = parsedBody.event ?? {};
+    const broadcasterLogin: string = typeof eventData['broadcaster_user_login'] === 'string'
+      ? eventData['broadcaster_user_login']
+      : '';
+
+    if (broadcasterLogin) {
+      const subType = parsedBody.subscription.type;
+
+      if (subType === 'channel.follow') {
+        updateLastFollower(broadcasterLogin, {
+          userId: String(eventData['user_id'] ?? ''),
+          userName: String(eventData['user_login'] ?? ''),
+          userDisplayName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          followedAt: String(eventData['followed_at'] ?? new Date().toISOString()),
+        });
+      } else if (subType === 'channel.subscribe') {
+        updateLastSubscriber(broadcasterLogin, {
+          userId: String(eventData['user_id'] ?? ''),
+          userName: String(eventData['user_login'] ?? ''),
+          userDisplayName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          tier: String(eventData['tier'] ?? '1000'),
+          isGift: Boolean(eventData['is_gift']),
+          gifterName: typeof eventData['gifter_login'] === 'string' ? eventData['gifter_login'] : undefined,
+          subscribedAt: new Date().toISOString(),
+        });
+      }
+    }
+
     return res.status(204).send();
   }
   
