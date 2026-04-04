@@ -27,14 +27,14 @@ interface AuthInfo {
 
 export default function AuthSuccessPage() {
   const [params] = useSearchParams();
-  const { persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
+  const { settings, persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
 
   // On a fresh OAuth callback, the server puts all three into the redirect URL.
   // On a direct visit (e.g. bookmarked dashboard), only the stored token is available.
   const urlToken = params.get('token');
   const urlDisplayName = params.get('displayName');
   const urlExpiresAt = params.get('expiresAt');
-  const overlayToken = persistedSettings.overlayToken;
+  const overlayToken = settings.overlayToken;
 
   console.log('[AuthSuccessPage] mounted — overlayToken:', overlayToken ? '(set)' : '(empty)', '| urlToken:', urlToken ? '(set)' : null);
 
