@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
@@ -29,6 +29,23 @@ export interface TokenData {
   updatedAt?: string;
 }
 
+export interface LastFollowerData {
+  userId: string;
+  userName: string;
+  userDisplayName: string;
+  followedAt: string; // ISO string
+}
+
+export interface LastSubscriberData {
+  userId: string;
+  userName: string;
+  userDisplayName: string;
+  tier: string;
+  isGift: boolean;
+  gifterName?: string;
+  subscribedAt: string; // ISO string
+}
+
 // StoredUserData: the persisted shape — what you read back out of the JSON file.
 // Extends TokenData with all optional fields made required, because storeUserTokens() fills them
 // in (from existing data or fresh defaults) before writing. Code that reads a token file can
@@ -39,6 +56,8 @@ export interface StoredUserData extends TokenData {
   updatedAt: string;
   overlayExpiresAt: string;
   overlaySettings: OverlaySettings;
+  lastFollower?: LastFollowerData;
+  lastSubscriber?: LastSubscriberData;
 }
 
 // Ensure tokens directory exists with restrictive permissions
@@ -70,8 +89,30 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlayExpiresAt: overlayStillValid
       ? existingOverlayExpiry
       : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    // Preserve existing settings; new users get defaults
-    overlaySettings: existingData?.overlaySettings ?? { ...defaultOverlaySettings },
+    // Preserve existing settings, merging in defaults so any new required fields are
+    // always present (guards against old token files missing keys added in later releases).
+    overlaySettings: {
+      ...defaultOverlaySettings,
+      ...(existingData?.overlaySettings ?? {}),
+      perOverlayOpacity: {
+        ...defaultOverlaySettings.perOverlayOpacity,
+        ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
+      },
+      perOverlayFontSize: {
+        ...defaultOverlaySettings.perOverlayFontSize,
+        ...(existingData?.overlaySettings?.perOverlayFontSize ?? {}),
+      },
+      themeSettings: {
+        ...defaultOverlaySettings.themeSettings,
+        ...(existingData?.overlaySettings?.themeSettings ?? {}),
+        crt: {
+          ...defaultOverlaySettings.themeSettings.crt,
+          ...(existingData?.overlaySettings?.themeSettings?.crt ?? {}),
+        },
+      },
+    },
+    ...(existingData?.lastFollower !== undefined ? { lastFollower: existingData.lastFollower } : {}),
+    ...(existingData?.lastSubscriber !== undefined ? { lastSubscriber: existingData.lastSubscriber } : {}),
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
@@ -165,6 +206,27 @@ export function extendOverlayToken(username: string): void {
 }
 
 /**
+ * Merge a per-overlay patch into the base using null-as-clear semantics:
+ * - key present with number → update that overlay's value
+ * - key present with null  → explicitly clear that overlay (falls back to global)
+ * - key absent             → leave existing value untouched
+ */
+function mergePerOverlay(
+  defaults: PerOverlayNumber,
+  base: PerOverlayNumber,
+  patch: Partial<PerOverlayNumber> | undefined,
+): PerOverlayNumber {
+  if (!patch) return { ...defaults, ...base };
+  const result: PerOverlayNumber = { ...defaults, ...base };
+  for (const key of ['chat', 'clock', 'bar'] as const) {
+    if (key in patch) {
+      result[key] = patch[key] ?? null;
+    }
+  }
+  return result;
+}
+
+/**
  * Update overlay settings for a user identified by username.
  * Returns the fully-merged persisted settings on success, or null on failure.
  */
@@ -179,6 +241,8 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...defaultOverlaySettings,
       ...base,
       ...settings,
+      perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
+      perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
         ...(base.themeSettings ?? {}),
@@ -197,6 +261,62 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
   } catch (error) {
     console.error(`❌ Error updating settings for ${username}:`, error);
     return null;
+  }
+}
+
+/**
+ * Internal helper: read the user's token file, apply a synchronous mutation, and
+ * write it back. Because all storage functions use synchronous fs calls, writes are
+ * serialised on Node.js's single-threaded event loop — there is no async interleaving
+ * risk. Centralising the read-modify-write pattern here means every field update goes
+ * through a single code path, reducing the chance of fields being silently dropped.
+ */
+function patchUserFile(
+  username: string,
+  applyPatch: (data: StoredUserData) => void,
+  errorLabel: string,
+): void {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return;
+  try {
+    const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    applyPatch(data);
+    data.updatedAt = new Date().toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
+  } catch (error) {
+    console.error(`❌ Error ${errorLabel} for ${username}:`, error);
+  }
+}
+
+/**
+ * Update the last follower for a user.
+ */
+export function updateLastFollower(username: string, data: LastFollowerData): void {
+  patchUserFile(username, (stored) => { stored.lastFollower = data; }, 'updating lastFollower');
+}
+
+/**
+ * Update the last subscriber for a user.
+ */
+export function updateLastSubscriber(username: string, data: LastSubscriberData): void {
+  patchUserFile(username, (stored) => { stored.lastSubscriber = data; }, 'updating lastSubscriber');
+}
+
+/**
+ * Get persisted last follow/subscribe events for a user.
+ */
+export function getLastEvents(username: string): { lastFollower?: LastFollowerData; lastSubscriber?: LastSubscriberData } {
+  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
+  if (!fs.existsSync(tokenFile)) return {};
+  try {
+    const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    const result: { lastFollower?: LastFollowerData; lastSubscriber?: LastSubscriberData } = {};
+    if (stored.lastFollower !== undefined) result.lastFollower = stored.lastFollower;
+    if (stored.lastSubscriber !== undefined) result.lastSubscriber = stored.lastSubscriber;
+    return result;
+  } catch (error) {
+    console.warn(`⚠️ Error reading last events for ${username}:`, error);
+    return {};
   }
 }
 

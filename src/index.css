@@ -23,6 +23,13 @@
   box-sizing: border-box;
 }
 
+@keyframes marquee-scroll {
+  0%      { transform: translateX(0); }
+  10%     { transform: translateX(0); }
+  90%     { transform: translateX(var(--marquee-distance)); }
+  100%    { transform: translateX(var(--marquee-distance)); }
+}
+
 a {
   font-weight: 500;
   color: var(--Main);

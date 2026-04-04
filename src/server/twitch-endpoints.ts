@@ -14,7 +14,14 @@ import {
 } from './twitch-api-client.js';
 import { EventStore, type EventSubEvent } from './eventsub-handler.js';
 
-// Type definitions for endpoint configuration
+import { getLastEvents } from './storage.js';
+import type { LastFollowerData, LastSubscriberData } from './storage.js';
+
+export interface LastEventsResponse {
+  lastFollower?: LastFollowerData;
+  lastSubscriber?: LastSubscriberData;
+}
+
 export interface EndpointConfig {
   url: string;
   headers: 'twitch' | 'oauth';
@@ -231,12 +238,17 @@ function handleEventsEndpoint(req: Request, eventStore: EventStore): EventsRespo
 }
 
 // List of valid endpoint names
-const validEndpoints: string[] = [...Object.keys(endpointConfigs), 'games', 'events'];
+const validEndpoints: string[] = [...Object.keys(endpointConfigs), 'games', 'events', 'last-events'];
+
+function handleLastEventsEndpoint(username: string): LastEventsResponse {
+  return getLastEvents(username);
+}
 
 export {
   endpointConfigs,
   handleTwitchApiEndpoint,
   handleGamesEndpoint, 
   handleEventsEndpoint,
+  handleLastEventsEndpoint,
   validEndpoints
 };

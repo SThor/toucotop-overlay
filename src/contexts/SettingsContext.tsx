@@ -10,6 +10,10 @@ export interface Settings extends OverlaySettings {
 
 interface SettingsContextType {
   settings: Settings;
+  /** The raw server-persisted settings, without URL query-param overrides applied.
+   * Use this when building PATCH payloads so session-only URL overrides are
+   * never accidentally written back to the server. */
+  persistedSettings: OverlaySettings;
   /** True while loading settings from the server for the first time */
   isLoadingSettings: boolean;
   updateSettings: (newSettings: Partial<Settings>) => void;
@@ -39,6 +43,30 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     const v = parseFloat(p.get('overlayOpacity') || '');
     if (!isNaN(v) && v >= 0.1 && v <= 1) o.overlayOpacity = v;
   }
+  if (p.has('fontSize')) {
+    const v = parseFloat(p.get('fontSize') || '');
+    if (!isNaN(v) && v >= 0.5 && v <= 10) o.fontSize = v;
+  }
+  // Per-overlay opacity: ?opacityChat=0.8&opacityClock=0.7&opacityBar=0.6
+  const perOpacity: OverlaySettings['perOverlayOpacity'] = {};
+  for (const [key, param] of [['chat', 'opacityChat'], ['clock', 'opacityClock'], ['bar', 'opacityBar']] as const) {
+    if (p.has(param)) {
+      const v = parseFloat(p.get(param) || '');
+      if (!isNaN(v) && v >= 0.1 && v <= 1) perOpacity[key] = v;
+    }
+  }
+  if (Object.keys(perOpacity).length > 0) o.perOverlayOpacity = perOpacity;
+
+  // Per-overlay font size: ?fontSizeChat=1.4&fontSizeClock=1.2&fontSizeBar=0.9
+  const perFont: OverlaySettings['perOverlayFontSize'] = {};
+  for (const [key, param] of [['chat', 'fontSizeChat'], ['clock', 'fontSizeClock'], ['bar', 'fontSizeBar']] as const) {
+    if (p.has(param)) {
+      const v = parseFloat(p.get(param) || '');
+      if (!isNaN(v) && v >= 0.5 && v <= 10) perFont[key] = v;
+    }
+  }
+  if (Object.keys(perFont).length > 0) o.perOverlayFontSize = perFont;
+
   if (p.has('chatFeedDirection')) {
     const v = p.get('chatFeedDirection');
     if (v === 'top' || v === 'bottom') o.chatFeedDirection = v;
@@ -47,16 +75,21 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     const v = parseInt(p.get('maxChatMessages') || '', 10);
     if (!isNaN(v) && v >= 10 && v <= 100) o.maxChatMessages = v;
   }
-  if (p.has('crtEffects')) o.theme = p.get('crtEffects') === 'true' ? 'crt' : 'default';
+  if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
+  if (p.has('theme')) {
+    const v = p.get('theme');
+    if (v === 'crt' || v === 'default') o.theme = v;
+  }
+  // Legacy boolean param: ?crtEffects=false  (kept for backward compat)
+  if (p.has('crtEffects') && !p.has('theme')) o.theme = p.get('crtEffects') === 'false' ? 'default' : 'crt';
   if (p.has('crtIntensity') || p.has('crtScanlines') || p.has('crtAnimation')) {
     const crt: Partial<OverlaySettings['themeSettings']['crt']> = {};
     const intensity = p.get('crtIntensity');
     if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') crt.intensity = intensity;
-    if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') === 'true';
-    if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') === 'true';
+    if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') !== 'false';
+    if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') !== 'false';
     o.themeSettings = { crt } as OverlaySettings['themeSettings'];
   }
-  if (p.has('overlayFullWidth')) o.overlayFullWidth = p.get('overlayFullWidth') === 'true';
 
   return o;
 }
@@ -100,58 +133,87 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // Debounce timer for server saves
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch settings from server whenever the token changes
+  // Fetch settings from server whenever the token changes, with retry-with-backoff
+  // so overlays recover automatically after a server restart / deploy.
   useEffect(() => {
     let isCurrent = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     if (!overlayToken) {
       setServerSettings(defaultOverlaySettings);
       setIsLoadingSettings(false);
       return () => { isCurrent = false; };
     }
-    const controller = new AbortController();
-    setIsLoadingSettings(true);
-    fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const data = await res.json() as { settings?: OverlaySettings } | null;
-        if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
-        return data.settings;
-      })
-      .then((fetched) => {
-        if (!isCurrent) return;
-        if (!fetched) {
-          setServerSettings(defaultOverlaySettings);
-          return;
-        }
-        setServerSettings({
-          ...defaultOverlaySettings,
-          ...fetched,
-          themeSettings: {
-            ...defaultOverlaySettings.themeSettings,
-            ...(fetched.themeSettings ?? {}),
-            crt: {
-              ...defaultOverlaySettings.themeSettings.crt,
-              ...(fetched.themeSettings?.crt ?? {}),
+
+    let controller = new AbortController();
+
+    const attemptFetch = (attempt: number) => {
+      if (attempt === 0) setIsLoadingSettings(true);
+      controller = new AbortController();
+
+      fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
+        .then(async (res) => {
+          if (res.status >= 500) throw new Error(`HTTP ${res.status}`); // server error — retry
+          if (!res.ok) return null; // 4xx (bad/expired token) — don't retry
+          const data = await res.json() as { settings?: OverlaySettings } | null;
+          if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
+          return data.settings;
+        })
+        .then((fetched) => {
+          if (!isCurrent) return;
+          setIsLoadingSettings(false);
+          if (!fetched) {
+            setServerSettings(defaultOverlaySettings);
+            return;
+          }
+          setServerSettings({
+            ...defaultOverlaySettings,
+            ...fetched,
+            themeSettings: {
+              ...defaultOverlaySettings.themeSettings,
+              ...(fetched.themeSettings ?? {}),
+              crt: {
+                ...defaultOverlaySettings.themeSettings.crt,
+                ...(fetched.themeSettings?.crt ?? {}),
+              },
             },
-          },
+          });
+        })
+        .catch((err) => {
+          if (!isCurrent || err.name === 'AbortError') return;
+          // Network error — server may be restarting. Retry with exponential backoff
+          // (5 s → 10 s → 20 s → … capped at 60 s).
+          if (attempt === 0) setIsLoadingSettings(false);
+          const delay = Math.min(5_000 * 2 ** attempt, 60_000);
+          retryTimer = setTimeout(() => { if (isCurrent) attemptFetch(attempt + 1); }, delay);
         });
-      })
-      .catch((err) => { if (err.name !== 'AbortError') { /* network error — keep defaults */ } })
-      .finally(() => { if (isCurrent) setIsLoadingSettings(false); });
+    };
+
+    attemptFetch(0);
+
     return () => {
       isCurrent = false;
       controller.abort();
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [overlayToken]);
 
   // Merged view: defaults → server settings → URL param overrides (session-only)
-  // themeSettings is deep-merged so a single URL param (e.g. crtScanlines) doesn't
-  // wipe the other crt fields stored server-side.
+  // Nested objects (themeSettings, perOverlayOpacity, perOverlayFontSize) are
+  // deep-merged so a single URL param (e.g. ?opacityChat=0.8) doesn't wipe
+  // the other overlay values stored server-side.
   const settings: Settings = {
     overlayToken,
     ...serverSettings,
     ...urlOverrides,
+    perOverlayOpacity: {
+      ...serverSettings.perOverlayOpacity,
+      ...urlOverrides.perOverlayOpacity,
+    },
+    perOverlayFontSize: {
+      ...serverSettings.perOverlayFontSize,
+      ...urlOverrides.perOverlayFontSize,
+    },
     themeSettings: {
       ...serverSettings.themeSettings,
       ...urlOverrides.themeSettings,
@@ -227,7 +289,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, isLoadingSettings, updateSettings, resetSettings }}>
+    <SettingsContext.Provider value={{ settings, persistedSettings: serverSettings, isLoadingSettings, updateSettings, resetSettings }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -23,6 +23,8 @@ router.get('/', (req: Request, res: Response) => {
   const normalized: OverlaySettings = {
     ...defaultOverlaySettings,
     ...raw,
+    perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
+    perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -85,12 +87,65 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
-  if ('overlayFullWidth' in body) {
-    const v = body.overlayFullWidth;
-    if (typeof v !== 'boolean') {
-      errors.push('overlayFullWidth must be a boolean');
+  if ('fontSize' in body) {
+    const v = body.fontSize;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.5 || v > 10) {
+      errors.push('fontSize must be a number between 0.5 and 10');
     } else {
-      patch.overlayFullWidth = v;
+      patch.fontSize = v;
+    }
+  }
+
+  if ('barFloating' in body) {
+    const v = body.barFloating;
+    if (typeof v !== 'boolean') {
+      errors.push('barFloating must be a boolean');
+    } else {
+      patch.barFloating = v;
+    }
+  }
+
+  if ('perOverlayOpacity' in body) {
+    const v = body.perOverlayOpacity;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('perOverlayOpacity must be an object');
+    } else {
+      const perOpacity: OverlaySettings['perOverlayOpacity'] = {};
+      for (const key of ['chat', 'clock', 'bar'] as const) {
+        if (key in v) {
+          const val = v[key];
+          if (val === undefined) continue;
+          if (val === null) { perOpacity[key] = null; continue; }
+          if (typeof val !== 'number' || !Number.isFinite(val) || val < 0.1 || val > 1) {
+            errors.push(`perOverlayOpacity.${key} must be a number between 0.1 and 1`);
+          } else {
+            perOpacity[key] = val;
+          }
+        }
+      }
+      if (errors.length === 0) patch.perOverlayOpacity = perOpacity;
+    }
+  }
+
+  if ('perOverlayFontSize' in body) {
+    const v = body.perOverlayFontSize;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('perOverlayFontSize must be an object');
+    } else {
+      const perFont: OverlaySettings['perOverlayFontSize'] = {};
+      for (const key of ['chat', 'clock', 'bar'] as const) {
+        if (key in v) {
+          const val = v[key];
+          if (val === undefined) continue;
+          if (val === null) { perFont[key] = null; continue; }
+          if (typeof val !== 'number' || !Number.isFinite(val) || val < 0.5 || val > 10) {
+            errors.push(`perOverlayFontSize.${key} must be a number between 0.5 and 10`);
+          } else {
+            perFont[key] = val;
+          }
+        }
+      }
+      if (errors.length === 0) patch.perOverlayFontSize = perFont;
     }
   }
 

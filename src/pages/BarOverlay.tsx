@@ -3,6 +3,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { TwitchProvider } from '../contexts/TwitchContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import CRTBackground from '../components/CRTBackground';
+import MarqueeText from '../components/MarqueeText';
 import '../styles/BarOverlay.css';
 
 const BarOverlayContent = () => {
@@ -95,9 +96,9 @@ const BarOverlayContent = () => {
   };
 
   return (
-    <div 
-      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
-      style={{ opacity: settings.overlayOpacity }}
+    <div
+      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${!settings.barFloating ? 'full-width' : ''}`}
+      style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
       {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       
@@ -119,12 +120,14 @@ const BarOverlayContent = () => {
 
       {/* Stream Info Section */}
       <div className="bar-section bar-stream-section">
-        <div className="bar-stream-title">
-          {twitch.streamInfo?.title || 'Stream Title'}
-        </div>
-        <div className="bar-stream-category">
-          {twitch.streamInfo?.gameName || 'No Category'}
-        </div>
+        <MarqueeText
+          className="bar-stream-title"
+          text={twitch.streamInfo?.title || 'Stream Title'}
+        />
+        <MarqueeText
+          className="bar-stream-category"
+          text={twitch.streamInfo?.gameName || 'No Category'}
+        />
       </div>
 
       <div className="bar-divider"></div>

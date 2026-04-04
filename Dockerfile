@@ -37,6 +37,9 @@ COPY --from=builder /app/dist-server /app/dist-server
 # Create tokens directory with proper permissions
 RUN mkdir -p /app/tokens && chmod 700 /app/tokens
 
+# Declare /app/tokens as a volume so token/settings data survives container replacement
+VOLUME ["/app/tokens"]
+
 # Expose port
 EXPOSE 3000
 

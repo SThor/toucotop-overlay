@@ -80,10 +80,9 @@ jobs:
           
           echo "✅ OAuth environment configured (persistent .env file)"
           
-          # Stop old container first to ensure fresh start
-          docker compose down toucotop-overlay-staging || echo "Container wasn't running"
-          
-          # Pull new image and restart service
+          # Pull new image and restart service (no explicit 'down' — compose replaces
+          # the container in-place, keeping the named volume attached and minimising
+          # the window where the server is unreachable)
           docker compose pull toucotop-overlay-staging
           docker compose up -d toucotop-overlay-staging
           

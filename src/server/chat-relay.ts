@@ -59,7 +59,7 @@ const keepaliveExtendLastRun = new Map<string, number>();
 const channelRelays = new Map<string, ChannelRelay>();
 
 function buildEmoteUrls(emoteId: string): EmoteUrlsPayload {
-  const base = `https://static-cdn.jtvnps.net/emoticons/v2/${emoteId}`;
+  const base = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}`;
   return {
     '1x': `${base}/default/dark/1.0`,
     '2x': `${base}/default/dark/2.0`,

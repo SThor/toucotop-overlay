@@ -1,5 +1,61 @@
 /* Server pages (landing, auth success, errors) - rendered by React */
 
+/*  Design tokens  */
+/* Aligned with theme.ts: brand = purple (#9146ff), crt = orange (#e56d0c)   */
+:root {
+  /* Surfaces */
+  --sv-bg:         #1a1a1a;
+  --sv-surface:    #2a2a2a;
+  --sv-deep:       #1a1a1a;
+
+  /* Text hierarchy */
+  --sv-text:       #e0e0e0;
+  --sv-text-2:     #ccc;
+  --sv-text-3:     #aaa;
+  --sv-text-4:     #999;
+  --sv-text-5:     #888;
+
+  /* Borders */
+  --sv-border:     #444;
+  --sv-border-sub: rgba(255, 255, 255, 0.12);
+
+  /* Brand  purple (matches theme.ts brand palette, index 5-6) */
+  --sv-brand:      #9146ff;
+  --sv-brand-dark: #7c3aed;
+  --sv-brand-dim:  rgba(145, 70, 255, 0.15);
+  --sv-brand-dim2: rgba(145, 70, 255, 0.25);
+
+  /* Indigo  gradient titles and dashboard-btn */
+  --sv-indigo:      #667eea;
+  --sv-indigo-dark: #764ba2;
+  --sv-indigo-dim:  rgba(102, 126, 234, 0.15);
+  --sv-indigo-dim2: rgba(102, 126, 234, 0.35);
+
+  /* Semantic  success */
+  --sv-success:      #28a745;
+  --sv-success-dark: #218838;
+  --sv-success-dim:  rgba(40, 167, 69, 0.15);
+  --sv-success-dim2: rgba(40, 167, 69, 0.25);
+  --sv-success-text: #6dba89;
+
+  /* Semantic  danger */
+  --sv-danger:      #dc3545;
+  --sv-danger-dark: #c82333;
+  --sv-danger-dim:  rgba(220, 53, 69, 0.15);
+  --sv-danger-dim2: rgba(220, 53, 69, 0.25);
+  --sv-danger-text: #e88b94;
+
+  /* Semantic  warning */
+  --sv-warning:     #ffc107;
+
+  /* Neutral (disabled/muted buttons) */
+  --sv-neutral:      #6c757d;
+  --sv-neutral-dark: #545b62;
+}
+
+
+/*  Expired overlay banner  */
+
 .overlay-expired {
   display: flex;
   align-items: center;
@@ -24,13 +80,16 @@
 }
 
 .overlay-expired__message {
-  color: #ccc;
+  color: var(--sv-text-3);
   font-size: 0.85rem;
 }
 
 .overlay-expired__message strong {
   color: var(--Main);
 }
+
+
+/*  Simple server error/status pages  */
 
 .server-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -39,8 +98,8 @@
   align-items: center;
   justify-content: center;
   line-height: 1.6;
-  background: #1a1a1a;
-  color: #e0e0e0;
+  background: var(--sv-bg);
+  color: var(--sv-text);
 }
 
 .server-page .container {
@@ -52,47 +111,47 @@
 .server-page .icon-code {
   font-size: 6rem;
   font-weight: 300;
-  color: #666;
+  color: var(--sv-text-5);
   margin-bottom: 1rem;
 }
 
 .server-page .icon-code.auth-error,
 .server-page .icon-code.access-denied {
-  color: #dc3545;
+  color: var(--sv-danger);
 }
 
 .server-page .icon-code.success-code {
-  color: #28a745;
+  color: var(--sv-success);
 }
 
 .server-page .page-title {
   font-size: 1.5rem;
   font-weight: 400;
   margin-bottom: 1rem;
-  color: #ccc;
+  color: var(--sv-text-2);
 }
 
 .server-page .page-message {
   font-size: 1rem;
-  color: #999;
+  color: var(--sv-text-4);
   margin-bottom: 2rem;
 }
 
 .server-page .path-info,
 .server-page .user-info {
   font-family: 'Courier New', monospace;
-  background: #2a2a2a;
+  background: var(--sv-surface);
   padding: 0.75rem 1rem;
   border-radius: 4px;
   font-size: 0.85rem;
-  color: #aaa;
-  border-left: 3px solid #444;
+  color: var(--sv-text-3);
+  border-left: 3px solid var(--sv-border);
   word-break: break-all;
   margin-bottom: 2rem;
 }
 
 .server-page .user-info {
-  border-left-color: #dc3545;
+  border-left-color: var(--sv-danger);
 }
 
 .server-page .details-section {
@@ -101,7 +160,7 @@
 }
 
 .server-page .details-section h3 {
-  color: #ccc;
+  color: var(--sv-text-2);
   margin-bottom: 0.5rem;
   font-size: 1rem;
 }
@@ -118,7 +177,7 @@
 
 .server-page .action-btn {
   display: inline-block;
-  background: #777;
+  background: var(--sv-neutral);
   color: white;
   padding: 10px 20px;
   text-decoration: none;
@@ -130,18 +189,20 @@
 }
 
 .server-page .action-btn:hover {
-  background: #888;
+  background: var(--sv-neutral-dark);
 }
 
-/* Success page specific styles */
+
+/*  Auth success / dashboard shared styles  */
+
 .token-box {
   font-family: 'Courier New', monospace;
-  background: #2a2a2a;
+  background: var(--sv-surface);
   padding: 0.75rem 1rem;
   border-radius: 4px;
   font-size: 0.85rem;
-  color: #aaa;
-  border-left: 3px solid #28a745;
+  color: var(--sv-text-3);
+  border-left: 3px solid var(--sv-success);
   word-break: break-all;
   margin: 10px 0;
   display: flex;
@@ -151,11 +212,11 @@
 
 .url-box {
   font-family: 'Courier New', monospace;
-  background: #2a2a2a;
+  background: var(--sv-surface);
   padding: 0.75rem 1rem;
   border-radius: 4px;
   font-size: 0.75rem;
-  color: #aaa;
+  color: var(--sv-text-3);
   word-break: break-all;
   margin: 10px 0;
   display: flex;
@@ -165,8 +226,8 @@
 
 .copy-btn {
   background: rgba(255, 255, 255, 0.05);
-  color: #888;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--sv-text-5);
+  border: 1px solid var(--sv-border-sub);
   padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -181,7 +242,7 @@
 
 .copy-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #bbb;
+  color: var(--sv-text-2);
   border-color: rgba(255, 255, 255, 0.2);
   transform: none;
 }
@@ -196,33 +257,33 @@
 }
 
 .copy-btn.copied {
-  background: rgba(40, 167, 69, 0.15);
-  color: #6dba89;
-  border-color: rgba(40, 167, 69, 0.25);
+  background: var(--sv-success-dim);
+  color: var(--sv-success-text);
+  border-color: var(--sv-success-dim2);
 }
 
 .copy-btn.failed {
-  background: rgba(220, 53, 69, 0.15);
-  color: #e88b94;
-  border-color: rgba(220, 53, 69, 0.25);
+  background: var(--sv-danger-dim);
+  color: var(--sv-danger-text);
+  border-color: var(--sv-danger-dim2);
 }
 
 .server-page .expiry-info {
   margin: 15px 0;
   padding: 12px 15px;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-border);
   border-radius: 6px;
   font-size: 0.9rem;
-  color: #aaa;
+  color: var(--sv-text-3);
 }
 
 .server-page .expiry-info strong {
-  color: #ccc;
+  color: var(--sv-text-2);
 }
 
 .server-page .expiry-time {
-  color: #dc3545;
+  color: var(--sv-danger);
   font-weight: 600;
 }
 
@@ -233,14 +294,15 @@
   }
 }
 
-/* ─── Demo dashboard styles ───────────────────────────────────────────────── */
+
+/*  Demo dashboard  */
 
 .demo-container {
   max-width: 1200px;
   margin: 2rem auto;
   padding: 0 1rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #e0e0e0;
+  color: var(--sv-text);
 }
 
 .demo-header {
@@ -250,18 +312,18 @@
 
 .demo-header h1 {
   margin-bottom: 0.5rem;
-  color: #ccc;
+  color: var(--sv-text-2);
 }
 
 .demo-header p {
-  color: #aaa;
+  color: var(--sv-text-3);
   margin-bottom: 1.5rem;
 }
 
 .demo-header .icon-code {
   font-size: 6rem;
   font-weight: 300;
-  color: #28a745;
+  color: var(--sv-success);
   margin-bottom: 1rem;
 }
 
@@ -271,7 +333,7 @@
 }
 
 .global-controls button {
-  background: #9146ff;
+  background: var(--sv-brand);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -283,11 +345,11 @@
 }
 
 .global-controls button:hover:not(:disabled) {
-  background: #7c3aed;
+  background: var(--sv-brand-dark);
 }
 
 .global-controls button:disabled {
-  background: #6c757d;
+  background: var(--sv-neutral);
   cursor: not-allowed;
 }
 
@@ -297,17 +359,17 @@
 
 .category-title {
   font-size: 1.5rem;
-  color: #ccc;
+  color: var(--sv-text-2);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #9146ff;
+  border-bottom: 2px solid var(--sv-brand);
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .category-description {
-  color: #aaa;
+  color: var(--sv-text-3);
   margin-bottom: 1.5rem;
   font-style: italic;
 }
@@ -319,18 +381,18 @@
 }
 
 .api-card {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-border);
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
-  color: #ccc;
+  color: var(--sv-text-2);
 }
 
 .api-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border-color: #9146ff;
+  border-color: var(--sv-brand);
 }
 
 .card-header {
@@ -343,7 +405,7 @@
 .card-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #ccc;
+  color: var(--sv-text-2);
   margin: 0;
   display: flex;
   align-items: center;
@@ -354,14 +416,14 @@
 }
 
 .card-description {
-  color: #aaa;
+  color: var(--sv-text-3);
   font-size: 0.9rem;
   margin-bottom: 1rem;
   line-height: 1.4;
 }
 
 .card-button {
-  background: #28a745;
+  background: var(--sv-success);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -374,35 +436,35 @@
 }
 
 .card-button:hover:not(:disabled) {
-  background: #218838;
+  background: var(--sv-success-dark);
 }
 
 .card-button:disabled {
-  background: #6c757d;
+  background: var(--sv-neutral);
   cursor: not-allowed;
 }
 
 .card-button.danger {
-  background: #dc3545;
+  background: var(--sv-danger);
   width: auto;
 }
 
 .card-button.danger:hover:not(:disabled) {
-  background: #c82333;
+  background: var(--sv-danger-dark);
 }
 
 .card-data {
   font-family: 'Courier New', monospace;
-  background: #1a1a1a;
+  background: var(--sv-deep);
   padding: 1rem;
   border-radius: 4px;
   font-size: 0.8rem;
-  color: #aaa;
+  color: var(--sv-text-3);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #444;
+  border: 1px solid var(--sv-border);
 }
 
 .card-data.loading {
@@ -413,7 +475,7 @@
 
 .card-data.error {
   background: #3d1c20;
-  color: #e88b94;
+  color: var(--sv-danger-text);
   border-color: #6b2e33;
 }
 
@@ -431,20 +493,12 @@
   margin-left: 8px;
 }
 
-.status-loading {
-  background: #ffc107;
-}
-
-.status-success {
-  background: #28a745;
-}
-
-.status-error {
-  background: #dc3545;
-}
+.status-loading  { background: var(--sv-warning); }
+.status-success  { background: var(--sv-success); }
+.status-error    { background: var(--sv-danger); }
 
 .analysis-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--sv-indigo) 0%, var(--sv-indigo-dark) 100%);
   color: white;
   padding: 2rem;
   border-radius: 12px;
@@ -481,14 +535,14 @@
 .eventsub-select {
   padding: 8px;
   margin-right: 8px;
-  border: 1px solid #555;
+  border: 1px solid var(--sv-border);
   border-radius: 4px;
-  background: #2a2a2a;
-  color: #ccc;
+  background: var(--sv-surface);
+  color: var(--sv-text-2);
 }
 
 .demo-back-link {
-  background: #6c757d;
+  background: var(--sv-neutral);
   color: white;
   text-decoration: none;
   padding: 12px 24px;
@@ -498,7 +552,7 @@
 }
 
 .demo-back-link:hover {
-  background: #545b62;
+  background: var(--sv-neutral-dark);
 }
 
 @media (max-width: 768px) {
@@ -511,7 +565,8 @@
   }
 }
 
-/* ─── Auth success dashboard styles ──────────────────────────────────────── */
+
+/*  Auth success dashboard (Mantine-based)  */
 
 .main-page [data-paper] {
   background: rgba(var(--LightRGBA), 0.03) !important;
@@ -519,17 +574,12 @@
 }
 
 /* Neutralise the global orange link colour inside the dashboard */
-.main-page a {
-  color: #aaa;
-}
+.main-page a       { color: var(--sv-text-3); }
+.main-page a:hover { color: var(--sv-text-2); }
 
-.main-page a:hover {
-  color: #ccc;
-}
-
-/* Gradient titles — emoji must live outside this span so it keeps its natural colour */
+/* Gradient titles  emoji must live outside this span so it keeps its natural colour */
 .main-title {
-  background: linear-gradient(135deg, #a78bfa 0%, #667eea 50%, #c4b5fd 100%);
+  background: linear-gradient(135deg, #a78bfa 0%, var(--sv-indigo) 50%, #c4b5fd 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -542,11 +592,11 @@
   background-clip: text;
 }
 
-/* Re-authenticate button — purple-tinted, inspired by .analysis-btn */
+/* Re-authenticate button  indigo-tinted */
 .dashboard-btn {
-  background: rgba(102, 126, 234, 0.15);
+  background: var(--sv-indigo-dim);
   color: #b0b8f8;
-  border: 1px solid rgba(102, 126, 234, 0.35);
+  border: 1px solid var(--sv-indigo-dim2);
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
