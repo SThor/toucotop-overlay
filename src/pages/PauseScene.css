@@ -1,0 +1,154 @@
+.pause-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #030305;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Shader fills the full viewport ---- */
+.pause-shader {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.pause-shader canvas,
+.pause-shader > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ---- Radial vignette darkens edges so text is readable ---- */
+.pause-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 50%,
+    transparent 30%,
+    rgba(3, 3, 5, 0.45) 60%,
+    rgba(26, 0, 32, 0.82) 100%
+  );
+  pointer-events: none;
+}
+
+/* ---- Centred content stack ---- */
+.pause-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.8rem;
+  text-align: center;
+  /* Scanline noise over the whole content area */
+  isolation: isolate;
+}
+
+.pause-content::after {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 204, 0.018) 2px,
+    rgba(0, 255, 204, 0.018) 4px
+  );
+  pointer-events: none;
+  animation: noise-roll 0.6s steps(5) infinite;
+  z-index: -1;
+}
+
+/* ---- Drip wrapper — the goo filter is here ---- */
+.pause-drip-wrapper {
+  position: relative;
+  filter: url(#pause-drip-filter);
+  /* Extra padding so the drip blobs aren't clipped */
+  padding-bottom: 2.5rem;
+}
+
+/* ---- UnifrakturMaguntia title ---- */
+.pause-title {
+  font-family: 'UnifrakturMaguntia', serif;
+  font-size: clamp(4rem, 10vw, 9rem);
+  font-weight: 400;
+  line-height: 1;
+  margin: 0;
+
+  /* Chrome gradient on the text */
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #d0d0d0 18%,
+    #ffffff 36%,
+    #686868 54%,
+    #ffffff 72%,
+    #b0b0b0 100%
+  );
+  background-size: 100% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: chrome-shine 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.4))
+          drop-shadow(0 4px 20px rgba(119, 0, 255, 0.5));
+}
+
+/* ---- Drip blobs that fuse into the letters via the goo filter ---- */
+.pause-drips {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 10%;
+  pointer-events: none;
+}
+
+.pause-drips span {
+  display: block;
+  width: clamp(10px, 1.8vw, 22px);
+  /* Heights stagger naturally via nth-child */
+  border-radius: 50% 50% 60% 60% / 40% 40% 60% 60%;
+  background: #ffffff;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 204, 0.6));
+}
+
+.pause-drips span:nth-child(1) { height: clamp(20px, 3.5vw, 44px); }
+.pause-drips span:nth-child(2) { height: clamp(32px, 5.5vw, 68px); align-self: flex-end; margin-bottom: -0.3rem; }
+.pause-drips span:nth-child(3) { height: clamp(14px, 2.5vw, 32px); }
+.pause-drips span:nth-child(4) { height: clamp(40px, 7vw,  80px); align-self: flex-end; margin-bottom: -0.5rem; }
+.pause-drips span:nth-child(5) { height: clamp(22px, 4vw,  50px); }
+
+/* ---- "stream paused" subtitle ---- */
+.pause-subtitle {
+  font-size: clamp(0.5rem, 1.2vw, 0.8rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--y2k-cyan);
+  text-shadow: 0 0 12px var(--y2k-cyan), 0 0 30px rgba(0, 255, 204, 0.3);
+  margin: 0;
+  animation: hud-flicker 6s ease-in-out infinite;
+}
+
+@keyframes hud-flicker {
+  0%, 94%, 100% { opacity: 1; }
+  95%            { opacity: 0.3; }
+  97%            { opacity: 1; }
+  98%            { opacity: 0.5; }
+}
+
+/* ---- Barcode decoration ---- */
+.pause-barcode {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  color: rgba(255, 255, 255, 0.18);
+  letter-spacing: 0.05em;
+  margin: 0;
+  user-select: none;
+}

@@ -120,6 +120,7 @@ export default function AuthSuccessPage() {
   const chatUrl = `${baseUrl}/chat?token=${encodeURIComponent(overlayToken)}`;
   const clockUrl = `${baseUrl}/clock?token=${encodeURIComponent(overlayToken)}`;
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
+  const pauseUrl = `${baseUrl}/pause`;
   const crt = persistedSettings.themeSettings.crt;
 
   return (
@@ -162,6 +163,7 @@ export default function AuthSuccessPage() {
               { label: '💬 Chat Overlay', url: chatUrl },
               { label: '🕐 Clock Overlay', url: clockUrl },
               { label: '📊 Info Bar Overlay', url: barUrl },
+              { label: '⏸ Pause Scene (no token needed)', url: pauseUrl },
             ].map(({ label, url }) => (
               <div key={url}>
                 <Text size="sm" fw={500} mb="xs">{label}</Text>
@@ -385,6 +387,7 @@ export default function AuthSuccessPage() {
                 data={[
                   { value: 'default', label: 'Animated background' },
                   { value: 'crt', label: 'CRT effects' },
+                  { value: 'y2k', label: 'Gothic Techno (Y2K)' },
                 ]}
                 allowDeselect={false}
               />
