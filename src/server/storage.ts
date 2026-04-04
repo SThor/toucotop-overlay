@@ -89,8 +89,10 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlayExpiresAt: overlayStillValid
       ? existingOverlayExpiry
       : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    // Preserve existing settings; new users get defaults
+    // Preserve existing settings and last-event data; new users get defaults
     overlaySettings: existingData?.overlaySettings ?? { ...defaultOverlaySettings },
+    ...(existingData?.lastFollower !== undefined ? { lastFollower: existingData.lastFollower } : {}),
+    ...(existingData?.lastSubscriber !== undefined ? { lastSubscriber: existingData.lastSubscriber } : {}),
   };
   
   fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
@@ -230,35 +232,41 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
 }
 
 /**
- * Update the last follower for a user.
+ * Internal helper: read the user's token file, apply a synchronous mutation, and
+ * write it back. Because all storage functions use synchronous fs calls, writes are
+ * serialised on Node.js's single-threaded event loop — there is no async interleaving
+ * risk. Centralising the read-modify-write pattern here means every field update goes
+ * through a single code path, reducing the chance of fields being silently dropped.
  */
-export function updateLastFollower(username: string, data: LastFollowerData): void {
+function patchUserFile(
+  username: string,
+  applyPatch: (data: StoredUserData) => void,
+  errorLabel: string,
+): void {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
   if (!fs.existsSync(tokenFile)) return;
   try {
-    const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-    stored.lastFollower = data;
-    stored.updatedAt = new Date().toISOString();
-    fs.writeFileSync(tokenFile, JSON.stringify(stored, null, 2), { mode: 0o600 });
+    const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+    applyPatch(data);
+    data.updatedAt = new Date().toISOString();
+    fs.writeFileSync(tokenFile, JSON.stringify(data, null, 2), { mode: 0o600 });
   } catch (error) {
-    console.error(`❌ Error updating lastFollower for ${username}:`, error);
+    console.error(`❌ Error ${errorLabel} for ${username}:`, error);
   }
+}
+
+/**
+ * Update the last follower for a user.
+ */
+export function updateLastFollower(username: string, data: LastFollowerData): void {
+  patchUserFile(username, (stored) => { stored.lastFollower = data; }, 'updating lastFollower');
 }
 
 /**
  * Update the last subscriber for a user.
  */
 export function updateLastSubscriber(username: string, data: LastSubscriberData): void {
-  const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
-  if (!fs.existsSync(tokenFile)) return;
-  try {
-    const stored: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
-    stored.lastSubscriber = data;
-    stored.updatedAt = new Date().toISOString();
-    fs.writeFileSync(tokenFile, JSON.stringify(stored, null, 2), { mode: 0o600 });
-  } catch (error) {
-    console.error(`❌ Error updating lastSubscriber for ${username}:`, error);
-  }
+  patchUserFile(username, (stored) => { stored.lastSubscriber = data; }, 'updating lastSubscriber');
 }
 
 /**

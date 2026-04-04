@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 interface MarqueeTextProps {
   text: string;
@@ -48,7 +48,7 @@ const MarqueeText = ({ text, className }: MarqueeTextProps) => {
                 display: 'inline-block',
                 animation: `marquee-scroll ${duration}s linear infinite`,
                 '--marquee-distance': `-${overflow + 32}px`,
-              } as React.CSSProperties
+              } as CSSProperties
             : undefined
         }
       >

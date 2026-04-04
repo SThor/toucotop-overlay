@@ -144,7 +144,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
       fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
         .then(async (res) => {
-          if (!res.ok) return null;
+          if (res.status >= 500) throw new Error(`HTTP ${res.status}`); // server error — retry
+          if (!res.ok) return null; // 4xx (bad/expired token) — don't retry
           const data = await res.json() as { settings?: OverlaySettings } | null;
           if (!data || typeof data !== 'object' || !data.settings || typeof data.settings !== 'object') return null;
           return data.settings;

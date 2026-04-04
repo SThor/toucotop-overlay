@@ -9,7 +9,7 @@ export const theme = createTheme({
       '#fed7aa',
       '#fdba74',
       '#fb923c',
-      '#f97316', // --Main
+      '#f97316', // index 5 (nearest Tailwind step; actual --Main is #e56d0c via --MainRGBA)
       '#ea580c',
       '#dc2626',
       '#b91c1c',
