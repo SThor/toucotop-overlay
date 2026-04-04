@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
@@ -206,6 +206,26 @@ export function extendOverlayToken(username: string): void {
 }
 
 /**
+ * Merge a per-overlay patch into the base using null-as-clear semantics:
+ * - key present with number → update that overlay's value
+ * - key present with null  → explicitly clear that overlay (falls back to global)
+ * - key absent             → leave existing value untouched
+ */
+function mergePerOverlay(
+  base: PerOverlayNumber,
+  patch: Partial<PerOverlayNumber> | undefined,
+): PerOverlayNumber {
+  if (!patch) return { ...defaultOverlaySettings.perOverlayOpacity, ...base };
+  const result: PerOverlayNumber = { ...defaultOverlaySettings.perOverlayOpacity, ...base };
+  for (const key of ['chat', 'clock', 'bar'] as const) {
+    if (key in patch) {
+      result[key] = patch[key] ?? null;
+    }
+  }
+  return result;
+}
+
+/**
  * Update overlay settings for a user identified by username.
  * Returns the fully-merged persisted settings on success, or null on failure.
  */
@@ -220,13 +240,8 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...defaultOverlaySettings,
       ...base,
       ...settings,
-      perOverlayOpacity: 'perOverlayOpacity' in settings
-        // Explicit PATCH key → replace entirely (supports clearing with {})
-        ? { ...(settings.perOverlayOpacity ?? {}) }
-        : { ...defaultOverlaySettings.perOverlayOpacity, ...(base.perOverlayOpacity ?? {}) },
-      perOverlayFontSize: 'perOverlayFontSize' in settings
-        ? { ...(settings.perOverlayFontSize ?? {}) }
-        : { ...defaultOverlaySettings.perOverlayFontSize, ...(base.perOverlayFontSize ?? {}) },
+      perOverlayOpacity: mergePerOverlay(base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
+      perOverlayFontSize: mergePerOverlay(base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
         ...(base.themeSettings ?? {}),

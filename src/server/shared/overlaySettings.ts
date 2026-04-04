@@ -3,9 +3,9 @@
 export type OverlayTheme = 'crt' | 'default';
 
 export interface PerOverlayNumber {
-  chat?: number;
-  clock?: number;
-  bar?: number;
+  chat?: number | null;
+  clock?: number | null;
+  bar?: number | null;
 }
 
 export interface OverlaySettings {
@@ -28,9 +28,9 @@ export interface OverlaySettings {
 
 export const defaultOverlaySettings: OverlaySettings = {
   overlayOpacity: 0.9,
-  perOverlayOpacity: {},
+  perOverlayOpacity: { chat: null, clock: null, bar: null },
   fontSize: 1.0,
-  perOverlayFontSize: {},
+  perOverlayFontSize: { chat: null, clock: null, bar: null },
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
   barFloating: true,

@@ -47,22 +47,6 @@ export default function AuthSuccessPage() {
   const [sessionExpired, setSessionExpired] = useState(() => !overlayToken && !urlToken);
   const [showSaved, setShowSaved] = useState(false);
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showPerOpacity, setShowPerOpacity] = useState(() => Object.keys(settings.perOverlayOpacity).length > 0);
-  const [showPerFontSize, setShowPerFontSize] = useState(() => Object.keys(settings.perOverlayFontSize).length > 0);
-
-  // Derive stable boolean primitives so the sync effect below only fires when
-  // the meaningful state actually flips (has overrides ↔ no overrides), not on
-  // every render where the perOverlay objects are recreated as new references.
-  const hasPerOpacity = Object.keys(settings.perOverlayOpacity).length > 0;
-  const hasPerFontSize = Object.keys(settings.perOverlayFontSize).length > 0;
-
-  // Sync toggles whenever per-overlay settings change — covers both the initial
-  // async load completing and any subsequent updates from the retry-with-backoff path.
-  useEffect(() => {
-    setShowPerOpacity(hasPerOpacity);
-    setShowPerFontSize(hasPerFontSize);
-  }, [hasPerOpacity, hasPerFontSize]);
-
   // Clear pending timer on unmount to avoid setState on an unmounted component
   useEffect(() => () => {
     if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
@@ -240,33 +224,43 @@ export default function AuthSuccessPage() {
                   min={0.1} max={1} step={0.05}
                 />
               </div>
-              <Switch
-                label="Per-overlay opacity overrides"
-                description="Set a different opacity for each overlay"
-                checked={showPerOpacity}
-                onChange={(e) => {
-                  const on = e.currentTarget.checked;
-                  setShowPerOpacity(on);
-                  if (!on) save({ perOverlayOpacity: {} });
-                }}
-              />
-              {showPerOpacity && (
-                <Stack gap="md" pl="md">
-                  {(['chat', 'clock', 'bar'] as const).map((key) => (
+              <Text size="sm" fw={500}>Per-overlay opacity overrides</Text>
+              <Stack gap="md" pl="md">
+                {(['chat', 'clock', 'bar'] as const).map((key) => {
+                  const isOverridden = settings.perOverlayOpacity[key] != null;
+                  return (
                     <div key={key}>
-                      <Text size="sm" fw={500} mb="xs" tt="capitalize">
-                        {key}: {Math.round((settings.perOverlayOpacity[key] ?? settings.overlayOpacity) * 100)}%
-                        {settings.perOverlayOpacity[key] == null ? ' (using global)' : ''}
-                      </Text>
-                      <Slider
-                        value={settings.perOverlayOpacity[key] ?? settings.overlayOpacity}
-                        onChange={(v) => save({ perOverlayOpacity: { ...persistedSettings.perOverlayOpacity, [key]: v } })}
-                        min={0.1} max={1} step={0.05}
-                      />
+                      <Group justify="space-between" mb="xs">
+                        <Text size="sm" fw={500} tt="capitalize">
+                          {key}: {Math.round((settings.perOverlayOpacity[key] ?? settings.overlayOpacity) * 100)}%
+                          {!isOverridden ? ' (using global)' : ''}
+                        </Text>
+                        <Switch
+                          size="xs"
+                          label="Override"
+                          checked={isOverridden}
+                          onChange={(e) => {
+                            const on = e.currentTarget.checked;
+                            save({
+                              perOverlayOpacity: {
+                                ...persistedSettings.perOverlayOpacity,
+                                [key]: on ? (persistedSettings.perOverlayOpacity[key] ?? settings.overlayOpacity) : null,
+                              },
+                            });
+                          }}
+                        />
+                      </Group>
+                      {isOverridden && (
+                        <Slider
+                          value={settings.perOverlayOpacity[key]!}
+                          onChange={(v) => save({ perOverlayOpacity: { ...persistedSettings.perOverlayOpacity, [key]: v } })}
+                          min={0.1} max={1} step={0.05}
+                        />
+                      )}
                     </div>
-                  ))}
-                </Stack>
-              )}
+                  );
+                })}
+              </Stack>
 
               {/* Font Size */}
               <div>
@@ -285,33 +279,43 @@ export default function AuthSuccessPage() {
                   ]}
                 />
               </div>
-              <Switch
-                label="Per-overlay font size overrides"
-                description="Set a different scale for each overlay"
-                checked={showPerFontSize}
-                onChange={(e) => {
-                  const on = e.currentTarget.checked;
-                  setShowPerFontSize(on);
-                  if (!on) save({ perOverlayFontSize: {} });
-                }}
-              />
-              {showPerFontSize && (
-                <Stack gap="md" pl="md">
-                  {(['chat', 'clock', 'bar'] as const).map((key) => (
+              <Text size="sm" fw={500}>Per-overlay font size overrides</Text>
+              <Stack gap="md" pl="md">
+                {(['chat', 'clock', 'bar'] as const).map((key) => {
+                  const isOverridden = settings.perOverlayFontSize[key] != null;
+                  return (
                     <div key={key}>
-                      <Text size="sm" fw={500} mb="xs" tt="capitalize">
-                        {key}: {(settings.perOverlayFontSize[key] ?? settings.fontSize).toFixed(2)}×
-                        {settings.perOverlayFontSize[key] == null ? ' (using global)' : ''}
-                      </Text>
-                      <Slider
-                        value={settings.perOverlayFontSize[key] ?? settings.fontSize}
-                        onChange={(v) => save({ perOverlayFontSize: { ...persistedSettings.perOverlayFontSize, [key]: v } })}
-                        min={0.5} max={10} step={0.05}
-                      />
+                      <Group justify="space-between" mb="xs">
+                        <Text size="sm" fw={500} tt="capitalize">
+                          {key}: {(settings.perOverlayFontSize[key] ?? settings.fontSize).toFixed(2)}×
+                          {!isOverridden ? ' (using global)' : ''}
+                        </Text>
+                        <Switch
+                          size="xs"
+                          label="Override"
+                          checked={isOverridden}
+                          onChange={(e) => {
+                            const on = e.currentTarget.checked;
+                            save({
+                              perOverlayFontSize: {
+                                ...persistedSettings.perOverlayFontSize,
+                                [key]: on ? (persistedSettings.perOverlayFontSize[key] ?? settings.fontSize) : null,
+                              },
+                            });
+                          }}
+                        />
+                      </Group>
+                      {isOverridden && (
+                        <Slider
+                          value={settings.perOverlayFontSize[key]!}
+                          onChange={(v) => save({ perOverlayFontSize: { ...persistedSettings.perOverlayFontSize, [key]: v } })}
+                          min={0.5} max={10} step={0.05}
+                        />
+                      )}
                     </div>
-                  ))}
-                </Stack>
-              )}
+                  );
+                })}
+              </Stack>
 
               <Switch
                 label="Floating Bar"

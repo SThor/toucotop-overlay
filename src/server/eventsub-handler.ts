@@ -255,7 +255,9 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           followedAt: String(eventData['followed_at'] ?? new Date().toISOString()),
         });
       } else if (subType === 'channel.subscribe') {
-        const gifterLogin = typeof eventData['gifter_login'] === 'string' ? eventData['gifter_login'] : undefined;
+        const gifterLogin = Boolean(eventData['is_gift']) && typeof eventData['gifter_user_login'] === 'string'
+          ? eventData['gifter_user_login'] as string
+          : undefined;
         updateLastSubscriber(broadcasterLogin, {
           userId: String(eventData['user_id'] ?? ''),
           userName: String(eventData['user_login'] ?? ''),
