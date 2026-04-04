@@ -195,6 +195,27 @@ export default function AuthSuccessPage() {
               <CopyButton text={overlayToken} />
             </div>
           </details>
+          <details style={{ marginTop: 8 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13 }}>
+              Per-overlay URL overrides (session-only)
+            </summary>
+            <Text size="xs" c="dimmed" mt="xs" mb="xs">
+              Append query parameters to any overlay URL to override settings for that browser source
+              only. These are not saved — useful for per-scene OBS configuration.
+            </Text>
+            <Text size="xs" c="dimmed" component="div">
+              <strong>Opacity</strong> (0.1–1):{' '}
+              <code>?opacityChat=0.8&amp;opacityClock=0.7&amp;opacityBar=0.6</code>
+            </Text>
+            <Text size="xs" c="dimmed" component="div" mt={4}>
+              <strong>Font scale</strong> (0.5–10):{' '}
+              <code>?fontSizeChat=1.2&amp;fontSizeClock=0.9&amp;fontSizeBar=1.4</code>
+            </Text>
+            <Text size="xs" c="dimmed" component="div" mt={4}>
+              <strong>Other</strong>:{' '}
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;crtEffects=false</code>
+            </Text>
+          </details>
         </Paper>
 
         {/* Layout & chat settings */}
