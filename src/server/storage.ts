@@ -220,16 +220,13 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...defaultOverlaySettings,
       ...base,
       ...settings,
-      perOverlayOpacity: {
-        ...defaultOverlaySettings.perOverlayOpacity,
-        ...(base.perOverlayOpacity ?? {}),
-        ...(settings.perOverlayOpacity ?? {}),
-      },
-      perOverlayFontSize: {
-        ...defaultOverlaySettings.perOverlayFontSize,
-        ...(base.perOverlayFontSize ?? {}),
-        ...(settings.perOverlayFontSize ?? {}),
-      },
+      perOverlayOpacity: 'perOverlayOpacity' in settings
+        // Explicit PATCH key → replace entirely (supports clearing with {})
+        ? { ...(settings.perOverlayOpacity ?? {}) }
+        : { ...defaultOverlaySettings.perOverlayOpacity, ...(base.perOverlayOpacity ?? {}) },
+      perOverlayFontSize: 'perOverlayFontSize' in settings
+        ? { ...(settings.perOverlayFontSize ?? {}) }
+        : { ...defaultOverlaySettings.perOverlayFontSize, ...(base.perOverlayFontSize ?? {}) },
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
         ...(base.themeSettings ?? {}),

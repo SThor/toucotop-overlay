@@ -195,12 +195,21 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   }, [overlayToken]);
 
   // Merged view: defaults → server settings → URL param overrides (session-only)
-  // themeSettings is deep-merged so a single URL param (e.g. crtScanlines) doesn't
-  // wipe the other crt fields stored server-side.
+  // Nested objects (themeSettings, perOverlayOpacity, perOverlayFontSize) are
+  // deep-merged so a single URL param (e.g. ?opacityChat=0.8) doesn't wipe
+  // the other overlay values stored server-side.
   const settings: Settings = {
     overlayToken,
     ...serverSettings,
     ...urlOverrides,
+    perOverlayOpacity: {
+      ...serverSettings.perOverlayOpacity,
+      ...urlOverrides.perOverlayOpacity,
+    },
+    perOverlayFontSize: {
+      ...serverSettings.perOverlayFontSize,
+      ...urlOverrides.perOverlayFontSize,
+    },
     themeSettings: {
       ...serverSettings.themeSettings,
       ...urlOverrides.themeSettings,
