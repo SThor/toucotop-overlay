@@ -3,6 +3,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { TwitchProvider } from '../contexts/TwitchContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import CRTBackground from '../components/CRTBackground';
+import MarqueeText from '../components/MarqueeText';
 import '../styles/ClockOverlay.css';
 
 // Destructure the hook for cleaner usage
@@ -103,17 +104,16 @@ const ClockOverlay = () => {
       </div>
       
       <div className="clock-footer">
-        <div className="stream-title">
-          {streamInfo && streamInfo.isLive 
-            ? streamInfo.title 
-            : 'Stream Offline'
-          }
-        </div>
-        <div className="stream-category">
-          {streamInfo && streamInfo.isLive && streamInfo.gameName && (
-            <>{streamInfo.gameName}</>
-          )}
-        </div>
+        <MarqueeText
+          className="stream-title"
+          text={streamInfo?.isLive ? streamInfo.title : 'Stream Offline'}
+        />
+        {streamInfo?.isLive && streamInfo?.gameName && (
+          <MarqueeText
+            className="stream-category"
+            text={streamInfo.gameName}
+          />
+        )}
       </div>
     </div>
   );
