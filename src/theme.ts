@@ -77,6 +77,7 @@ export const theme = createTheme({
     Slider: { defaultProps: { color: 'brand' } },
     Switch: { defaultProps: { color: 'brand' } },
     Radio:  { defaultProps: { color: 'brand' } },
+    Select: { defaultProps: { checkIconPosition: 'right' }, styles: { input: { '--input-bd-focus': 'var(--mantine-color-brand-filled)' } } },
     TextInput: {
       styles: {
         input: {
@@ -84,7 +85,7 @@ export const theme = createTheme({
           borderColor: 'transparent',
           color: 'rgba(255, 235, 219, 0.9)',
           '&:focus': {
-            borderColor: 'rgba(249, 115, 22, 0.3)',
+            borderColor: 'rgba(145, 70, 255, 0.4)',
             backgroundColor: 'rgba(255, 235, 219, 0.05)',
           },
           '&::placeholder': {
@@ -101,12 +102,12 @@ export const theme = createTheme({
       styles: {
         root: {
           '&[data-variant="outline"]': {
-            borderColor: 'rgba(249, 115, 22, 0.3)',
+            borderColor: 'rgba(145, 70, 255, 0.4)',
             color: 'rgba(255, 235, 219, 0.8)',
             backgroundColor: 'transparent',
             '&:hover': {
-              backgroundColor: 'rgba(249, 115, 22, 0.05)',
-              borderColor: 'rgba(249, 115, 22, 0.4)',
+              backgroundColor: 'rgba(145, 70, 255, 0.08)',
+              borderColor: 'rgba(145, 70, 255, 0.6)',
             },
           },
         },
