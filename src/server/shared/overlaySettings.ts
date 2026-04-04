@@ -1,6 +1,6 @@
 // Single canonical definition of OverlaySettings — imported by both
 // src/server/storage.ts (server) and src/contexts/SettingsContext.tsx (client)
-export type OverlayTheme = 'crt' | 'default';
+export type OverlayTheme = 'crt' | 'default' | 'y2k';
 
 export interface PerOverlayNumber {
   chat?: number | null;

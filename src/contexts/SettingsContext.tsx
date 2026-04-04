@@ -78,7 +78,7 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
   if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
   if (p.has('theme')) {
     const v = p.get('theme');
-    if (v === 'crt' || v === 'default') o.theme = v;
+    if (v === 'crt' || v === 'default' || v === 'y2k') o.theme = v;
   }
   // Legacy boolean param: ?crtEffects=false  (kept for backward compat)
   if (p.has('crtEffects') && !p.has('theme')) o.theme = p.get('crtEffects') === 'false' ? 'default' : 'crt';

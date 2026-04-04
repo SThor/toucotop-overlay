@@ -80,8 +80,8 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
 
   if ('theme' in body) {
     const v = body.theme;
-    if (v !== 'crt' && v !== 'default') {
-      errors.push('theme must be "crt" or "default"');
+    if (v !== 'crt' && v !== 'default' && v !== 'y2k') {
+      errors.push('theme must be "crt", "default", or "y2k"');
     } else {
       patch.theme = v;
     }
