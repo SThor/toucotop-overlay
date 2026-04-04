@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { TwitchProvider } from '../contexts/TwitchContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import AnimatedBackground from '../components/AnimatedBackground';
-import CRTBackground from '../components/CRTBackground';
+import ThemeBackground from '../components/ThemeBackground';
 import EmoteMessage from '../components/EmoteMessage';
 import '../styles/ChatOverlay.css';
 
@@ -41,7 +40,7 @@ const ChatOverlay = () => {
       className="chat-overlay"
       style={{ opacity: settings.perOverlayOpacity?.chat ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.chat ?? settings.fontSize}rem` }}
     >
-      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
+      <ThemeBackground />
       <div className="chat-header">
         <h3 className={settings.theme === 'crt' ? 'crt-glow-text' : ''}>
           💬 Stream Chat

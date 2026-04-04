@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { TwitchProvider } from '../contexts/TwitchContext';
-import AnimatedBackground from '../components/AnimatedBackground';
-import CRTBackground from '../components/CRTBackground';
+import ThemeBackground from '../components/ThemeBackground';
 import MarqueeText from '../components/MarqueeText';
 import '../styles/BarOverlay.css';
 
@@ -100,7 +99,7 @@ const BarOverlayContent = () => {
       className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${!settings.barFloating ? 'full-width' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
-      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
+      <ThemeBackground />
       
       {/* Current Time Section */}
       <div className="bar-section bar-time-section">

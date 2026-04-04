@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { TwitchProvider } from '../contexts/TwitchContext';
-import AnimatedBackground from '../components/AnimatedBackground';
-import CRTBackground from '../components/CRTBackground';
+import ThemeBackground from '../components/ThemeBackground';
 import MarqueeText from '../components/MarqueeText';
 import '../styles/ClockOverlay.css';
 
@@ -86,7 +85,7 @@ const ClockOverlay = () => {
       className="clock-overlay"
       style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
-      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
+      <ThemeBackground />
       <div className="current-time-section">
         <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
         <div className={`current-time ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>
