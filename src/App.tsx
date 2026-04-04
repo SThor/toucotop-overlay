@@ -67,7 +67,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   // Sync token: URL takes precedence, otherwise fall back to dedicated localStorage key
   useEffect(() => {
     const urlToken = params.get('token');
-    console.log('[RequireToken:syncEffect] path:', location.pathname, '| urlToken:', urlToken ? urlToken.slice(0,12)+'...' : null, '| storedToken:', settings.overlayToken ? settings.overlayToken.slice(0,12)+'...' : '(empty)');
+    console.log('[RequireToken:syncEffect] path:', location.pathname, '| urlToken:', urlToken ? '(set)' : null, '| storedToken:', settings.overlayToken ? '(set)' : '(empty)');
     if (urlToken) {
       if (urlToken !== settings.overlayToken) {
         updateSettings({ overlayToken: urlToken });
@@ -95,7 +95,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   // Validate token with server on protected routes
   useEffect(() => {
     const token = settings.overlayToken;
-    console.log('[RequireToken:validateEffect] path:', location.pathname, '| token:', token ? token.slice(0,12)+'...' : '(empty)', '| allowed:', ALLOW_NO_TOKEN.includes(location.pathname));
+    console.log('[RequireToken:validateEffect] path:', location.pathname, '| token:', token ? '(set)' : '(empty)', '| allowed:', ALLOW_NO_TOKEN.includes(location.pathname));
 
     // Navigating to a non-overlay page clears any stale expired state
     if (!OVERLAY_PATHS.includes(location.pathname)) setTokenExpired(false);
@@ -128,7 +128,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
     fetch(`/auth/status?token=${encodeURIComponent(token)}`)
       .then((res) => res.json() as Promise<{ authenticated: boolean }>)
       .then((data) => {
-        console.log('[RequireToken:validateEffect] /auth/status response:', data, '| token:', token.slice(0,12)+'...');
+        console.log('[RequireToken:validateEffect] /auth/status response:', data);
         if (data.authenticated) {
           validationErrorCount = 0;
           validationCache = { token, validUntil: now + VALIDATION_TTL_MS };

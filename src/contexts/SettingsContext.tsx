@@ -80,7 +80,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [overlayToken, setOverlayToken] = useState<string>(loadInitialToken);
   const overlayTokenRef = useRef(overlayToken);
   useEffect(() => {
-    console.log('[SettingsProvider] overlayToken state changed:', overlayToken ? overlayToken.slice(0,12)+'...' : '(empty)');
+    console.log('[SettingsProvider] overlayToken state changed:', overlayToken ? '(set)' : '(empty)');
     overlayTokenRef.current = overlayToken;
   }, [overlayToken]);
 

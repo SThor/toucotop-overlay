@@ -229,7 +229,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       overlayExpiresAt = undefined;
     }
 
-    console.log(`✅ OAuth completed for ${username}${process.env.NODE_ENV !== 'production' ? `, overlay token: ${overlayToken.slice(0, 12)}...` : ''}`);
+    console.log(`✅ OAuth completed for ${username}`);
     
     // Redirect to React success page with token data in query params
     const successParams = new URLSearchParams({

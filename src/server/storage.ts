@@ -120,7 +120,7 @@ export function getUserByOverlayToken(overlayToken: string): StoredUserData | nu
       if (data.overlayToken === overlayToken) {
         // Check if overlay token is expired (separate from access token)
         if (data.overlayExpiresAt && new Date(data.overlayExpiresAt) < new Date()) {
-          console.log(`⚠️ Expired overlay token used: ${overlayToken.slice(0, 12)}...`);
+          console.log(`⚠️ Expired overlay token used`);
           return null;
         }
         
