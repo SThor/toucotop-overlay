@@ -8,9 +8,8 @@ const __dirname = path.dirname(__filename);
 // Token storage directory (will be a Docker volume in production)
 const TOKENS_DIR = path.join(__dirname, '../../tokens');
 
-export type { OverlaySettings, OverlayTheme } from './shared/overlaySettings.js';
-import type { OverlaySettings } from './shared/overlaySettings.js';
-import { defaultOverlaySettings } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme } from './shared/overlaySettings.js';
+export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().

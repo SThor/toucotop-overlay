@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import type { OverlaySettings } from '../server/shared/overlaySettings';
-import { defaultOverlaySettings } from '../server/shared/overlaySettings';
-export type { OverlaySettings };
-export { defaultOverlaySettings };
+import { defaultOverlaySettings, type OverlaySettings } from '../server/shared/overlaySettings';
 
 // Full settings including auth token (kept for backwards compat with consumers)
 export interface Settings extends OverlaySettings {

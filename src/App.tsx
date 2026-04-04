@@ -96,6 +96,10 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = settings.overlayToken;
     console.log('[RequireToken:validateEffect] path:', location.pathname, '| token:', token ? token.slice(0,12)+'...' : '(empty)', '| allowed:', ALLOW_NO_TOKEN.includes(location.pathname));
+
+    // Navigating to a non-overlay page clears any stale expired state
+    if (!OVERLAY_PATHS.includes(location.pathname)) setTokenExpired(false);
+
     if (!token || ALLOW_NO_TOKEN.includes(location.pathname)) return;
 
     // Reset error count when a different token is being validated so a new/updated
@@ -108,6 +112,19 @@ function RequireToken({ children }: { children: React.ReactNode }) {
     const now = Date.now();
     if (validationCache && validationCache.token === token && now < validationCache.validUntil) return;
 
+    // Shared handler: on auth failure, show inline expired UI for overlays and
+    // redirect to /auth/twitch for everything else.
+    const handleAuthFail = () => {
+      validationCache = null;
+      if (OVERLAY_PATHS.includes(location.pathname)) {
+        setTokenExpired(true);
+      } else {
+        console.warn('[RequireToken:validateEffect] redirecting to /auth/twitch');
+        redirectingRef.current = true;
+        window.location.href = '/auth/twitch';
+      }
+    };
+
     fetch(`/auth/status?token=${encodeURIComponent(token)}`)
       .then((res) => res.json() as Promise<{ authenticated: boolean }>)
       .then((data) => {
@@ -117,15 +134,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
           validationCache = { token, validUntil: now + VALIDATION_TTL_MS };
         } else if (!redirectingRef.current) {
           console.warn('[RequireToken:validateEffect] token invalid — invalidating cache');
-          validationCache = null;
-          if (OVERLAY_PATHS.includes(location.pathname)) {
-            // Overlay paths: show inline expired UI instead of redirecting
-            setTokenExpired(true);
-          } else {
-            console.warn('[RequireToken:validateEffect] redirecting to /auth/twitch');
-            redirectingRef.current = true;
-            window.location.href = '/auth/twitch';
-          }
+          handleAuthFail();
         }
       })
       .catch((err) => {
@@ -136,19 +145,12 @@ function RequireToken({ children }: { children: React.ReactNode }) {
         console.warn('[RequireToken:validateEffect] validationErrorCount now:', validationErrorCount);
         if (validationErrorCount >= MAX_VALIDATION_ERRORS && !redirectingRef.current) {
           console.warn('[RequireToken:validateEffect] too many errors — invalidating cache');
-          validationCache = null;
-          if (OVERLAY_PATHS.includes(location.pathname)) {
-            setTokenExpired(true);
-          } else {
-            console.warn('[RequireToken:validateEffect] redirecting to /auth/twitch');
-            redirectingRef.current = true;
-            window.location.href = '/auth/twitch';
-          }
+          handleAuthFail();
         }
       });
   }, [settings.overlayToken, location.pathname]);
 
-  if (tokenExpired && OVERLAY_PATHS.includes(location.pathname)) return <OverlayExpired />;
+  if (tokenExpired) return <OverlayExpired />;
   if (!settings.overlayToken && !ALLOW_NO_TOKEN.includes(location.pathname)) {
     if (OVERLAY_PATHS.includes(location.pathname)) return <OverlayExpired />;
     return <Navigate to="/" replace state={{ from: location }} />;
