@@ -115,6 +115,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         if (key in v) {
           const val = v[key];
           if (val === undefined) continue;
+          if (val === null) { perOpacity[key] = null; continue; }
           if (typeof val !== 'number' || !Number.isFinite(val) || val < 0.1 || val > 1) {
             errors.push(`perOverlayOpacity.${key} must be a number between 0.1 and 1`);
           } else {
@@ -136,6 +137,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         if (key in v) {
           const val = v[key];
           if (val === undefined) continue;
+          if (val === null) { perFont[key] = null; continue; }
           if (typeof val !== 'number' || !Number.isFinite(val) || val < 0.5 || val > 10) {
             errors.push(`perOverlayFontSize.${key} must be a number between 0.5 and 10`);
           } else {

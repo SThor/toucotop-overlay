@@ -212,11 +212,12 @@ export function extendOverlayToken(username: string): void {
  * - key absent             → leave existing value untouched
  */
 function mergePerOverlay(
+  defaults: PerOverlayNumber,
   base: PerOverlayNumber,
   patch: Partial<PerOverlayNumber> | undefined,
 ): PerOverlayNumber {
-  if (!patch) return { ...defaultOverlaySettings.perOverlayOpacity, ...base };
-  const result: PerOverlayNumber = { ...defaultOverlaySettings.perOverlayOpacity, ...base };
+  if (!patch) return { ...defaults, ...base };
+  const result: PerOverlayNumber = { ...defaults, ...base };
   for (const key of ['chat', 'clock', 'bar'] as const) {
     if (key in patch) {
       result[key] = patch[key] ?? null;
@@ -240,8 +241,8 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...defaultOverlaySettings,
       ...base,
       ...settings,
-      perOverlayOpacity: mergePerOverlay(base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
-      perOverlayFontSize: mergePerOverlay(base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
+      perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
+      perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
         ...(base.themeSettings ?? {}),
