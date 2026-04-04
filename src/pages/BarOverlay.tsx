@@ -95,9 +95,9 @@ const BarOverlayContent = () => {
   };
 
   return (
-    <div 
-      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
-      style={{ opacity: settings.overlayOpacity }}
+    <div
+      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${!settings.barFloating ? 'full-width' : ''}`}
+      style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
       {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       

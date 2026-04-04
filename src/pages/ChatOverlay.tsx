@@ -37,9 +37,9 @@ const ChatOverlay = () => {
   };
 
   return (
-    <div 
-      className={`chat-overlay ${settings.overlayFullWidth ? 'full-width' : ''}`}
-      style={{ opacity: settings.overlayOpacity }}
+    <div
+      className="chat-overlay"
+      style={{ opacity: settings.perOverlayOpacity?.chat ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.chat ?? settings.fontSize}rem` }}
     >
       {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       <div className="chat-header">

@@ -81,9 +81,9 @@ const ClockOverlay = () => {
   };
 
   return (
-    <div 
-      className={`clock-overlay ${settings.overlayFullWidth ? 'full-width' : ''}`}
-      style={{ opacity: settings.overlayOpacity }}
+    <div
+      className="clock-overlay"
+      style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
       {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
       <div className="current-time-section">

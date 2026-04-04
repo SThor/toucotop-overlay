@@ -207,10 +207,10 @@ export default function AuthSuccessPage() {
 
               <Switch
                 color="violet"
-                label="Full Width Overlays"
-                description="Removes padding and borders for edge-to-edge appearance"
-                checked={settings.overlayFullWidth}
-                onChange={(e) => save({ overlayFullWidth: e.currentTarget.checked })}
+                label="Floating Bar"
+                description="Bar overlay appears as a centered floating pill instead of full-width"
+                checked={settings.barFloating}
+                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
               />
 
               <div>

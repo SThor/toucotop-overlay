@@ -39,6 +39,30 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     const v = parseFloat(p.get('overlayOpacity') || '');
     if (!isNaN(v) && v >= 0.1 && v <= 1) o.overlayOpacity = v;
   }
+  if (p.has('fontSize')) {
+    const v = parseFloat(p.get('fontSize') || '');
+    if (!isNaN(v) && v >= 0.5 && v <= 2) o.fontSize = v;
+  }
+  // Per-overlay opacity: ?opacityChat=0.8&opacityClock=0.7&opacityBar=0.6
+  const perOpacity: OverlaySettings['perOverlayOpacity'] = {};
+  for (const [key, param] of [['chat', 'opacityChat'], ['clock', 'opacityClock'], ['bar', 'opacityBar']] as const) {
+    if (p.has(param)) {
+      const v = parseFloat(p.get(param) || '');
+      if (!isNaN(v) && v >= 0.1 && v <= 1) perOpacity[key] = v;
+    }
+  }
+  if (Object.keys(perOpacity).length > 0) o.perOverlayOpacity = perOpacity;
+
+  // Per-overlay font size: ?fontSizeChat=1.4&fontSizeClock=1.2&fontSizeBar=0.9
+  const perFont: OverlaySettings['perOverlayFontSize'] = {};
+  for (const [key, param] of [['chat', 'fontSizeChat'], ['clock', 'fontSizeClock'], ['bar', 'fontSizeBar']] as const) {
+    if (p.has(param)) {
+      const v = parseFloat(p.get(param) || '');
+      if (!isNaN(v) && v >= 0.5 && v <= 2) perFont[key] = v;
+    }
+  }
+  if (Object.keys(perFont).length > 0) o.perOverlayFontSize = perFont;
+
   if (p.has('chatFeedDirection')) {
     const v = p.get('chatFeedDirection');
     if (v === 'top' || v === 'bottom') o.chatFeedDirection = v;
@@ -47,16 +71,16 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     const v = parseInt(p.get('maxChatMessages') || '', 10);
     if (!isNaN(v) && v >= 10 && v <= 100) o.maxChatMessages = v;
   }
-  if (p.has('crtEffects')) o.theme = p.get('crtEffects') === 'true' ? 'crt' : 'default';
+  if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
+  if (p.has('crtEffects')) o.theme = p.get('crtEffects') === 'false' ? 'default' : 'crt';
   if (p.has('crtIntensity') || p.has('crtScanlines') || p.has('crtAnimation')) {
     const crt: Partial<OverlaySettings['themeSettings']['crt']> = {};
     const intensity = p.get('crtIntensity');
     if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') crt.intensity = intensity;
-    if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') === 'true';
-    if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') === 'true';
+    if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') !== 'false';
+    if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') !== 'false';
     o.themeSettings = { crt } as OverlaySettings['themeSettings'];
   }
-  if (p.has('overlayFullWidth')) o.overlayFullWidth = p.get('overlayFullWidth') === 'true';
 
   return o;
 }
