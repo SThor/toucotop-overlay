@@ -10,6 +10,10 @@ export interface Settings extends OverlaySettings {
 
 interface SettingsContextType {
   settings: Settings;
+  /** The raw server-persisted settings, without URL query-param overrides applied.
+   * Use this when building PATCH payloads so session-only URL overrides are
+   * never accidentally written back to the server. */
+  persistedSettings: OverlaySettings;
   /** True while loading settings from the server for the first time */
   isLoadingSettings: boolean;
   updateSettings: (newSettings: Partial<Settings>) => void;
@@ -285,7 +289,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, isLoadingSettings, updateSettings, resetSettings }}>
+    <SettingsContext.Provider value={{ settings, persistedSettings: serverSettings, isLoadingSettings, updateSettings, resetSettings }}>
       {children}
     </SettingsContext.Provider>
   );

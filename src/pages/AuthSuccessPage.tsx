@@ -27,7 +27,7 @@ interface AuthInfo {
 
 export default function AuthSuccessPage() {
   const [params] = useSearchParams();
-  const { settings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
+  const { settings, persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
 
   // On a fresh OAuth callback, the server puts all three into the redirect URL.
   // On a direct visit (e.g. bookmarked dashboard), only the stored token is available.
@@ -260,7 +260,7 @@ export default function AuthSuccessPage() {
                       </Text>
                       <Slider
                         value={settings.perOverlayOpacity[key] ?? settings.overlayOpacity}
-                        onChange={(v) => save({ perOverlayOpacity: { ...settings.perOverlayOpacity, [key]: v } })}
+                        onChange={(v) => save({ perOverlayOpacity: { ...persistedSettings.perOverlayOpacity, [key]: v } })}
                         min={0.1} max={1} step={0.05}
                       />
                     </div>
@@ -305,7 +305,7 @@ export default function AuthSuccessPage() {
                       </Text>
                       <Slider
                         value={settings.perOverlayFontSize[key] ?? settings.fontSize}
-                        onChange={(v) => save({ perOverlayFontSize: { ...settings.perOverlayFontSize, [key]: v } })}
+                        onChange={(v) => save({ perOverlayFontSize: { ...persistedSettings.perOverlayFontSize, [key]: v } })}
                         min={0.5} max={10} step={0.05}
                       />
                     </div>
