@@ -26,10 +26,14 @@ const MarqueeText = ({ text, className }: MarqueeTextProps) => {
     };
 
     measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(outer);
-    ro.observe(inner);
-    return () => ro.disconnect();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(measure);
+      ro.observe(outer);
+      ro.observe(inner);
+      return () => ro.disconnect();
+    }
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, [text]);
 
   const duration = overflow > 0 ? Math.max(6, overflow / 40) : 0; // ~40px/s, min 6s

@@ -27,14 +27,14 @@ interface AuthInfo {
 
 export default function AuthSuccessPage() {
   const [params] = useSearchParams();
-  const { settings, persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
+  const { persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
 
   // On a fresh OAuth callback, the server puts all three into the redirect URL.
   // On a direct visit (e.g. bookmarked dashboard), only the stored token is available.
   const urlToken = params.get('token');
   const urlDisplayName = params.get('displayName');
   const urlExpiresAt = params.get('expiresAt');
-  const overlayToken = settings.overlayToken;
+  const overlayToken = persistedSettings.overlayToken;
 
   console.log('[AuthSuccessPage] mounted — overlayToken:', overlayToken ? '(set)' : '(empty)', '| urlToken:', urlToken ? '(set)' : null);
 
@@ -84,8 +84,8 @@ export default function AuthSuccessPage() {
   // URL overrides in the effective `settings` view are never persisted to the server.
   // Both client (updateSettings) and server (updateUserSettings) deep-merge themeSettings.crt.
   const updateCrtSettings = useCallback(
-    (patch: Partial<typeof settings.themeSettings.crt>) => {
-      updateSettings({ themeSettings: { crt: patch } as typeof settings.themeSettings });
+    (patch: Partial<typeof persistedSettings.themeSettings.crt>) => {
+      updateSettings({ themeSettings: { crt: patch } as typeof persistedSettings.themeSettings });
       if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
       setShowSaved(true);
       showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
@@ -120,7 +120,7 @@ export default function AuthSuccessPage() {
   const chatUrl = `${baseUrl}/chat?token=${encodeURIComponent(overlayToken)}`;
   const clockUrl = `${baseUrl}/clock?token=${encodeURIComponent(overlayToken)}`;
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
-  const crt = settings.themeSettings.crt;
+  const crt = persistedSettings.themeSettings.crt;
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -216,10 +216,10 @@ export default function AuthSuccessPage() {
               {/* Opacity */}
               <div>
                 <Text size="sm" fw={500} mb="xs">
-                  Global Opacity: {Math.round(settings.overlayOpacity * 100)}%
+                  Global Opacity: {Math.round(persistedSettings.overlayOpacity * 100)}%
                 </Text>
                 <Slider
-                  value={settings.overlayOpacity}
+                  value={persistedSettings.overlayOpacity}
                   onChange={(v) => save({ overlayOpacity: v })}
                   min={0.1} max={1} step={0.05}
                 />
@@ -227,12 +227,12 @@ export default function AuthSuccessPage() {
               <Text size="sm" fw={500}>Per-overlay opacity overrides</Text>
               <Stack gap="md" pl="md">
                 {(['chat', 'clock', 'bar'] as const).map((key) => {
-                  const isOverridden = settings.perOverlayOpacity[key] != null;
+                  const isOverridden = persistedSettings.perOverlayOpacity[key] != null;
                   return (
                     <div key={key}>
                       <Group justify="space-between" mb="xs">
                         <Text size="sm" fw={500} tt="capitalize">
-                          {key}: {Math.round((settings.perOverlayOpacity[key] ?? settings.overlayOpacity) * 100)}%
+                          {key}: {Math.round((persistedSettings.perOverlayOpacity[key] ?? persistedSettings.overlayOpacity) * 100)}%
                           {!isOverridden ? ' (using global)' : ''}
                         </Text>
                         <Switch
@@ -244,7 +244,7 @@ export default function AuthSuccessPage() {
                             save({
                               perOverlayOpacity: {
                                 ...persistedSettings.perOverlayOpacity,
-                                [key]: on ? (persistedSettings.perOverlayOpacity[key] ?? settings.overlayOpacity) : null,
+                                [key]: on ? (persistedSettings.perOverlayOpacity[key] ?? persistedSettings.overlayOpacity) : null,
                               },
                             });
                           }}
@@ -252,7 +252,7 @@ export default function AuthSuccessPage() {
                       </Group>
                       {isOverridden && (
                         <Slider
-                          value={settings.perOverlayOpacity[key]!}
+                          value={persistedSettings.perOverlayOpacity[key]!}
                           onChange={(v) => save({ perOverlayOpacity: { ...persistedSettings.perOverlayOpacity, [key]: v } })}
                           min={0.1} max={1} step={0.05}
                         />
@@ -265,10 +265,10 @@ export default function AuthSuccessPage() {
               {/* Font Size */}
               <div>
                 <Text size="sm" fw={500} mb="xs">
-                  Global Font Size: {settings.fontSize.toFixed(2)}×
+                  Global Font Size: {persistedSettings.fontSize.toFixed(2)}×
                 </Text>
                 <Slider
-                  value={settings.fontSize}
+                  value={persistedSettings.fontSize}
                   onChange={(v) => save({ fontSize: v })}
                   min={0.5} max={10} step={0.05}
                   marks={[
@@ -282,12 +282,12 @@ export default function AuthSuccessPage() {
               <Text size="sm" fw={500}>Per-overlay font size overrides</Text>
               <Stack gap="md" pl="md">
                 {(['chat', 'clock', 'bar'] as const).map((key) => {
-                  const isOverridden = settings.perOverlayFontSize[key] != null;
+                  const isOverridden = persistedSettings.perOverlayFontSize[key] != null;
                   return (
                     <div key={key}>
                       <Group justify="space-between" mb="xs">
                         <Text size="sm" fw={500} tt="capitalize">
-                          {key}: {(settings.perOverlayFontSize[key] ?? settings.fontSize).toFixed(2)}×
+                          {key}: {(persistedSettings.perOverlayFontSize[key] ?? persistedSettings.fontSize).toFixed(2)}×
                           {!isOverridden ? ' (using global)' : ''}
                         </Text>
                         <Switch
@@ -299,7 +299,7 @@ export default function AuthSuccessPage() {
                             save({
                               perOverlayFontSize: {
                                 ...persistedSettings.perOverlayFontSize,
-                                [key]: on ? (persistedSettings.perOverlayFontSize[key] ?? settings.fontSize) : null,
+                                [key]: on ? (persistedSettings.perOverlayFontSize[key] ?? persistedSettings.fontSize) : null,
                               },
                             });
                           }}
@@ -307,7 +307,7 @@ export default function AuthSuccessPage() {
                       </Group>
                       {isOverridden && (
                         <Slider
-                          value={settings.perOverlayFontSize[key]!}
+                          value={persistedSettings.perOverlayFontSize[key]!}
                           onChange={(v) => save({ perOverlayFontSize: { ...persistedSettings.perOverlayFontSize, [key]: v } })}
                           min={0.5} max={10} step={0.05}
                         />
@@ -320,7 +320,7 @@ export default function AuthSuccessPage() {
               <Switch
                 label="Floating Bar"
                 description="Bar overlay appears as a centered floating pill instead of full-width"
-                checked={settings.barFloating}
+                checked={persistedSettings.barFloating}
                 onChange={(e) => save({ barFloating: e.currentTarget.checked })}
               />
 
@@ -328,7 +328,7 @@ export default function AuthSuccessPage() {
               <div>
                 <Text size="sm" fw={500} mb="xs">Chat Feed Direction</Text>
                 <Radio.Group
-                  value={settings.chatFeedDirection}
+                  value={persistedSettings.chatFeedDirection}
                   onChange={(v) => save({ chatFeedDirection: v as 'top' | 'bottom' })}
                 >
                   <Stack gap="xs">
@@ -340,10 +340,10 @@ export default function AuthSuccessPage() {
 
               <div>
                 <Text size="sm" fw={500} mb="xs">
-                  Maximum Chat Messages: {settings.maxChatMessages}
+                  Maximum Chat Messages: {persistedSettings.maxChatMessages}
                 </Text>
                 <Slider
-                  value={settings.maxChatMessages}
+                  value={persistedSettings.maxChatMessages}
                   onChange={(v) => save({ maxChatMessages: v })}
                   min={10} max={100} step={1}
                   marks={[
@@ -380,7 +380,7 @@ export default function AuthSuccessPage() {
               <Select
                 label="Theme"
                 description="Choose the visual style for all overlays"
-                value={settings.theme}
+                value={persistedSettings.theme}
                 onChange={(v) => { if (v) save({ theme: v as import('../server/shared/overlaySettings').OverlayTheme }); }}
                 data={[
                   { value: 'default', label: 'Animated background' },
@@ -388,7 +388,7 @@ export default function AuthSuccessPage() {
                 ]}
                 allowDeselect={false}
               />
-              {settings.theme === 'crt' && (
+              {persistedSettings.theme === 'crt' && (
                 <>
                   <div>
                     <Text size="sm" fw={500} mb="xs">CRT Intensity</Text>
