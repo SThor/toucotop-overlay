@@ -105,6 +105,20 @@ src/
 └── App.tsx                    # Main router component
 ```
 
+## Themes
+
+Three visual themes are available for the overlays, selectable from the settings dashboard:
+
+| Theme | Description |
+|-------|-------------|
+| `default` | Subtle animated gradient background — minimal GPU cost |
+| `crt` | CRT monitor aesthetic — scanlines, screen glow, chromatic aberration |
+| `y2k` | Gothic Techno — liquid chrome WebGL shader, blackletter typography, glitch effects |
+
+A standalone **Pause Scene** (`/pause`) is also available as a separate OBS Browser Source — no token required.
+
+See [docs/themes.md](docs/themes.md) for full details on each theme, the Y2K palette, font choices, and how to add a new theme.
+
 ## Color Scheme
 
 The project uses a custom color palette:
