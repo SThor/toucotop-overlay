@@ -298,7 +298,8 @@ export function getLastEvents(username: string): { lastFollower?: LastFollowerDa
     if (stored.lastFollower !== undefined) result.lastFollower = stored.lastFollower;
     if (stored.lastSubscriber !== undefined) result.lastSubscriber = stored.lastSubscriber;
     return result;
-  } catch {
+  } catch (error) {
+    console.warn(`⚠️ Error reading last events for ${username}:`, error);
     return {};
   }
 }

@@ -50,13 +50,18 @@ export default function AuthSuccessPage() {
   const [showPerOpacity, setShowPerOpacity] = useState(() => Object.keys(settings.perOverlayOpacity).length > 0);
   const [showPerFontSize, setShowPerFontSize] = useState(() => Object.keys(settings.perOverlayFontSize).length > 0);
 
+  // Derive stable boolean primitives so the sync effect below only fires when
+  // the meaningful state actually flips (has overrides ↔ no overrides), not on
+  // every render where the perOverlay objects are recreated as new references.
+  const hasPerOpacity = Object.keys(settings.perOverlayOpacity).length > 0;
+  const hasPerFontSize = Object.keys(settings.perOverlayFontSize).length > 0;
+
   // Sync toggles whenever per-overlay settings change — covers both the initial
   // async load completing and any subsequent updates from the retry-with-backoff path.
   useEffect(() => {
-    setShowPerOpacity(Object.keys(settings.perOverlayOpacity).length > 0);
-    setShowPerFontSize(Object.keys(settings.perOverlayFontSize).length > 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingSettings, settings.perOverlayOpacity, settings.perOverlayFontSize]);
+    setShowPerOpacity(hasPerOpacity);
+    setShowPerFontSize(hasPerFontSize);
+  }, [hasPerOpacity, hasPerFontSize]);
 
   // Clear pending timer on unmount to avoid setState on an unmounted component
   useEffect(() => () => {
