@@ -136,10 +136,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       return () => { isCurrent = false; };
     }
 
+    let controller = new AbortController();
+
     const attemptFetch = (attempt: number) => {
       if (attempt === 0) setIsLoadingSettings(true);
+      controller = new AbortController();
 
-      fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`)
+      fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
         .then(async (res) => {
           if (!res.ok) return null;
           const data = await res.json() as { settings?: OverlaySettings } | null;
@@ -180,6 +183,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
     return () => {
       isCurrent = false;
+      controller.abort();
       if (retryTimer) clearTimeout(retryTimer);
     };
   }, [overlayToken]);
