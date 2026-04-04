@@ -50,16 +50,13 @@ export default function AuthSuccessPage() {
   const [showPerOpacity, setShowPerOpacity] = useState(() => Object.keys(settings.perOverlayOpacity).length > 0);
   const [showPerFontSize, setShowPerFontSize] = useState(() => Object.keys(settings.perOverlayFontSize).length > 0);
 
-  // Sync toggles once settings finish loading from the server: if the user has
-  // per-overlay overrides persisted, the toggles must reflect that even though
-  // the lazy initialiser ran before the async fetch completed.
+  // Sync toggles whenever per-overlay settings change — covers both the initial
+  // async load completing and any subsequent updates from the retry-with-backoff path.
   useEffect(() => {
-    if (!isLoadingSettings) {
-      setShowPerOpacity(Object.keys(settings.perOverlayOpacity).length > 0);
-      setShowPerFontSize(Object.keys(settings.perOverlayFontSize).length > 0);
-    }
+    setShowPerOpacity(Object.keys(settings.perOverlayOpacity).length > 0);
+    setShowPerFontSize(Object.keys(settings.perOverlayFontSize).length > 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingSettings]);
+  }, [isLoadingSettings, settings.perOverlayOpacity, settings.perOverlayFontSize]);
 
   // Clear pending timer on unmount to avoid setState on an unmounted component
   useEffect(() => () => {

@@ -89,8 +89,28 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlayExpiresAt: overlayStillValid
       ? existingOverlayExpiry
       : new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    // Preserve existing settings and last-event data; new users get defaults
-    overlaySettings: existingData?.overlaySettings ?? { ...defaultOverlaySettings },
+    // Preserve existing settings, merging in defaults so any new required fields are
+    // always present (guards against old token files missing keys added in later releases).
+    overlaySettings: {
+      ...defaultOverlaySettings,
+      ...(existingData?.overlaySettings ?? {}),
+      perOverlayOpacity: {
+        ...defaultOverlaySettings.perOverlayOpacity,
+        ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
+      },
+      perOverlayFontSize: {
+        ...defaultOverlaySettings.perOverlayFontSize,
+        ...(existingData?.overlaySettings?.perOverlayFontSize ?? {}),
+      },
+      themeSettings: {
+        ...defaultOverlaySettings.themeSettings,
+        ...(existingData?.overlaySettings?.themeSettings ?? {}),
+        crt: {
+          ...defaultOverlaySettings.themeSettings.crt,
+          ...(existingData?.overlaySettings?.themeSettings?.crt ?? {}),
+        },
+      },
+    },
     ...(existingData?.lastFollower !== undefined ? { lastFollower: existingData.lastFollower } : {}),
     ...(existingData?.lastSubscriber !== undefined ? { lastSubscriber: existingData.lastSubscriber } : {}),
   };
