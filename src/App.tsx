@@ -17,14 +17,35 @@ import ClockOverlay from './pages/ClockOverlay';
 import BarOverlay from './pages/BarOverlay';
 import NavMenu from './components/NavMenu';
 import './App.css';
+import './styles/ServerPages.css';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 // Pages that don't need a valid token
 const ALLOW_NO_TOKEN = [
   '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
 ];
+
+// Overlay paths: invalid/expired token shows an inline message instead of redirecting,
+// since OBS Browser Sources can't interact with a Twitch auth flow.
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar'];
+
+// Shown inside an overlay when the token is missing or expired
+function OverlayExpired() {
+  return (
+    <div className="overlay-expired">
+      <div>
+        <div className="overlay-expired__icon">⏰</div>
+        <div className="overlay-expired__title">Overlay session expired</div>
+        <div className="overlay-expired__message">
+          Re-authenticate at <strong>{window.location.origin}/auth/twitch</strong> in your browser.
+          <br />Your OBS source URLs will keep working — no changes needed.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Module-level cache so navigation between routes doesn't re-trigger validation
 interface ValidationCache {
@@ -41,6 +62,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [params] = useSearchParams();
   const redirectingRef = useRef(false);
+  const [tokenExpired, setTokenExpired] = useState(false);
 
   // Sync token: URL takes precedence, otherwise fall back to dedicated localStorage key
   useEffect(() => {
@@ -80,6 +102,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
     // token doesn't inherit the previous token's consecutive network error count.
     if (validationCache?.token !== token) {
       validationErrorCount = 0;
+      setTokenExpired(false); // new token — clear the expired flag
     }
 
     const now = Date.now();
@@ -93,10 +116,16 @@ function RequireToken({ children }: { children: React.ReactNode }) {
           validationErrorCount = 0;
           validationCache = { token, validUntil: now + VALIDATION_TTL_MS };
         } else if (!redirectingRef.current) {
-          console.warn('[RequireToken:validateEffect] token invalid — redirecting to /auth/twitch');
-          redirectingRef.current = true;
+          console.warn('[RequireToken:validateEffect] token invalid — invalidating cache');
           validationCache = null;
-          window.location.href = '/auth/twitch';
+          if (OVERLAY_PATHS.includes(location.pathname)) {
+            // Overlay paths: show inline expired UI instead of redirecting
+            setTokenExpired(true);
+          } else {
+            console.warn('[RequireToken:validateEffect] redirecting to /auth/twitch');
+            redirectingRef.current = true;
+            window.location.href = '/auth/twitch';
+          }
         }
       })
       .catch((err) => {
@@ -106,15 +135,22 @@ function RequireToken({ children }: { children: React.ReactNode }) {
         validationErrorCount++;
         console.warn('[RequireToken:validateEffect] validationErrorCount now:', validationErrorCount);
         if (validationErrorCount >= MAX_VALIDATION_ERRORS && !redirectingRef.current) {
-          console.warn('[RequireToken:validateEffect] too many errors — redirecting to /auth/twitch');
-          redirectingRef.current = true;
+          console.warn('[RequireToken:validateEffect] too many errors — invalidating cache');
           validationCache = null;
-          window.location.href = '/auth/twitch';
+          if (OVERLAY_PATHS.includes(location.pathname)) {
+            setTokenExpired(true);
+          } else {
+            console.warn('[RequireToken:validateEffect] redirecting to /auth/twitch');
+            redirectingRef.current = true;
+            window.location.href = '/auth/twitch';
+          }
         }
       });
   }, [settings.overlayToken, location.pathname]);
 
+  if (tokenExpired && OVERLAY_PATHS.includes(location.pathname)) return <OverlayExpired />;
   if (!settings.overlayToken && !ALLOW_NO_TOKEN.includes(location.pathname)) {
+    if (OVERLAY_PATHS.includes(location.pathname)) return <OverlayExpired />;
     return <Navigate to="/" replace state={{ from: location }} />;
   }
   return <>{children}</>;

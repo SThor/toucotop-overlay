@@ -1,5 +1,37 @@
 /* Server pages (landing, auth success, errors) - rendered by React */
 
+.overlay-expired {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--Main);
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.overlay-expired__icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.overlay-expired__title {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.overlay-expired__message {
+  color: #ccc;
+  font-size: 0.85rem;
+}
+
+.overlay-expired__message strong {
+  color: var(--Main);
+}
+
 .server-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
