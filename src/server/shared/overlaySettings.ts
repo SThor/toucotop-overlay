@@ -24,6 +24,8 @@ export interface OverlaySettings {
       animation: boolean;
     };
   };
+  pauseTitle: string;
+  pauseSubtitle: string;
 }
 
 export const defaultOverlaySettings: OverlaySettings = {
@@ -42,4 +44,6 @@ export const defaultOverlaySettings: OverlaySettings = {
       animation: true,
     }
   },
+  pauseTitle: 'En pause',
+  pauseSubtitle: '— je reviens —',
 };

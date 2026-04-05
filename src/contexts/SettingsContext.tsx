@@ -76,6 +76,8 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     if (!isNaN(v) && v >= 10 && v <= 100) o.maxChatMessages = v;
   }
   if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
+  if (p.has('pauseTitle')) o.pauseTitle = p.get('pauseTitle')!;
+  if (p.has('pauseSubtitle')) o.pauseSubtitle = p.get('pauseSubtitle')!;
   if (p.has('theme')) {
     const v = p.get('theme');
     if (v === 'crt' || v === 'default' || v === 'y2k') o.theme = v;
