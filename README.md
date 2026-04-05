@@ -115,7 +115,6 @@ Three visual themes are available for the overlays, selectable from the settings
 | `crt` | CRT monitor aesthetic — scanlines, screen glow, chromatic aberration |
 | `y2k` | Gothic Techno — liquid chrome WebGL shader, blackletter typography, glitch effects |
 
-A standalone **Pause Scene** (`/pause`) is also available as a separate OBS Browser Source, subject to the same token requirements as other overlay routes.
 
 See [docs/themes.md](docs/themes.md) for full details on each theme, the Y2K palette, font choices, and how to add a new theme.
 
