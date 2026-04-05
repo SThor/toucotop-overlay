@@ -3,6 +3,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
+import Y2KBorderShader from '../../components/Y2KBorderShader';
 import '../../styles/ClockOverlay.css';
 
 // Destructure the hook for cleaner usage
@@ -82,10 +83,11 @@ const ClockOverlay = () => {
 
   return (
     <div
-      className="clock-overlay"
+      className={`clock-overlay${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
-      <ThemeBackground />
+      <ThemeBackground panelMode />
+      {settings.theme === 'y2k' && <Y2KBorderShader borderRadius={16} />}
       <div className="current-time-section">
         <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
         <div className={`current-time ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>

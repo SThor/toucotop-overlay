@@ -106,6 +106,17 @@
   line-height: 1.4;
 }
 
+/* ---- Y2K theme overrides ---- */
+.clock-overlay.y2k-active {
+  background: rgba(0, 0, 0, 0.9);
+  border: none;
+}
+
+.clock-overlay.y2k-active.preview-mode {
+  position: relative;
+}
+}
+
 .stream-category {
   color: rgba(var(--LightRGBA), 0.7);
   font-size: 0.85em;

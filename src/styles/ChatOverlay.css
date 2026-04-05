@@ -129,6 +129,17 @@
   line-height: 1.4;
 }
 
+/* ---- Y2K theme overrides ---- */
+.chat-overlay.y2k-active {
+  background: rgba(0, 0, 0, 0.9);
+  border: none;
+}
+
+/* preview-mode resets position to static; restore a containing block for the border shader */
+.chat-overlay.y2k-active.preview-mode {
+  position: relative;
+}
+
 /* Twitch Emote Styling */
 .chat-emote {
   height: 1.75em;

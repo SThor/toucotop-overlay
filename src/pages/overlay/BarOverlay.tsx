@@ -3,6 +3,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
+import Y2KBorderShader from '../../components/Y2KBorderShader';
 import '../../styles/BarOverlay.css';
 
 const BarOverlayContent = () => {
@@ -96,10 +97,13 @@ const BarOverlayContent = () => {
 
   return (
     <div
-      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${!settings.barFloating ? 'full-width' : ''}`}
+      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${!settings.barFloating ? 'full-width' : ''} ${settings.theme === 'y2k' ? 'y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
-      <ThemeBackground />
+      <ThemeBackground panelMode />
+      {settings.theme === 'y2k' && settings.barFloating !== false && (
+        <Y2KBorderShader borderRadius={16} />
+      )}
       
       {/* Current Time Section */}
       <div className="bar-section bar-time-section">
