@@ -24,16 +24,19 @@ function useFrakturMask(text: string): TextMask | null {
     const FONT_FAMILY = 'UnifrakturMaguntia';
     document.fonts.load(`${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`).then(() => {
       const canvas = document.createElement('canvas');
+      // cv01 selects the alternate 'k' glyph in UnifrakturMaguntia.
+      // Setting it on the element style lets Chromium's font renderer pick it up
+      // even though font-feature-settings is not part of the CSS font shorthand.
+      canvas.style.fontFeatureSettings = '"cv01" 1';
       const ctx = canvas.getContext('2d')!;
       ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
       // Measure actual ink bounds on all four sides so no glyph stroke is clipped.
       // PAD also absorbs the chromatic aberration shift from the LiquidMetal shader.
       const metrics = ctx.measureText(text);
-      const PAD = 80;
       const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft);
       const yOrigin = Math.ceil(metrics.actualBoundingBoxAscent);
-      const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight) + PAD;
-      const h = yOrigin + Math.ceil(metrics.actualBoundingBoxDescent) + PAD;
+      const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight);
+      const h = yOrigin + Math.ceil(metrics.actualBoundingBoxDescent);
       canvas.width = w;
       canvas.height = h;
       // Re-apply font after canvas resize (resize resets context state)

@@ -79,6 +79,7 @@
   font-size: clamp(2rem, 8vw, 6rem);
   margin: 0;
   text-align: center;
+  font-feature-settings: "cv01" 1;
 }
 
 /* ---- "stream paused" subtitle ---- */

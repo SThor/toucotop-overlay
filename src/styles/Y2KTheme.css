@@ -25,7 +25,7 @@
 }
 
 /* ---- Font families ---- */
-.y2k-font-fraktur   { font-family: 'UnifrakturMaguntia', serif; }
+.y2k-font-fraktur   { font-family: 'UnifrakturMaguntia', serif; font-feature-settings: "cv01" 1; }
 .y2k-font-climate   { font-family: 'Climate Crisis', sans-serif; }
 .y2k-font-pixel     { font-family: 'Press Start 2P', monospace; }
 .y2k-font-barcode   { font-family: 'Libre Barcode 39 Extended Text', cursive; }
