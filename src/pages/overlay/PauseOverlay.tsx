@@ -62,7 +62,7 @@ const PauseOverlay: React.FC = () => {
   const theme = settings.theme;
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
-  const titleMask = useFrakturMask('Be Right Back');
+  const titleMask = useFrakturMask(settings.pauseTitle);
 
   useEffect(() => {
     if (!token) return;
@@ -135,14 +135,14 @@ const PauseOverlay: React.FC = () => {
               />
             </div>
           ) : (
-            <h1 className="pause-title-fallback y2k-chrome-text">Be Right Back</h1>
+            <h1 className="pause-title-fallback y2k-chrome-text">{settings.pauseTitle}</h1>
           )
         ) : (
-          <h1 className="pause-title">Be Right Back</h1>
+          <h1 className="pause-title">{settings.pauseTitle}</h1>
         )}
 
         <p className={`pause-subtitle${theme === 'y2k' ? ' y2k-font-pixel' : ''}`}>
-          — stream paused —
+          {settings.pauseSubtitle}
         </p>
 
         {channelName && (

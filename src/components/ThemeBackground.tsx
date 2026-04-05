@@ -11,14 +11,28 @@ interface Props {
    * themes rely purely on CSS for their panel background.
    */
   panelMode?: boolean;
+  /**
+   * When true (and panelMode is true for y2k), renders the border shader.
+   * Set to false for full-width overlays like a non-floating bar.
+   */
+  showBorder?: boolean;
 }
 
-const ThemeBackground: React.FC<Props> = ({ panelMode = false }) => {
+const ThemeBackground: React.FC<Props> = ({ panelMode = false, showBorder = true }) => {
   const { settings } = useSettings();
 
-  // Inside overlay panels: only CRT needs a rendered backdrop component.
-  // Default theme = bare CSS panel; Y2K = CSS + Y2KBorderShader (added by the overlay itself).
-  if (panelMode) return settings.theme === 'crt' ? <CRTBackground /> : null;
+  // Inside overlay panels: CRT gets its backdrop; Y2K gets its background+border.
+  if (panelMode) {
+    if (settings.theme === 'crt') return <CRTBackground />;
+    if (settings.theme === 'y2k') {
+      return (
+        <React.Suspense fallback={null}>
+          <LazyY2KBackground showBorder={showBorder} />
+        </React.Suspense>
+      );
+    }
+    return null;
+  }
 
   // Full-viewport backgrounds (non-panel pages)
   if (settings.theme === 'crt') return <CRTBackground />;

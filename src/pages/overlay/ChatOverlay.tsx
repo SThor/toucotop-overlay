@@ -4,7 +4,6 @@ import { TwitchProvider } from '../../contexts/TwitchContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeBackground from '../../components/ThemeBackground';
 import EmoteMessage from '../../components/EmoteMessage';
-import Y2KBorderShader from '../../components/Y2KBorderShader';
 import '../../styles/ChatOverlay.css';
 
 const ChatOverlay = () => {
@@ -42,7 +41,6 @@ const ChatOverlay = () => {
       style={{ opacity: settings.perOverlayOpacity?.chat ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.chat ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
-      {settings.theme === 'y2k' && <Y2KBorderShader />}
       <div className="chat-header">
         <h3>
           <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat

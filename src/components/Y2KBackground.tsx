@@ -1,11 +1,17 @@
 import React from 'react';
+import Y2KBorderShader from './Y2KBorderShader';
 import '../styles/Y2KTheme.css';
 import '@fontsource/unifrakturmaguntia/400.css';
 import '@fontsource-variable/climate-crisis/index.css';
 import '@fontsource/press-start-2p/400.css';
 import '@fontsource/libre-barcode-39-extended-text/400.css';
 
-const Y2KBackground: React.FC = () => {
+interface Props {
+  /** When true, renders the border shader around the overlay panel. */
+  showBorder?: boolean;
+}
+
+const Y2KBackground: React.FC<Props> = ({ showBorder = false }) => {
   return (
     <div
       style={{
@@ -40,6 +46,9 @@ const Y2KBackground: React.FC = () => {
           pointerEvents: 'none',
         }}
       />
+
+      {/* Border shader for panel overlays */}
+      {showBorder && <Y2KBorderShader />}
     </div>
   );
 };
