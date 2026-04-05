@@ -23,20 +23,21 @@ function useFrakturMask(text: string): TextMask | null {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
       ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
-      // Use ink-bounds (actualBoundingBox*) so decorative glyphs that extend
-      // beyond their advance width aren't clipped on either side.
+      // Measure actual ink bounds on all four sides so no glyph stroke is clipped.
+      // PAD also absorbs the chromatic aberration shift from the LiquidMetal shader.
       const metrics = ctx.measureText(text);
-      const PAD = 40;
+      const PAD = 80;
       const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft) + PAD;
+      const yOrigin = Math.ceil(metrics.actualBoundingBoxAscent) + PAD;
       const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight) + PAD;
-      const h = Math.ceil(FONT_SIZE * 1.4);
+      const h = yOrigin + Math.ceil(metrics.actualBoundingBoxDescent) + PAD;
       canvas.width = w;
       canvas.height = h;
       // Re-apply font after canvas resize (resize resets context state)
       ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
       ctx.fillStyle = 'white';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(text, xOrigin, FONT_SIZE);
+      ctx.fillText(text, xOrigin, yOrigin);
       const img = new Image();
       img.onload = () => setMask({ img, w, h });
       img.src = canvas.toDataURL('image/png');
