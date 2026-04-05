@@ -28,8 +28,8 @@ function useFrakturMask(text: string): TextMask | null {
       // PAD also absorbs the chromatic aberration shift from the LiquidMetal shader.
       const metrics = ctx.measureText(text);
       const PAD = 80;
-      const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft) + PAD;
-      const yOrigin = Math.ceil(metrics.actualBoundingBoxAscent) + PAD;
+      const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft);
+      const yOrigin = Math.ceil(metrics.actualBoundingBoxAscent);
       const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight) + PAD;
       const h = yOrigin + Math.ceil(metrics.actualBoundingBoxDescent) + PAD;
       canvas.width = w;

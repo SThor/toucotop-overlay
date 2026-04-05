@@ -74,7 +74,6 @@ A high-impact theme built around liquid chrome, gothic typography, and Y2K inter
 | `.y2k-panel` | Chrome bevel panel — inset highlights, coloured box-shadow, `backdrop-filter: blur` |
 | `.y2k-hud-label` | Press Start 2P, small, cyan glow |
 | `.y2k-live-badge` | Pulsing red `LIVE` badge |
-| `.y2k-drip` | Applies the goo SVG filter for a liquid-drip edge effect |
 | `.y2k-noise::after` | Scrolling scanline noise pseudo-element |
 | `.y2k-vignette::before` | Radial dark vignette pseudo-element |
 

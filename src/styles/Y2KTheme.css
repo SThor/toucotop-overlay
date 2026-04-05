@@ -162,12 +162,6 @@
   50%       { box-shadow: 0 0 20px rgba(204, 0, 51, 1), 0 0 40px rgba(204, 0, 51, 0.4); }
 }
 
-/* ---- Drip SVG filter ---- */
-/* Apply .y2k-drip on a wrapper that contains the text + pseudo drip-blobs */
-.y2k-drip {
-  filter: url(#y2k-drip-filter);
-}
-
 /* ---- Scanline noise overlay ---- */
 .y2k-noise {
   position: relative;
