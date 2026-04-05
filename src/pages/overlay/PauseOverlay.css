@@ -54,6 +54,13 @@
           drop-shadow(0 4px 24px rgba(119, 0, 255, 0.45));
 }
 
+/* ---- Fallback title when font/canvas is unavailable ---- */
+.pause-title-fallback {
+  font-size: clamp(2rem, 8vw, 6rem);
+  margin: 0;
+  text-align: center;
+}
+
 /* ---- "stream paused" subtitle ---- */
 .pause-subtitle {
   font-size: clamp(0.5rem, 1.2vw, 0.8rem);

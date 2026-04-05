@@ -38,10 +38,14 @@ function useFrakturMask(text: string): TextMask | null {
       ctx.fillStyle = 'white';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(text, xOrigin, yOrigin);
+      if (cancelled) return;
       const img = new Image();
-      img.onload = () => setMask({ img, w, h });
+      img.onload = () => { if (!cancelled) setMask({ img, w, h }); };
       img.src = canvas.toDataURL('image/png');
-    });
+    }).catch(() => { /* font unavailable — mask stays null, fallback text renders */ });
+
+    let cancelled = false;
+    return () => { cancelled = true; };
   }, [text]);
 
   return mask;
@@ -55,12 +59,19 @@ const PauseOverlay: React.FC = () => {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`/auth/status?token=${encodeURIComponent(token)}`)
+    const controller = new AbortController();
+    let cancelled = false;
+    fetch(`/auth/status?token=${encodeURIComponent(token)}`, { signal: controller.signal })
       .then((r) => r.json() as Promise<{ authenticated: boolean; displayName?: string }>)
       .then((data) => {
-        if (data.authenticated && data.displayName) setChannelName(data.displayName);
+        if (!cancelled && data.authenticated && data.displayName)
+          setChannelName(data.displayName);
       })
-      .catch(() => { /* silently ignore — barcode stays empty */ });
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        /* silently ignore — barcode stays empty */
+      });
+    return () => { cancelled = true; controller.abort(); };
   }, [token]);
 
   return (
@@ -85,7 +96,7 @@ const PauseOverlay: React.FC = () => {
 
       {/* Gothic main text */}
       <div className="pause-content">
-        {titleMask && (
+        {titleMask ? (
           <div
             className="pause-title-wrapper"
             style={{ aspectRatio: `${titleMask.w} / ${titleMask.h}` }}
@@ -108,6 +119,8 @@ const PauseOverlay: React.FC = () => {
               fit="contain"
             />
           </div>
+        ) : (
+          <h1 className="pause-title-fallback y2k-chrome-text">Be Right Back</h1>
         )}
 
         <p className="pause-subtitle y2k-font-pixel">— stream paused —</p>

@@ -20,27 +20,45 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 16, thickness = 3 }) 
     if (!parent) return;
 
     const draw = (w: number, h: number) => {
-      if (w <= 0 || h <= 0) return;
-      setDims({ w, h });
+      const rw = Math.round(w);
+      const rh = Math.round(h);
+      if (rw <= 0 || rh <= 0) return;
+      setDims({ w: rw, h: rh });
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(w);
-      canvas.height = Math.round(h);
+      canvas.width = rw;
+      canvas.height = rh;
       const ctx = canvas.getContext('2d')!;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = 'white';
       ctx.lineWidth = thickness;
-      const r = Math.min(borderRadius, w / 2, h / 2);
+      const r = Math.min(borderRadius, rw / 2, rh / 2);
       const half = thickness / 2;
       ctx.beginPath();
       if (ctx.roundRect) {
-        ctx.roundRect(half, half, w - thickness, h - thickness, r);
+        ctx.roundRect(half, half, rw - thickness, rh - thickness, r);
+      } else if (r > 0) {
+        const x = half, y = half;
+        const right = x + (rw - thickness);
+        const bottom = y + (rh - thickness);
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(right - r, y);
+        ctx.arcTo(right, y, right, y + r, r);
+        ctx.lineTo(right, bottom - r);
+        ctx.arcTo(right, bottom, right - r, bottom, r);
+        ctx.lineTo(x + r, bottom);
+        ctx.arcTo(x, bottom, x, bottom - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
       } else {
-        ctx.rect(half, half, w - thickness, h - thickness);
+        ctx.rect(half, half, rw - thickness, rh - thickness);
       }
       ctx.stroke();
+      let cancelled = false;
       const img = new Image();
-      img.onload = () => setMaskImg(img);
+      img.onload = () => { if (!cancelled) setMaskImg(img); };
       img.src = canvas.toDataURL('image/png');
+      return () => { cancelled = true; };
     };
 
     // Measure immediately, then keep it up to date.

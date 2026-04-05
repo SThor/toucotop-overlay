@@ -125,8 +125,9 @@
 }
 
 .bar-stat-icon {
-  font-size: 0;
+  display: none;
   color: var(--Main);
+  font-size: 1em;
 }
 
 .bar-stat-content {
@@ -207,8 +208,9 @@
 }
 
 .bar-recent-icon {
-  font-size: 0;
+  display: none;
   color: var(--Main);
+  font-size: 0.9em;
 }
 
 .bar-recent-content {
@@ -253,8 +255,8 @@
   box-shadow: none;
 }
 
-.bar-overlay.crt-active .bar-stat-icon { font-size: 1em; }
-.bar-overlay.crt-active .bar-recent-icon { font-size: 0.9em; }
+.bar-overlay.crt-active .bar-stat-icon { display: inline; }
+.bar-overlay.crt-active .bar-recent-icon { display: inline; }
 
 .bar-overlay.crt-active::before {
   content: '';
