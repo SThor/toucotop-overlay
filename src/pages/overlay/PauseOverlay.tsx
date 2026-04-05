@@ -23,7 +23,12 @@ function useFrakturMask(text: string): TextMask | null {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
       ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
-      const w = Math.ceil(ctx.measureText(text).width) + 160;
+      // Use ink-bounds (actualBoundingBox*) so decorative glyphs that extend
+      // beyond their advance width aren't clipped on either side.
+      const metrics = ctx.measureText(text);
+      const PAD = 40;
+      const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft) + PAD;
+      const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight) + PAD;
       const h = Math.ceil(FONT_SIZE * 1.4);
       canvas.width = w;
       canvas.height = h;
@@ -31,7 +36,7 @@ function useFrakturMask(text: string): TextMask | null {
       ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
       ctx.fillStyle = 'white';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(text, 80, FONT_SIZE);
+      ctx.fillText(text, xOrigin, FONT_SIZE);
       const img = new Image();
       img.onload = () => setMask({ img, w, h });
       img.src = canvas.toDataURL('image/png');
