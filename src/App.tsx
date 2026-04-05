@@ -17,7 +17,6 @@ import ClockOverlay from './pages/overlay/ClockOverlay';
 import BarOverlay from './pages/overlay/BarOverlay';
 import PauseOverlay from './pages/overlay/PauseOverlay';
 import NavMenu from './components/NavMenu';
-import './App.css';
 import './styles/ServerPages.css';
 
 import { useEffect, useRef, useState } from 'react';

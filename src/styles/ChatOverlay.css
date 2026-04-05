@@ -43,7 +43,7 @@
 
 .chat-header h3 {
   margin: 0 0 1rem 0;
-  color: var(--Main);
+  color: rgba(255,255,255,0.9);
   font-size: 1.1em;
   text-align: center;
 }
@@ -57,13 +57,14 @@
 }
 
 .chat-overlay.crt-active .chat-header h3 {
+  color: var(--Main);
   text-shadow: 0 0 10px rgba(var(--MainRGBA), 0.5);
 }
 
 .chat-divider {
   width: 100%;
   height: 1px;
-  background: rgba(var(--MainRGBA), 0.3);
+  background: rgba(255,255,255,0.15);
   border-radius: 1px;
 }
 
@@ -90,7 +91,7 @@
 }
 
 .connection-status.connected {
-  color: #4ecdc4;
+  color: rgba(255,255,255,0.75);
 }
 
 .chat-messages {
@@ -102,7 +103,7 @@
   flex-direction: column;
   gap: 0.5rem;
   scrollbar-width: thin;
-  scrollbar-color: var(--Main) transparent;
+  scrollbar-color: rgba(255,255,255,0.25) transparent;
 }
 
 .chat-messages.feed-from-top {
@@ -124,7 +125,7 @@
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: var(--Main);
+  background: rgba(255,255,255,0.25);
   border-radius: 3px;
 }
 
@@ -142,10 +143,16 @@
 }
 
 .message {
-  color: var(--Light);
+  color: #fff;
   word-wrap: break-word;
   line-height: 1.4;
 }
+
+/* ---- CRT color overrides ---- */
+.chat-overlay.crt-active .connection-status.connected { color: #4ecdc4; }
+.chat-overlay.crt-active .chat-messages { scrollbar-color: var(--Main) transparent; }
+.chat-overlay.crt-active .chat-messages::-webkit-scrollbar-thumb { background: var(--Main); }
+.chat-overlay.crt-active .message { color: var(--Light); }
 
 /* ---- Y2K theme overrides ---- */
 .chat-overlay.y2k-active {

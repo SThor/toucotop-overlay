@@ -2,8 +2,14 @@
 /* CRT BACKGROUND EFFECTS */
 /* ==================== */
 
-/* CSS Custom Properties for CRT Effects */
-:root {
+/* CRT palette + effect variables — scoped to .crt-active, cascade to all descendants */
+.crt-active {
+  --DarkRGBA: 31, 15, 1;
+  --MainRGBA: 229, 109, 12;
+  --LightRGBA: 255, 235, 219;
+  --Dark: rgb(var(--DarkRGBA));
+  --Main: rgb(var(--MainRGBA));
+  --Light: rgb(var(--LightRGBA));
   --crt-base-glow: rgba(var(--MainRGBA), 0.08);
   --crt-base-scanline: rgba(var(--LightRGBA), 0.03);
   --crt-aberration-red: rgba(255, 0, 0, 0.1);
