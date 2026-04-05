@@ -46,9 +46,13 @@
 
 .chat-divider {
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--Main), transparent);
+  height: 1px;
+  background: rgba(var(--MainRGBA), 0.3);
   border-radius: 1px;
+}
+
+.chat-overlay.crt-active .chat-divider {
+  background: linear-gradient(90deg, transparent, var(--Main), transparent);
 }
 
 .connection-status {

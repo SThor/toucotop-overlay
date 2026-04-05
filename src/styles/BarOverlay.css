@@ -82,19 +82,26 @@
   color: var(--Light);
   font-size: 0.95em;
   font-weight: 700;
-  font-family: 'Courier New', monospace;
 }
 
 .bar-divider {
   width: 1px;
   height: 30px;
+  background: rgba(var(--MainRGBA), 0.3);
+  opacity: 0.6;
+}
+
+.bar-overlay.crt-active .bar-time-value {
+  font-family: 'Courier New', monospace;
+}
+
+.bar-overlay.crt-active .bar-divider {
   background: linear-gradient(
     to bottom,
     transparent,
     var(--Main),
     transparent
   );
-  opacity: 0.6;
 }
 
 .bar-stats-section {
