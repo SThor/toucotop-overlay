@@ -29,19 +29,14 @@ export default function AuthSuccessPage() {
   const [params] = useSearchParams();
   const { settings, persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
 
-  // On a fresh OAuth callback, the server puts all three into the redirect URL.
-  // On a direct visit (e.g. bookmarked dashboard), only the stored token is available.
+  // On a fresh OAuth callback the server puts only `token` in the redirect URL.
+  // On a direct visit (e.g. bookmarked dashboard) no URL token is present.
   const urlToken = params.get('token');
-  const urlDisplayName = params.get('displayName');
-  const urlExpiresAt = params.get('expiresAt');
   const overlayToken = settings.overlayToken;
 
   console.log('[AuthSuccessPage] mounted — overlayToken:', overlayToken ? '(set)' : '(empty)', '| urlToken:', urlToken ? '(set)' : null);
 
-  // Seed auth info immediately from URL params when present (avoids a redundant round-trip)
-  const [authInfo, setAuthInfo] = useState<AuthInfo | null>(
-    urlDisplayName ? { displayName: urlDisplayName, expiresAt: urlExpiresAt ?? '' } : null,
-  );
+  const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
   // Guard synchronously: if there's no token anywhere on first render, show the
   // expired UI immediately rather than flashing valid-looking URLs for one frame.
   const [sessionExpired, setSessionExpired] = useState(() => !overlayToken && !urlToken);
@@ -60,10 +55,8 @@ export default function AuthSuccessPage() {
     }
   }, [urlToken, updateSettings]);
 
-  // Call /auth/status only when auth info wasn't already in the URL params
-  // (i.e. the user navigated to the dashboard directly rather than arriving from OAuth)
+  // Fetch auth info from /auth/status (always — no URL params to seed from)
   useEffect(() => {
-    if (urlDisplayName) return; // Already seeded — skip the fetch
     if (!overlayToken) {
       setSessionExpired(true);
       return;
@@ -78,7 +71,7 @@ export default function AuthSuccessPage() {
         }
       })
       .catch(() => { /* keep rendering on network error */ });
-  }, [overlayToken, urlDisplayName]);
+  }, [overlayToken]);
 
   // Helper for CRT sub-settings: sends only the changed CRT fields so session-only
   // URL overrides in the effective `settings` view are never persisted to the server.
