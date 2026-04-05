@@ -120,7 +120,7 @@ export default function AuthSuccessPage() {
   const chatUrl = `${baseUrl}/chat?token=${encodeURIComponent(overlayToken)}`;
   const clockUrl = `${baseUrl}/clock?token=${encodeURIComponent(overlayToken)}`;
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
-  const pauseUrl = `${baseUrl}/pause`;
+  const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
 
   return (

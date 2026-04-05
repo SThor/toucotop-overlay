@@ -25,12 +25,12 @@ import { useSearchParams } from 'react-router-dom';
 
 // Pages that don't need a valid token
 const ALLOW_NO_TOKEN = [
-  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound', '/pause'
+  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
 ];
 
 // Overlay paths: invalid/expired token shows an inline message instead of redirecting,
 // since OBS Browser Sources can't interact with a Twitch auth flow.
-const OVERLAY_PATHS = ['/chat', '/clock', '/bar'];
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause'];
 
 // Shown inside an overlay when the token is missing or expired
 function OverlayExpired() {

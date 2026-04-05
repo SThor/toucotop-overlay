@@ -1,9 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MeshGradient } from '@paper-design/shaders-react';
+import { useSettings } from '../contexts/SettingsContext';
 import '../styles/Y2KTheme.css';
 import './PauseScene.css';
+import '@fontsource/unifrakturmaguntia/400.css';
+import '@fontsource-variable/climate-crisis/index.css';
+import '@fontsource/press-start-2p/400.css';
+import '@fontsource/libre-barcode-39/400.css';
 
 const PauseScene: React.FC = () => {
+  const { settings } = useSettings();
+  const token = settings.overlayToken;
+  const [channelName, setChannelName] = useState<string>('');
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`/auth/status?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json() as Promise<{ authenticated: boolean; displayName?: string }>)
+      .then((data) => {
+        if (data.authenticated && data.displayName) setChannelName(data.displayName);
+      })
+      .catch(() => { /* silently ignore — barcode stays empty */ });
+  }, [token]);
+
   return (
     <div className="pause-scene">
       {/* Hidden SVG filter — reuse drip goo filter */}
@@ -57,9 +76,11 @@ const PauseScene: React.FC = () => {
 
         <p className="pause-subtitle y2k-font-pixel">— stream paused —</p>
 
-        <p className="pause-barcode y2k-font-barcode" aria-hidden="true">
-          *TOUCOTOP*
-        </p>
+        {channelName && (
+          <p className="pause-barcode y2k-font-barcode" aria-hidden="true">
+            *{channelName.toUpperCase()}*
+          </p>
+        )}
       </div>
     </div>
   );

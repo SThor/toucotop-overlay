@@ -32,6 +32,8 @@
 
 /* ---- Chrome text ---- */
 .y2k-chrome-text {
+  position: relative;
+  display: inline-block;
   background: var(--y2k-chrome-gradient);
   background-size: 100% 200%;
   -webkit-background-clip: text;
@@ -167,6 +169,10 @@
 }
 
 /* ---- Scanline noise overlay ---- */
+.y2k-noise {
+  position: relative;
+}
+
 .y2k-noise::after {
   content: '';
   position: absolute;
@@ -188,6 +194,10 @@
 }
 
 /* ---- Vignette ---- */
+.y2k-vignette {
+  position: relative;
+}
+
 .y2k-vignette::before {
   content: '';
   position: absolute;
