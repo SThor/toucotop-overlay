@@ -1,5 +1,4 @@
 import React from 'react';
-import { LiquidMetal } from '@paper-design/shaders-react';
 import '../styles/Y2KTheme.css';
 import '@fontsource/unifrakturmaguntia/400.css';
 import '@fontsource-variable/climate-crisis/index.css';
