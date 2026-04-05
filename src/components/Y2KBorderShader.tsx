@@ -9,15 +9,19 @@ interface Props {
 }
 
 const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 16, thickness = 3 }) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [maskImg, setMaskImg] = useState<HTMLImageElement | null>(null);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    // Observe the *parent* element so we get an accurate size immediately on
+    // mount rather than waiting for the absolutely-positioned wrapper to relayout.
+    const parent = wrapperRef.current?.parentElement;
+    if (!parent) return;
 
     const draw = (w: number, h: number) => {
-      if (!w || !h) return;
+      if (w <= 0 || h <= 0) return;
+      setDims({ w, h });
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(w);
       canvas.height = Math.round(h);
@@ -39,28 +43,30 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 16, thickness = 3 }) 
       img.src = canvas.toDataURL('image/png');
     };
 
+    // Measure immediately, then keep it up to date.
+    const { width, height } = parent.getBoundingClientRect();
+    draw(width, height);
+
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(([entry]) => {
-        const { width, height } = entry.contentRect;
-        draw(width, height);
+        const { width: w, height: h } = entry.contentRect;
+        draw(w, h);
       });
-      ro.observe(el);
+      ro.observe(parent);
       return () => ro.disconnect();
-    } else {
-      const { width, height } = el.getBoundingClientRect();
-      draw(width, height);
     }
   }, [borderRadius, thickness]);
 
   return (
+    // overflow: hidden clips any sub-pixel bleed from the shader's chromatic shift.
     <div
-      ref={ref}
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}
+      ref={wrapperRef}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10, overflow: 'hidden' }}
     >
-      {maskImg && (
+      {maskImg && dims && (
         <LiquidMetal
-          width="100%"
-          height="100%"
+          width={dims.w}
+          height={dims.h}
           image={maskImg}
           colorBack="#00000000"
           colorTint="#e0e0e0"
