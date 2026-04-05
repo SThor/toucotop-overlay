@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MeshGradient, LiquidMetal } from '@paper-design/shaders-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import ThemeBackground from '../../components/ThemeBackground';
 import '../../styles/Y2KTheme.css';
 import './PauseOverlay.css';
 import '@fontsource/unifrakturmaguntia/400.css';
@@ -53,6 +54,7 @@ function useFrakturMask(text: string): TextMask | null {
 
 const PauseOverlay: React.FC = () => {
   const { settings } = useSettings();
+  const theme = settings.theme;
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
   const titleMask = useFrakturMask('Be Right Back');
@@ -75,59 +77,75 @@ const PauseOverlay: React.FC = () => {
   }, [token]);
 
   return (
-    <div className="pause-scene">
-      {/* MeshGradient fullscreen base */}
-      <div className="pause-shader">
-        <MeshGradient
-          width="100%"
-          height="100%"
-          colors={['#030305', '#1a0020', '#7700ff', '#00ffcc', '#ff00aa']}
-          distortion={0.88}
-          swirl={0.55}
-          grainMixer={0.12}
-          grainOverlay={0.06}
-          speed={0.18}
-          fit="cover"
-        />
-      </div>
+    <div
+      className={`pause-scene${theme === 'crt' ? ' crt-active' : ''}${theme === 'y2k' ? ' y2k-active' : ''}`}
+    >
+      {/* Y2K: custom MeshGradient fullscreen base */}
+      {theme === 'y2k' && (
+        <div className="pause-shader">
+          <MeshGradient
+            width="100%"
+            height="100%"
+            colors={['#030305', '#1a0020', '#7700ff', '#00ffcc', '#ff00aa']}
+            distortion={0.88}
+            swirl={0.55}
+            grainMixer={0.12}
+            grainOverlay={0.06}
+            speed={0.18}
+            fit="cover"
+          />
+        </div>
+      )}
 
-      {/* Dark centre vignette so text pops */}
-      <div className="pause-vignette" />
+      {/* CRT: scanline/glow overlay */}
+      {theme === 'crt' && <ThemeBackground />}
 
-      {/* Gothic main text */}
+      {/* Y2K: dark centre vignette so text pops */}
+      {theme === 'y2k' && <div className="pause-vignette" />}
+
+      {/* Centred content stack */}
       <div className="pause-content">
-        {titleMask ? (
-          <div
-            className="pause-title-wrapper"
-            style={{ aspectRatio: `${titleMask.w} / ${titleMask.h}` }}
-          >
-            <LiquidMetal
-              width="100%"
-              height="100%"
-              image={titleMask.img}
-              colorBack="#03030500"
-              colorTint="#e0e0e0"
-              shape="none"
-              shiftRed={0.35}
-              shiftBlue={-0.35}
-              distortion={0.12}
-              softness={0.15}
-              contour={0.4}
-              angle={70}
-              speed={0.4}
-              scale={0.9}
-              fit="contain"
-            />
-          </div>
+        {theme === 'y2k' ? (
+          titleMask ? (
+            <div
+              className="pause-title-wrapper"
+              style={{ aspectRatio: `${titleMask.w} / ${titleMask.h}` }}
+            >
+              <LiquidMetal
+                width="100%"
+                height="100%"
+                image={titleMask.img}
+                colorBack="#03030500"
+                colorTint="#e0e0e0"
+                shape="none"
+                shiftRed={0.35}
+                shiftBlue={-0.35}
+                distortion={0.12}
+                softness={0.15}
+                contour={0.4}
+                angle={70}
+                speed={0.4}
+                scale={0.9}
+                fit="contain"
+              />
+            </div>
+          ) : (
+            <h1 className="pause-title-fallback y2k-chrome-text">Be Right Back</h1>
+          )
         ) : (
-          <h1 className="pause-title-fallback y2k-chrome-text">Be Right Back</h1>
+          <h1 className="pause-title">Be Right Back</h1>
         )}
 
-        <p className="pause-subtitle y2k-font-pixel">— stream paused —</p>
+        <p className={`pause-subtitle${theme === 'y2k' ? ' y2k-font-pixel' : ''}`}>
+          — stream paused —
+        </p>
 
         {channelName && (
-          <p className="pause-barcode y2k-font-barcode" aria-hidden="true">
-            *{channelName.toUpperCase()}*
+          <p
+            className={`pause-barcode${theme === 'y2k' ? ' y2k-font-barcode' : ''}`}
+            aria-hidden="true"
+          >
+            {theme === 'y2k' ? `*${channelName.toUpperCase()}*` : channelName}
           </p>
         )}
       </div>

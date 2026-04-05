@@ -8,6 +8,10 @@
   justify-content: center;
 }
 
+.pause-scene.crt-active {
+  background: rgba(var(--DarkRGBA), 0.95);
+}
+
 /* ---- Shader fills the full viewport ---- */
 .pause-shader {
   position: absolute;
@@ -46,6 +50,22 @@
   text-align: center;
 }
 
+/* ---- Title heading for default and CRT themes ---- */
+.pause-title {
+  font-size: clamp(2rem, 8vw, 6rem);
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+}
+
+.pause-scene.crt-active .pause-title {
+  font-family: 'Courier New', monospace;
+  color: var(--Light);
+  text-shadow: 0 0 20px var(--Main), 0 0 40px rgba(var(--MainRGBA), 0.35);
+  letter-spacing: 0.05em;
+}
+
 /* ---- LiquidMetal title wrapper ---- */
 .pause-title-wrapper {
   width: min(88vw, 820px);
@@ -66,10 +86,19 @@
   font-size: clamp(0.5rem, 1.2vw, 0.8rem);
   letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.pause-scene.y2k-active .pause-subtitle {
   color: var(--y2k-cyan);
   text-shadow: 0 0 12px var(--y2k-cyan), 0 0 30px rgba(0, 255, 204, 0.3);
-  margin: 0;
   animation: hud-flicker 6s ease-in-out infinite;
+}
+
+.pause-scene.crt-active .pause-subtitle {
+  color: var(--Light);
+  text-shadow: 0 0 8px var(--Main);
 }
 
 @keyframes hud-flicker {
@@ -81,9 +110,20 @@
 
 /* ---- Barcode decoration ---- */
 .pause-barcode {
-  font-size: clamp(2rem, 4vw, 3.5rem);
-  color: rgba(255, 255, 255, 0.18);
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.05em;
   margin: 0;
   user-select: none;
+}
+
+.pause-scene.y2k-active .pause-barcode {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.pause-scene.crt-active .pause-barcode {
+  font-family: 'Courier New', monospace;
+  color: var(--Main);
+  opacity: 0.8;
 }
