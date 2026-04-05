@@ -28,7 +28,7 @@
 .y2k-font-fraktur   { font-family: 'UnifrakturMaguntia', serif; }
 .y2k-font-climate   { font-family: 'Climate Crisis', sans-serif; }
 .y2k-font-pixel     { font-family: 'Press Start 2P', monospace; }
-.y2k-font-barcode   { font-family: 'Libre Barcode 39', cursive; }
+.y2k-font-barcode   { font-family: 'Libre Barcode 39 Extended Text', cursive; }
 
 /* ---- Chrome text ---- */
 .y2k-chrome-text {

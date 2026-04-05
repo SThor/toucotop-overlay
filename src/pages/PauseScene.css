@@ -64,67 +64,13 @@
   z-index: -1;
 }
 
-/* ---- Drip wrapper — the goo filter is here ---- */
-.pause-drip-wrapper {
-  position: relative;
-  filter: url(#pause-drip-filter);
-  /* Extra padding so the drip blobs aren't clipped */
-  padding-bottom: 2.5rem;
+/* ---- LiquidMetal title wrapper ---- */
+.pause-title-wrapper {
+  width: min(88vw, 820px);
+  /* height computed via inline aspect-ratio from canvas dimensions */
+  filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.35))
+          drop-shadow(0 4px 24px rgba(119, 0, 255, 0.45));
 }
-
-/* ---- UnifrakturMaguntia title ---- */
-.pause-title {
-  font-family: 'UnifrakturMaguntia', serif;
-  font-size: clamp(4rem, 10vw, 9rem);
-  font-weight: 400;
-  line-height: 1;
-  margin: 0;
-
-  /* Chrome gradient on the text */
-  background: linear-gradient(
-    180deg,
-    #ffffff 0%,
-    #d0d0d0 18%,
-    #ffffff 36%,
-    #686868 54%,
-    #ffffff 72%,
-    #b0b0b0 100%
-  );
-  background-size: 100% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: chrome-shine 4s ease-in-out infinite;
-  filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.4))
-          drop-shadow(0 4px 20px rgba(119, 0, 255, 0.5));
-}
-
-/* ---- Drip blobs that fuse into the letters via the goo filter ---- */
-.pause-drips {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-around;
-  padding: 0 10%;
-  pointer-events: none;
-}
-
-.pause-drips span {
-  display: block;
-  width: clamp(10px, 1.8vw, 22px);
-  /* Heights stagger naturally via nth-child */
-  border-radius: 50% 50% 60% 60% / 40% 40% 60% 60%;
-  background: #ffffff;
-  filter: drop-shadow(0 0 4px rgba(0, 255, 204, 0.6));
-}
-
-.pause-drips span:nth-child(1) { height: clamp(20px, 3.5vw, 44px); }
-.pause-drips span:nth-child(2) { height: clamp(32px, 5.5vw, 68px); align-self: flex-end; margin-bottom: -0.3rem; }
-.pause-drips span:nth-child(3) { height: clamp(14px, 2.5vw, 32px); }
-.pause-drips span:nth-child(4) { height: clamp(40px, 7vw,  80px); align-self: flex-end; margin-bottom: -0.5rem; }
-.pause-drips span:nth-child(5) { height: clamp(22px, 4vw,  50px); }
 
 /* ---- "stream paused" subtitle ---- */
 .pause-subtitle {

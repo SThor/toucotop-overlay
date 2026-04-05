@@ -4,7 +4,7 @@ import '../styles/Y2KTheme.css';
 import '@fontsource/unifrakturmaguntia/400.css';
 import '@fontsource-variable/climate-crisis/index.css';
 import '@fontsource/press-start-2p/400.css';
-import '@fontsource/libre-barcode-39/400.css';
+import '@fontsource/libre-barcode-39-extended-text/400.css';
 
 const Y2KBackground: React.FC = () => {
   return (

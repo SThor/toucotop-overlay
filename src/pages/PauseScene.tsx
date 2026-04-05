@@ -1,17 +1,51 @@
 import React, { useEffect, useState } from 'react';
-import { MeshGradient } from '@paper-design/shaders-react';
+import { MeshGradient, LiquidMetal } from '@paper-design/shaders-react';
 import { useSettings } from '../contexts/SettingsContext';
 import '../styles/Y2KTheme.css';
 import './PauseScene.css';
 import '@fontsource/unifrakturmaguntia/400.css';
 import '@fontsource-variable/climate-crisis/index.css';
 import '@fontsource/press-start-2p/400.css';
-import '@fontsource/libre-barcode-39/400.css';
+import '@fontsource/libre-barcode-39-extended-text/400.css';
+
+interface TextMask {
+  img: HTMLImageElement;
+  w: number;
+  h: number;
+}
+
+function useFrakturMask(text: string): TextMask | null {
+  const [mask, setMask] = useState<TextMask | null>(null);
+
+  useEffect(() => {
+    document.fonts.load('400 200px "UnifrakturMaguntia"').then(() => {
+      const FONT_SIZE = 200;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
+      const w = Math.ceil(ctx.measureText(text).width) + 60;
+      const h = Math.ceil(FONT_SIZE * 1.4);
+      canvas.width = w;
+      canvas.height = h;
+      // Re-apply font after canvas resize (resize resets context state)
+      ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
+      ctx.fillStyle = 'white';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(text, 30, FONT_SIZE);
+      const img = new Image();
+      img.onload = () => setMask({ img, w, h });
+      img.src = canvas.toDataURL('image/png');
+    });
+  }, [text]);
+
+  return mask;
+}
 
 const PauseScene: React.FC = () => {
   const { settings } = useSettings();
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
+  const titleMask = useFrakturMask('Be Right Back');
 
   useEffect(() => {
     if (!token) return;
@@ -25,22 +59,6 @@ const PauseScene: React.FC = () => {
 
   return (
     <div className="pause-scene">
-      {/* Hidden SVG filter — reuse drip goo filter */}
-      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
-        <defs>
-          <filter id="pause-drip-filter" x="-20%" y="-20%" width="140%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feColorMatrix
-              in="blur"
-              type="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"
-              result="goo"
-            />
-            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-          </filter>
-        </defs>
-      </svg>
-
       {/* MeshGradient fullscreen base */}
       <div className="pause-shader">
         <MeshGradient
@@ -61,18 +79,30 @@ const PauseScene: React.FC = () => {
 
       {/* Gothic main text */}
       <div className="pause-content">
-        <div className="pause-drip-wrapper">
-          <h1
-            className="pause-title y2k-glitch"
-            data-text="Be Right Back"
+        {titleMask && (
+          <div
+            className="pause-title-wrapper"
+            style={{ aspectRatio: `${titleMask.w} / ${titleMask.h}` }}
           >
-            Be Right Back
-          </h1>
-          {/* Drip blobs */}
-          <div className="pause-drips" aria-hidden="true">
-            <span /><span /><span /><span /><span />
+            <LiquidMetal
+              width="100%"
+              height="100%"
+              image={titleMask.img}
+              colorBack="#030305"
+              colorTint="#e0e0e0"
+              shape="none"
+              shiftRed={0.35}
+              shiftBlue={-0.35}
+              distortion={0.12}
+              softness={0.15}
+              contour={0.4}
+              angle={70}
+              speed={0.4}
+              scale={0.9}
+              fit="contain"
+            />
           </div>
-        </div>
+        )}
 
         <p className="pause-subtitle y2k-font-pixel">— stream paused —</p>
 
