@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
 
 interface Props {
-  /** Must match the CSS border-radius of the containing overlay box. */
+  /** Corner radius of the border in pixels. Defaults to 0 (sharp corners). */
   borderRadius?: number;
   /** Visual thickness of the rendered border in pixels (at canvas resolution). */
   thickness?: number;
 }
 
-const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 16, thickness = 3 }) => {
+const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [maskImg, setMaskImg] = useState<HTMLImageElement | null>(null);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
@@ -97,7 +97,7 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 16, thickness = 3 }) 
           angle={70}
           speed={0.4}
           scale={0.9}
-          fit="contain"
+          fit="fill"
         />
       )}
     </div>

@@ -42,7 +42,7 @@ const ChatOverlay = () => {
       style={{ opacity: settings.perOverlayOpacity?.chat ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.chat ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
-      {settings.theme === 'y2k' && <Y2KBorderShader borderRadius={12} />}
+      {settings.theme === 'y2k' && <Y2KBorderShader />}
       <div className="chat-header">
         <h3>
           <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat

@@ -87,7 +87,7 @@ const ClockOverlay = () => {
       style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
-      {settings.theme === 'y2k' && <Y2KBorderShader borderRadius={16} />}
+      {settings.theme === 'y2k' && <Y2KBorderShader />}
       <div className="current-time-section">
         <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
         <div className={`current-time ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>

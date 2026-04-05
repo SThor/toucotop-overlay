@@ -102,7 +102,7 @@ const BarOverlayContent = () => {
     >
       <ThemeBackground panelMode />
       {settings.theme === 'y2k' && settings.barFloating !== false && (
-        <Y2KBorderShader borderRadius={16} />
+        <Y2KBorderShader />
       )}
       
       {/* Current Time Section */}
