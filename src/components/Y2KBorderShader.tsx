@@ -97,7 +97,7 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3 }) =
           angle={70}
           speed={0.4}
           scale={0.9}
-          fit="fill"
+          fit="cover"
         />
       )}
     </div>
