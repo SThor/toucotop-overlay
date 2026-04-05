@@ -91,6 +91,9 @@
   margin: 0;
 }
 
+.pause-scene.y2k-active .pause-subtitle::before { content: '⭒.˚✧˖° '; color: var(--y2k-magenta); opacity: 0.85; }
+.pause-scene.y2k-active .pause-subtitle::after  { content: ' °˖✧˚.⭒'; color: var(--y2k-magenta); opacity: 0.85; }
+
 .pause-scene.y2k-active .pause-subtitle {
   color: var(--y2k-cyan);
   text-shadow: 0 0 12px var(--y2k-cyan), 0 0 30px rgba(0, 255, 204, 0.3);

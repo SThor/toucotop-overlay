@@ -125,6 +125,11 @@
 .clock-overlay.crt-active .stream-category { color: rgba(var(--LightRGBA), 0.7); }
 
 /* ---- Y2K theme overrides ---- */
+.clock-overlay.y2k-active .current-time-section .time-label::before { content: '⋆˚☆˖° '; color: var(--y2k-cyan); opacity: 0.7; }
+.clock-overlay.y2k-active .current-time-section .time-label::after  { content: ' °˖☆˚⋆'; color: var(--y2k-cyan); opacity: 0.7; }
+.clock-overlay.y2k-active .stream-time-section .time-label::before  { content: '✮˖ ࣪⊹ '; color: var(--y2k-magenta); opacity: 0.7; }
+.clock-overlay.y2k-active .stream-time-section .time-label::after   { content: ' ⊹࣪ ˖✮'; color: var(--y2k-magenta); opacity: 0.7; }
+
 .clock-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
