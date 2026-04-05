@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
-import { TwitchProvider } from '../contexts/TwitchContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { TwitchProvider } from '../../contexts/TwitchContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeBackground from '../components/ThemeBackground';
-import EmoteMessage from '../components/EmoteMessage';
-import '../styles/ChatOverlay.css';
+import ThemeBackground from '../../components/ThemeBackground';
+import EmoteMessage from '../../components/EmoteMessage';
+import '../../styles/ChatOverlay.css';
 
 const ChatOverlay = () => {
   const { settings } = useSettings();

@@ -12,10 +12,10 @@ import AuthErrorPage from './pages/AuthErrorPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DemoPage from './pages/DemoPage';
-import ChatOverlay from './pages/ChatOverlay';
-import ClockOverlay from './pages/ClockOverlay';
-import BarOverlay from './pages/BarOverlay';
-import PauseScene from './pages/PauseScene';
+import ChatOverlay from './pages/overlay/ChatOverlay';
+import ClockOverlay from './pages/overlay/ClockOverlay';
+import BarOverlay from './pages/overlay/BarOverlay';
+import PauseOverlay from './pages/overlay/PauseOverlay';
 import NavMenu from './components/NavMenu';
 import './App.css';
 import './styles/ServerPages.css';
@@ -177,7 +177,7 @@ function App() {
                   <Route path="/chat" element={<ChatOverlay />} />
                   <Route path="/clock" element={<ClockOverlay />} />
                   <Route path="/bar" element={<BarOverlay />} />
-                  <Route path="/pause" element={<PauseScene />} />
+                  <Route path="/pause" element={<PauseOverlay />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </div>

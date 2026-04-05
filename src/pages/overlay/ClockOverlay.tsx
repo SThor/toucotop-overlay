@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
-import { TwitchProvider } from '../contexts/TwitchContext';
-import ThemeBackground from '../components/ThemeBackground';
-import MarqueeText from '../components/MarqueeText';
-import '../styles/ClockOverlay.css';
+import { useSettings } from '../../contexts/SettingsContext';
+import { TwitchProvider } from '../../contexts/TwitchContext';
+import ThemeBackground from '../../components/ThemeBackground';
+import MarqueeText from '../../components/MarqueeText';
+import '../../styles/ClockOverlay.css';
 
 // Destructure the hook for cleaner usage
 const { useTwitch } = TwitchProvider;

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
-import { TwitchProvider } from '../contexts/TwitchContext';
-import ThemeBackground from '../components/ThemeBackground';
-import MarqueeText from '../components/MarqueeText';
-import '../styles/BarOverlay.css';
+import { useSettings } from '../../contexts/SettingsContext';
+import { TwitchProvider } from '../../contexts/TwitchContext';
+import ThemeBackground from '../../components/ThemeBackground';
+import MarqueeText from '../../components/MarqueeText';
+import '../../styles/BarOverlay.css';
 
 const BarOverlayContent = () => {
   const { settings } = useSettings();

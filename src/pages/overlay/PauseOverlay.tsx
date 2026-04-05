@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { MeshGradient, LiquidMetal } from '@paper-design/shaders-react';
-import { useSettings } from '../contexts/SettingsContext';
-import '../styles/Y2KTheme.css';
-import './PauseScene.css';
+import { useSettings } from '../../contexts/SettingsContext';
+import '../../styles/Y2KTheme.css';
+import './PauseOverlay.css';
 import '@fontsource/unifrakturmaguntia/400.css';
 import '@fontsource-variable/climate-crisis/index.css';
 import '@fontsource/press-start-2p/400.css';
@@ -41,7 +41,7 @@ function useFrakturMask(text: string): TextMask | null {
   return mask;
 }
 
-const PauseScene: React.FC = () => {
+const PauseOverlay: React.FC = () => {
   const { settings } = useSettings();
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
@@ -116,4 +116,4 @@ const PauseScene: React.FC = () => {
   );
 };
 
-export default PauseScene;
+export default PauseOverlay;
