@@ -38,13 +38,13 @@ const ChatOverlay = () => {
 
   return (
     <div
-      className={`chat-overlay${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
+      className={`chat-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.chat ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.chat ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
       {settings.theme === 'y2k' && <Y2KBorderShader borderRadius={12} />}
       <div className="chat-header">
-        <h3 className={settings.theme === 'crt' ? 'crt-glow-text' : ''}>
+        <h3>
           💬 Stream Chat
           {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
           {error && <span className="connection-status error" title={error}> (Connection Error)</span>}

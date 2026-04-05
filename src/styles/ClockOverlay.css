@@ -115,7 +115,6 @@
 .clock-overlay.y2k-active.preview-mode {
   position: relative;
 }
-}
 
 .stream-category {
   color: rgba(var(--LightRGBA), 0.7);

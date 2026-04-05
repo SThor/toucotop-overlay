@@ -83,7 +83,7 @@ const ClockOverlay = () => {
 
   return (
     <div
-      className={`clock-overlay${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
+      className={`clock-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />

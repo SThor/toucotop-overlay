@@ -233,11 +233,11 @@
 }
 
 /* CRT Effects specific to bar overlay */
-.bar-overlay.crt-enabled {
+.bar-overlay.crt-active {
   animation: crtFlicker 0.15s infinite linear alternate;
 }
 
-.bar-overlay.crt-enabled::before {
+.bar-overlay.crt-active::before {
   content: '';
   position: absolute;
   top: 0;
@@ -253,9 +253,9 @@
   border-radius: 16px;
 }
 
-.bar-overlay.crt-enabled .bar-time-value,
-.bar-overlay.crt-enabled .bar-stat-value,
-.bar-overlay.crt-enabled .bar-recent-name {
+.bar-overlay.crt-active .bar-time-value,
+.bar-overlay.crt-active .bar-stat-value,
+.bar-overlay.crt-active .bar-recent-name {
   text-shadow: 
     0 0 5px var(--Main),
     0 0 10px var(--Main),

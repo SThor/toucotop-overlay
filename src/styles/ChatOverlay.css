@@ -38,11 +38,9 @@
   color: var(--Main);
   font-size: 1.1em;
   text-align: center;
-  /* Enhanced glow effect when CRT is enabled */
 }
 
-.crt-background ~ .chat-header h3,
-.chat-overlay .chat-header h3.crt-glow-text {
+.chat-overlay.crt-active .chat-header h3 {
   text-shadow: 0 0 10px rgba(var(--MainRGBA), 0.5);
 }
 
@@ -150,8 +148,8 @@
   display: inline-block;
 }
 
-/* CRT effect for emotes when enabled */
-.crt-background ~ * .chat-emote {
+/* CRT effect for emotes */
+.chat-overlay.crt-active .chat-emote {
   filter: brightness(0.95) contrast(1.1);
   image-rendering: pixelated;
 }

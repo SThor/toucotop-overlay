@@ -97,7 +97,7 @@ const BarOverlayContent = () => {
 
   return (
     <div
-      className={`bar-overlay ${settings.theme === 'crt' ? 'crt-enabled' : ''} ${!settings.barFloating ? 'full-width' : ''} ${settings.theme === 'y2k' ? 'y2k-active' : ''}`}
+      className={`bar-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${!settings.barFloating ? ' full-width' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
