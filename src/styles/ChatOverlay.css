@@ -5,28 +5,36 @@
   width: 100vw;
   height: 100vh;
   pointer-events: auto;
-  background: rgba(var(--DarkRGBA), 0.9);
-  border: 2px solid var(--Main);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  backdrop-filter: blur(10px);
 }
 
 .chat-overlay.preview-mode {
   position: static;
   width: 350px;
   height: 500px;
-  background: rgba(var(--DarkRGBA), 0.9);
-  border: 2px solid var(--Main);
-  border-radius: 12px;
   margin: 2rem auto;
   max-width: none;
   top: auto;
   left: auto;
   right: auto;
   transform: none;
+}
+
+.chat-overlay.crt-active {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.chat-overlay.crt-active.preview-mode {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 12px;
 }
 
 .chat-header {
@@ -38,6 +46,14 @@
   color: var(--Main);
   font-size: 1.1em;
   text-align: center;
+}
+
+.chat-icon {
+  font-size: 0;
+}
+
+.chat-overlay.crt-active .chat-icon {
+  font-size: inherit;
 }
 
 .chat-overlay.crt-active .chat-header h3 {

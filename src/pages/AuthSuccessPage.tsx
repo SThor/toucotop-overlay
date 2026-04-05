@@ -385,7 +385,7 @@ export default function AuthSuccessPage() {
                 value={persistedSettings.theme}
                 onChange={(v) => { if (v) save({ theme: v as import('../server/shared/overlaySettings').OverlayTheme }); }}
                 data={[
-                  { value: 'default', label: 'Animated background' },
+                  { value: 'default', label: 'Default' },
                   { value: 'crt', label: 'CRT effects' },
                   { value: 'y2k', label: 'Gothic Techno (Y2K)' },
                 ]}

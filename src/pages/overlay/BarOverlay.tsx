@@ -138,7 +138,7 @@ const BarOverlayContent = () => {
       {/* Stats Section */}
       <div className="bar-section bar-stats-section">
         <div className="bar-stat-item">
-          <div className="bar-stat-icon">👥</div>
+          <div className="bar-stat-icon" aria-hidden="true">👥</div>
           <div className="bar-stat-content">
             <div className="bar-stat-value">
               {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
@@ -148,7 +148,7 @@ const BarOverlayContent = () => {
         </div>
 
         <div className="bar-stat-item">
-          <div className="bar-stat-icon">❤️</div>
+          <div className="bar-stat-icon" aria-hidden="true">❤️</div>
           <div className="bar-stat-content">
             <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
             <div className="bar-stat-label">Followers</div>
@@ -162,7 +162,7 @@ const BarOverlayContent = () => {
       <div className="bar-section bar-recent-section">
         {twitch.lastFollower && (
           <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
-            <div className="bar-recent-icon">❤️</div>
+            <div className="bar-recent-icon" aria-hidden="true">❤️</div>
             <div className="bar-recent-content">
               <div className="bar-recent-name">{twitch.lastFollower.userDisplayName}</div>
               <div className="bar-recent-label">Last Follow {formatRelativeTime(twitch.lastFollower.followDate)}</div>
@@ -172,7 +172,7 @@ const BarOverlayContent = () => {
 
         {twitch.lastSubscriber && (
           <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
-            <div className="bar-recent-icon">⭐</div>
+            <div className="bar-recent-icon" aria-hidden="true">⭐</div>
             <div className="bar-recent-content">
               <div className="bar-recent-name">{twitch.lastSubscriber.userDisplayName}</div>
               <div className="bar-recent-label">

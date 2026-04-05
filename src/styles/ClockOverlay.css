@@ -4,18 +4,21 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(var(--DarkRGBA), 0.9);
-  border: 2px solid var(--Main);
-  border-radius: 16px;
   padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  font-family: 'Courier New', monospace;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   align-items: center;
   justify-content: center;
+}
+
+.clock-overlay.crt-active {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  font-family: 'Courier New', monospace;
 }
 
 .clock-overlay.preview-mode {
