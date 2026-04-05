@@ -19,11 +19,13 @@ function useFrakturMask(text: string): TextMask | null {
   const [mask, setMask] = useState<TextMask | null>(null);
 
   useEffect(() => {
-    document.fonts.load('400 200px "UnifrakturMaguntia"').then(() => {
-      const FONT_SIZE = 200;
+    const FONT_SIZE = 200;
+    const FONT_WEIGHT = 400;
+    const FONT_FAMILY = 'UnifrakturMaguntia';
+    document.fonts.load(`${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`).then(() => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
-      ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
+      ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
       // Measure actual ink bounds on all four sides so no glyph stroke is clipped.
       // PAD also absorbs the chromatic aberration shift from the LiquidMetal shader.
       const metrics = ctx.measureText(text);
@@ -35,7 +37,7 @@ function useFrakturMask(text: string): TextMask | null {
       canvas.width = w;
       canvas.height = h;
       // Re-apply font after canvas resize (resize resets context state)
-      ctx.font = `400 ${FONT_SIZE}px UnifrakturMaguntia`;
+      ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
       ctx.fillStyle = 'white';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(text, xOrigin, yOrigin);
