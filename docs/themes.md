@@ -8,11 +8,11 @@ A theme can also be forced for a single OBS scene via URL parameter: `?theme=crt
 
 ## Available Themes
 
-### `default` — Animated Background
+### `default` — Bare Overlay
 
-The original overlay style. A subtle animated gradient background using the project's brand colour palette (warm orange `#e56d0c` on near-black `#1f0f01`). No heavy effects — low GPU cost, reliable on any machine.
+A clean, minimal overlay with no background. Content (text, stats, chat messages) renders directly over the stream without any panel backdrop, borders, or colour tinting. Neutral white/grey tones only — designed to stay out of the way of the underlying stream content.
 
-**Best for:** setups prioritising performance or a clean, minimal look.
+**Best for:** setups that want the overlay information to float seamlessly over the stream, prioritising the stream image itself.
 
 ---
 
@@ -81,21 +81,6 @@ A high-impact theme built around liquid chrome, gothic typography, and Y2K inter
 **Best for:** gothic, emo, or Y2K-era gaming streams; high-energy variety streams.
 
 URL param: `?theme=y2k`
-
----
-
-## Pause Scene (`/pause`)
-
-A standalone fullscreen page intended as a separate OBS Browser Source for when the stream is paused or on break. It does **not** require an authentication token.
-
-- **Background:** [MeshGradient shader](https://shaders.paper.design/mesh-gradient) — flowing colour spots in the Y2K palette, slow animation
-- **Typography:** Giant UnifrakturMaguntia "Be Right Back" in chrome with a liquid drip effect fusing into the letterforms (SVG goo filter)
-- **Subtitle:** Press Start 2P "— stream paused —" with a cyan glow and occasional HUD flicker
-- **Decoration:** Libre Barcode 39 channel name at the bottom
-
-OBS setup: add a Browser Source pointing to `https://your-server/pause`, set to your stream resolution (e.g. 1920×1080). Switch to this scene on your OBS scene switcher when going on break.
-
----
 
 ## Adding a Theme (developer notes)
 
