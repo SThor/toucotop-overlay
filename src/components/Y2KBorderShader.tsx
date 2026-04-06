@@ -10,7 +10,7 @@ interface Props {
   shape?: 'ellipse' | 'rect';
 }
 
-const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3, shape = 'rect' }) => {
+const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 4, shape = 'rect' }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [maskImg, setMaskImg] = useState<HTMLImageElement | null>(null);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
@@ -83,7 +83,7 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3, sha
     // overflow: hidden clips any sub-pixel bleed from the shader's chromatic shift.
     <div
       ref={wrapperRef}
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10, overflow: 'hidden' }}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10}}
     >
       {maskImg && dims && (
         <LiquidMetal
@@ -100,7 +100,6 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3, sha
           contour={0.4}
           angle={70}
           speed={0.4}
-          scale={0.9}
           fit="cover"
         />
       )}

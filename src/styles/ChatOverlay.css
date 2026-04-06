@@ -167,6 +167,7 @@
   border: none;
   border-radius: 50%;
   overflow: hidden;
+  padding-top: 10vh;
 }
 
 /* preview-mode resets position to static; restore a containing block for the border shader */
