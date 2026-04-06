@@ -12,6 +12,7 @@ import AuthErrorPage from './pages/AuthErrorPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DemoPage from './pages/DemoPage';
+import ShaderTestPage from './pages/ShaderTestPage';
 import ChatOverlay from './pages/overlay/ChatOverlay';
 import ClockOverlay from './pages/overlay/ClockOverlay';
 import BarOverlay from './pages/overlay/BarOverlay';
@@ -24,7 +25,7 @@ import { useSearchParams } from 'react-router-dom';
 
 // Pages that don't need a valid token
 const ALLOW_NO_TOKEN = [
-  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
+  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound', '/shader-test'
 ];
 
 // Overlay paths: invalid/expired token shows an inline message instead of redirecting,
@@ -173,6 +174,7 @@ function App() {
                   <Route path="/auth/error" element={<AuthErrorPage />} />
                   <Route path="/auth/denied" element={<AccessDeniedPage />} />
                   <Route path="/demo" element={<DemoPage />} />
+                  <Route path="/shader-test" element={<ShaderTestPage />} />
                   <Route path="/chat" element={<ChatOverlay />} />
                   <Route path="/clock" element={<ClockOverlay />} />
                   <Route path="/bar" element={<BarOverlay />} />
