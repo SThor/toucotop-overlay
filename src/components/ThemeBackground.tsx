@@ -16,6 +16,8 @@ interface Props {
 const ThemeBackground: React.FC<Props> = ({ panelMode = false }) => {
   const { settings } = useSettings();
 
+  if (settings.hideBackground) return null;
+
   // Inside overlay panels: CRT gets its backdrop; Y2K gets its background.
   if (panelMode) {
     if (settings.theme === 'crt') return <CRTBackground />;

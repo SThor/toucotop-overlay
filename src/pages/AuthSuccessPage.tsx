@@ -194,7 +194,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt&amp;hideBackground=true</code>
             </Text>
           </details>
         </Paper>

@@ -92,6 +92,7 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') !== 'false';
     o.themeSettings = { crt } as OverlaySettings['themeSettings'];
   }
+  if (p.has('hideBackground')) o.hideBackground = p.get('hideBackground') !== 'false';
 
   return o;
 }

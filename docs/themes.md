@@ -80,7 +80,6 @@ A high-impact theme built around liquid chrome, gothic typography, and Y2K inter
 **Best for:** gothic, emo, or Y2K-era gaming streams; high-energy variety streams.
 
 URL param: `?theme=y2k`
-
 ## Adding a Theme (developer notes)
 
 1. Add the new value to `OverlayTheme` in `src/server/shared/overlaySettings.ts`
