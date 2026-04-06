@@ -20,11 +20,6 @@
   100%    { transform: translateX(var(--marquee-distance)); }
 }
 
-@keyframes y2k-color-sweep {
-  0%, 100% { background-position: 100% 50%; }
-  50%       { background-position: 0% 50%; }
-}
-
 a {
   font-weight: 500;
   text-decoration: inherit;
