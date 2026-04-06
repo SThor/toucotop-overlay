@@ -6,13 +6,29 @@ interface Dims { w: number; h: number; }
 const Y2KDivider: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<Dims | null>(null);
-  const [maskImg, setMaskImg] = useState<HTMLImageElement | null>(null);
+  const [sourceImg, setSourceImg] = useState<HTMLImageElement | null>(null);
+  const [stretchedMask, setStretchedMask] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const img = new Image();
-    img.onload = () => setMaskImg(img);
+    img.onload = () => setSourceImg(img);
     img.src = '/tribal.png';
   }, []);
+
+  // Re-draw the source image stretched to exact container dims whenever either changes
+  useEffect(() => {
+    if (!sourceImg || !dims || dims.w <= 0) return;
+    let cancelled = false;
+    const canvas = document.createElement('canvas');
+    canvas.width = dims.w;
+    canvas.height = dims.h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(sourceImg, 0, 0, dims.w, dims.h);
+    const out = new Image();
+    out.onload = () => { if (!cancelled) setStretchedMask(out); };
+    out.src = canvas.toDataURL('image/png');
+    return () => { cancelled = true; };
+  }, [sourceImg, dims]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -32,11 +48,11 @@ const Y2KDivider: React.FC = () => {
       ref={containerRef}
       style={{ width: '100%', height: 72, flexShrink: 0, pointerEvents: 'none' }}
     >
-      {maskImg && dims && dims.w > 0 && (
+      {stretchedMask && dims && dims.w > 0 && (
         <LiquidMetal
           width={dims.w}
           height={dims.h}
-          image={maskImg}
+          image={stretchedMask}
           colorBack="#00000000"
           colorTint="#e0e0e0"
           shape="none"
@@ -48,7 +64,7 @@ const Y2KDivider: React.FC = () => {
           angle={70}
           speed={0.4}
           scale={0.9}
-          fit="contain"
+          fit="cover"
         />
       )}
     </div>
@@ -56,3 +72,4 @@ const Y2KDivider: React.FC = () => {
 };
 
 export default Y2KDivider;
+
