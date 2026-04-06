@@ -161,12 +161,20 @@
 .chat-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
+  /* will-change: mask forces a GPU compositing layer, which is required for
+     mask-image to work correctly on position:fixed elements in Chrome/Chromium. */
+  will-change: mask;
   -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
   mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
 }
 
 .chat-overlay.y2k-active .chat-header h3 {
   margin-bottom: 0;
+  /* MeshGradient background is bright purple/magenta — dark glow keeps the text readable. */
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.9),
+    0 0 20px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 /* preview-mode resets position to static; restore a containing block for the border shader */
