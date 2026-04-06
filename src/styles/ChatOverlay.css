@@ -161,8 +161,23 @@
 .chat-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
-  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
+  /* Two mask layers composited with intersect:
+     1) ellipse gradient controls overall shape/fade
+     2) feTurbulence fractal noise adds cloudy irregularity to the opacity
+     SVG noise knobs:
+       - baseFrequency: cloud size (lower = larger clouds, e.g. 0.015; higher = smaller, e.g. 0.06)
+       - numOctaves: detail layers (more = finer detail, heavier)
+       - seed: noise pattern variant (any integer)
+       - feFuncA slope/intercept: output = slope * noise + intercept
+           → slope=0.5 intercept=0.5 maps noise [0,1] to opacity [0.5, 1.0] (no full holes)
+           → increase slope for stronger clouds (e.g. 0.7/0.3), decrease for subtler (e.g. 0.2/0.8) */
+  --y2k-noise-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03%200.05' numOctaves='4' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix type='luminanceToAlpha'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.5' intercept='0.5'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%), var(--y2k-noise-svg);
+  -webkit-mask-size: 100% 100%, 100% 100%;
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%), var(--y2k-noise-svg);
+  mask-size: 100% 100%, 100% 100%;
+  mask-composite: intersect;
 }
 
 .chat-overlay.y2k-active .chat-header h3 {
