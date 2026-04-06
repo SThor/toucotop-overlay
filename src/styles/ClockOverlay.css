@@ -133,6 +133,8 @@
 .clock-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .clock-overlay.y2k-active.preview-mode {

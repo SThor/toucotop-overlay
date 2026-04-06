@@ -6,10 +6,11 @@ import '@fontsource/press-start-2p/400.css';
 import '@fontsource/libre-barcode-39-extended-text/400.css';
 
 interface Props {
-  showBorder?: boolean;
+  /** When true, skips the vignette (overlay panel context). */
+  panelMode?: boolean;
 }
 
-const Y2KBackground: React.FC<Props> = () => {
+const Y2KBackground: React.FC<Props> = ({ panelMode = false }) => {
   return (
     <div
       style={{
@@ -34,16 +35,18 @@ const Y2KBackground: React.FC<Props> = () => {
         }}
       />
 
-      {/* Dark vignette to keep overlay content readable */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(ellipse at center, transparent 50%, rgba(3,3,5,0.55) 78%, rgba(26,0,32,0.88) 100%)',
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Dark vignette — only for full-page backgrounds, not overlay panels */}
+      {!panelMode && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse at center, transparent 50%, rgba(3,3,5,0.55) 78%, rgba(26,0,32,0.88) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -22,7 +22,7 @@ const ThemeBackground: React.FC<Props> = ({ panelMode = false }) => {
     if (settings.theme === 'y2k') {
       return (
         <React.Suspense fallback={null}>
-          <LazyY2KBackground />
+          <LazyY2KBackground panelMode />
         </React.Suspense>
       );
     }

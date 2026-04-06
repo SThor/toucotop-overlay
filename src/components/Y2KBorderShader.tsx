@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
 
 interface Props {
-  /** Corner radius of the border in pixels. Defaults to 0 (sharp corners). */
+  /** Corner radius in pixels when shape is 'rect'. Defaults to 0. */
   borderRadius?: number;
-  /** Visual thickness of the rendered border in pixels (at canvas resolution). */
+  /** Visual thickness of the rendered border in pixels. */
   thickness?: number;
+  /** Border shape — 'ellipse' draws a full ellipse, 'rect' draws a (rounded) rectangle. */
+  shape?: 'ellipse' | 'rect';
 }
 
-const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3 }) => {
+const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3, shape = 'rect' }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [maskImg, setMaskImg] = useState<HTMLImageElement | null>(null);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
@@ -34,7 +36,9 @@ const Y2KBorderShader: React.FC<Props> = ({ borderRadius = 0, thickness = 3 }) =
       const r = Math.min(borderRadius, rw / 2, rh / 2);
       const half = thickness / 2;
       ctx.beginPath();
-      if (ctx.roundRect) {
+      if (shape === 'ellipse') {
+        ctx.ellipse(rw / 2, rh / 2, rw / 2 - half, rh / 2 - half, 0, 0, Math.PI * 2);
+      } else if (ctx.roundRect) {
         ctx.roundRect(half, half, rw - thickness, rh - thickness, r);
       } else if (r > 0) {
         const x = half, y = half;

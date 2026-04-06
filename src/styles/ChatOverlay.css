@@ -165,6 +165,8 @@
 .chat-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 /* preview-mode resets position to static; restore a containing block for the border shader */
