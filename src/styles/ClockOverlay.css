@@ -131,10 +131,7 @@
 .clock-overlay.y2k-active .stream-time-section .time-label::after   { content: ' ⊹࣪ ˖✮'; opacity: 0.7; }
 
 .clock-overlay.y2k-active {
-  background: rgba(0, 0, 0, 0.9);
   border: none;
-  border-radius: 50%;
-  overflow: hidden;
 }
 
 .clock-overlay.y2k-active.preview-mode {

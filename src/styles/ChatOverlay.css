@@ -159,7 +159,6 @@
 .chat-overlay.y2k-active .chat-header h3::after  { content: ' ⊹˖✮'; opacity: 0.8; }
 
 .chat-overlay.y2k-active {
-  background: rgba(0, 0, 0, 0.9);
   border: none;
 }
 
