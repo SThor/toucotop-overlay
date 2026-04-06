@@ -4,6 +4,7 @@ import { TwitchProvider } from '../../contexts/TwitchContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeBackground from '../../components/ThemeBackground';
 import EmoteMessage from '../../components/EmoteMessage';
+import Y2KDivider from '../../components/Y2KDivider';
 import '../../styles/ChatOverlay.css';
 
 const ChatOverlay = () => {
@@ -48,7 +49,7 @@ const ChatOverlay = () => {
           {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
           {isConnected && <span className="connection-status connected"> (Live)</span>}
         </h3>
-        <div className="chat-divider"></div>
+        {settings.theme === 'y2k' ? <Y2KDivider /> : <div className="chat-divider"></div>}
       </div>
       
       <div className={`chat-messages ${settings.chatFeedDirection === 'top' ? 'feed-from-top' : 'feed-from-bottom'}`}>

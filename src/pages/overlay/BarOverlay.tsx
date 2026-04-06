@@ -99,7 +99,7 @@ const BarOverlayContent = () => {
       className={`bar-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${!settings.barFloating ? ' full-width' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
-      <ThemeBackground panelMode showBorder={settings.barFloating !== false} />
+      <ThemeBackground panelMode />
       
       {/* Current Time Section */}
       <div className="bar-section bar-time-section">
