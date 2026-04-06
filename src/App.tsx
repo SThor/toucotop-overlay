@@ -73,15 +73,21 @@ function RequireToken({ children }: { children: React.ReactNode }) {
       if (urlToken !== settings.overlayToken) {
         updateSettings({ overlayToken: urlToken });
       }
-      // Strip the token from the address bar so it doesn't linger in browser history
-      const nextParams = new URLSearchParams(params);
-      nextParams.delete('token');
-      const nextSearch = nextParams.toString();
-      window.history.replaceState(
-        window.history.state,
-        '',
-        `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
-      );
+      // Strip the token from the address bar so it doesn't linger in browser history.
+      // Exception: overlay paths are opened in OBS Browser Sources which refresh from
+      // the browser engine's *current* URL (post-replaceState), not the configured URL.
+      // Keeping the token in the URL there ensures a manual refresh still works,
+      // even when localStorage is unavailable (e.g. "Clear cache on refresh" is on).
+      if (!OVERLAY_PATHS.includes(location.pathname)) {
+        const nextParams = new URLSearchParams(params);
+        nextParams.delete('token');
+        const nextSearch = nextParams.toString();
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
+        );
+      }
       return;
     }
     // No URL token — try dedicated localStorage key as fallback
