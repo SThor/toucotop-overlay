@@ -154,6 +154,10 @@
 .chat-overlay.crt-active .chat-messages::-webkit-scrollbar-thumb { background: var(--Main); }
 .chat-overlay.crt-active .message { color: var(--Light); }
 
+.chat-overlay.y2k-active .chat-header h3 {
+  margin-bottom: 0;
+}
+
 /* ---- Y2K theme overrides ---- */
 .chat-overlay.y2k-active .chat-header h3::before { content: '✮˖⊹ '; opacity: 0.8; }
 .chat-overlay.y2k-active .chat-header h3::after  { content: ' ⊹˖✮'; opacity: 0.8; }

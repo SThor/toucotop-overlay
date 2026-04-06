@@ -30,7 +30,7 @@ const Y2KDivider: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: 36, flexShrink: 0, pointerEvents: 'none' }}
+      style={{ width: '100%', height: 72, flexShrink: 0, pointerEvents: 'none' }}
     >
       {maskImg && dims && dims.w > 0 && (
         <LiquidMetal
