@@ -161,8 +161,8 @@
 .chat-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
-  border-radius: 50%;
-  overflow: hidden;
+  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
 }
 
 .chat-overlay.y2k-active .chat-header h3 {
