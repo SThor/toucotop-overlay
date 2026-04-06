@@ -5,8 +5,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Token storage directory (will be a Docker volume in production)
-const TOKENS_DIR = path.join(__dirname, '../../tokens');
+// Token storage directory.
+// TOKENS_DIR env var lets Docker / the host override the path without a code change.
+// Fallback: two levels up from dist-server/ lands at the repo root in dev,
+// but in the Docker image __dirname is /app/dist-server so ../../tokens = /tokens
+// (filesystem root — outside the volume). The env var is therefore set to /app/tokens
+// in the Dockerfile so the path always matches the Docker volume mount point.
+const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
 import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
