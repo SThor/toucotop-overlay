@@ -14,6 +14,7 @@ interface Props {
 const Y2KBackground: React.FC<Props> = ({ panelMode = false }) => {
   return (
     <div
+      className={panelMode ? 'y2k-bg-panel' : undefined}
       style={{
         position: 'absolute',
         inset: 0,

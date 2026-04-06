@@ -161,11 +161,15 @@
 .chat-overlay.y2k-active {
   background: rgba(0, 0, 0, 0.9);
   border: none;
-  /* will-change: mask forces a GPU compositing layer, which is required for
-     mask-image to work correctly on position:fixed elements in Chrome/Chromium. */
+}
+
+/* Mask applied to the background layer only so text/messages are unaffected.
+   will-change forces a GPU compositing layer, required for mask-image on
+   position:absolute children inside a position:fixed parent in Chromium/OBS. */
+.y2k-bg-panel {
   will-change: mask;
-  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 55%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
+  mask-image: radial-gradient(circle, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
 }
 
 .chat-overlay.y2k-active .chat-header h3 {
