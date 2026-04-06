@@ -47,7 +47,7 @@ const ChatOverlay = () => {
           <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
           {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
           {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
-          {isConnected && <span className="connection-status connected"> (Live)</span>}
+          {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
         </h3>
         {settings.theme === 'y2k' ? <Y2KDivider /> : <div className="chat-divider"></div>}
       </div>
