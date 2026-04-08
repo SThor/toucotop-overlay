@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,30 +11,15 @@ const ChatOverlay = () => {
   const { settings } = useSettings();
   const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
 
-  // Debug logging to help track connection issues
-  useEffect(() => {
-    console.log('ChatOverlay: Connection state changed', { 
-      isConnected, 
-      isConnecting, 
-      error,
-    });
-  }, [isConnected, isConnecting, error]);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
-  // Calculate opacity for message based on its position and feed direction
-  const getMessageOpacity = (index: number, totalMessages: number) => {
-    if (totalMessages <= 3) return 1.0; // Don't fade if we have few messages
-    
-    const position = settings.chatFeedDirection === 'top' ? index : totalMessages - 1 - index;
-    const fadeLength = Math.max(3, Math.floor(totalMessages / 4)); // Fade the oldest 25% of messages (min 3)
-    
-    if (position < fadeLength) {
-      // Smooth fade from 0.2 to 1.0 using easing function
-      const progress = position / fadeLength;
-      const easedProgress = 1 - Math.pow(1 - progress, 2); // Ease-out quad
-      return 0.2 + easedProgress * 0.8;
+  // Auto-scroll to newest message when feed direction is bottom (column order,
+  // newest at bottom — column-reverse/top direction handles itself naturally).
+  useEffect(() => {
+    if (settings.chatFeedDirection !== 'top' && messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
-    return 1.0;
-  };
+  }, [messages, settings.chatFeedDirection]);
 
   return (
     <div
@@ -52,9 +37,9 @@ const ChatOverlay = () => {
         {settings.theme === 'y2k' ? <Y2KDivider /> : <div className="chat-divider"></div>}
       </div>
       
-      <div className={`chat-messages ${settings.chatFeedDirection === 'top' ? 'feed-from-top' : 'feed-from-bottom'}`}>
+      <div ref={messagesRef} className={`chat-messages ${settings.chatFeedDirection === 'top' ? 'feed-from-top' : 'feed-from-bottom'}`}>
         <AnimatePresence mode="popLayout">
-          {messages.map((msg, index) => (
+          {messages.map((msg) => (
             <motion.div
               key={msg.id}
               className="chat-message"
@@ -64,8 +49,8 @@ const ChatOverlay = () => {
                 x: 20,
                 scale: 0.8
               }}
-              animate={{ 
-                opacity: getMessageOpacity(index, messages.length),
+              animate={{
+                opacity: 1, // old-message fade handled by CSS mask-image on the container
                 x: 0,
                 scale: 1
               }}

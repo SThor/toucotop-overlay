@@ -40,6 +40,9 @@
 
 .chat-header {
   padding: 1rem;
+  /* Explicit stacking above position:absolute theme backgrounds (z-index:-1) */
+  position: relative;
+  z-index: 1;
 }
 
 .chat-header h3 {
@@ -103,31 +106,15 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.25) transparent;
-}
-
-.chat-messages.feed-from-top {
-  flex-direction: column-reverse;
-  justify-content: flex-end;
-}
-
-.chat-messages.feed-from-bottom {
-  flex-direction: column;
-  justify-content: flex-start;
+  /* Hide scrollbar — OBS overlay, no user interaction */
+  scrollbar-width: none;
+  /* Explicit stacking above position:absolute theme backgrounds (z-index:-1) */
+  position: relative;
+  z-index: 1;
 }
 
 .chat-messages::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.25);
-  border-radius: 3px;
+  display: none;
 }
 
 .chat-message {
@@ -149,10 +136,23 @@
   line-height: 1.4;
 }
 
-/* ---- CRT color overrides ---- */
+/* Oldest messages fade to transparent via CSS mask — replaces per-message JS opacity.
+   feed-from-bottom: newest at bottom, oldest at top → fade top edge.
+   feed-from-top:    newest at top (column-reverse), oldest overflow bottom → fade bottom edge. */
+.chat-messages.feed-from-bottom {
+  flex-direction: column;
+  justify-content: flex-start;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+}
+
+.chat-messages.feed-from-top {
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 20%);
+  mask-image: linear-gradient(to top, transparent 0%, black 20%);
+}
 .chat-overlay.crt-active .connection-status.connected { color: #4ecdc4; }
-.chat-overlay.crt-active .chat-messages { scrollbar-color: var(--Main) transparent; }
-.chat-overlay.crt-active .chat-messages::-webkit-scrollbar-thumb { background: var(--Main); }
 .chat-overlay.crt-active .message { color: var(--Light); }
 
 /* ---- Y2K theme overrides ---- */
@@ -179,6 +179,11 @@
 
 .chat-overlay.y2k-active .chat-header {
   margin-top: 10vh;
+}
+
+.chat-overlay.y2k-active .chat-messages {
+  padding-left: 10%;
+  padding-right: 10%;
 }
 
 /* Twitch Emote Styling */
