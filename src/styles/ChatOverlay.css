@@ -142,15 +142,15 @@
 .chat-messages.feed-from-bottom {
   flex-direction: column;
   justify-content: flex-start;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 20%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
 }
 
 .chat-messages.feed-from-top {
   flex-direction: column-reverse;
   justify-content: flex-end;
-  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 20%);
-  mask-image: linear-gradient(to top, transparent 0%, black 20%);
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 30%);
+  mask-image: linear-gradient(to top, transparent 0%, black 30%);
 }
 .chat-overlay.crt-active .connection-status.connected { color: #4ecdc4; }
 .chat-overlay.crt-active .message { color: var(--Light); }
@@ -182,8 +182,8 @@
 }
 
 .chat-overlay.y2k-active .chat-messages {
-  padding-left: 10%;
-  padding-right: 10%;
+  padding-left: 15%;
+  padding-right: 15%;
 }
 
 /* Twitch Emote Styling */
