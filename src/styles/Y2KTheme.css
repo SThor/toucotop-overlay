@@ -215,6 +215,6 @@
    layer behind content siblings. */
 .y2k-bg-panel {
   will-change: mask;
-  -webkit-mask-image: radial-gradient(ellipse 100% 100%, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
-  mask-image: radial-gradient(ellipse 100% 100%, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
+  -webkit-mask-image: radial-gradient(closest-side, black 20%, transparent 100%);
+  mask-image: radial-gradient(closest-side, black 20%, transparent 100%);
 }
