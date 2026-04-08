@@ -19,7 +19,7 @@ const Y2KBackground: React.FC<Props> = ({ panelMode = false }) => {
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
-        zIndex: 0,
+        zIndex: -1,
         overflow: 'hidden',
       }}
     >
