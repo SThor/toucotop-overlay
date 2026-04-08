@@ -167,8 +167,8 @@
    position:absolute children inside a position:fixed parent in Chromium/OBS. */
 .y2k-bg-panel {
   will-change: mask;
-  -webkit-mask-image: radial-gradient(circle, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
-  mask-image: radial-gradient(circle, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 100%, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
+  mask-image: radial-gradient(ellipse 100% 100%, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
 }
 
 .chat-overlay.y2k-active .chat-header h3 {
