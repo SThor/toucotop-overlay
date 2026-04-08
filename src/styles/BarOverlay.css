@@ -12,6 +12,7 @@
   max-width: 95vw;
   z-index: 1000;
   height: 60px;
+  isolation: isolate;
 }
 
 .bar-overlay.full-width {

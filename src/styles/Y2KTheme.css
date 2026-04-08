@@ -205,3 +205,16 @@
   pointer-events: none;
   z-index: 1;
 }
+
+/* ---- Panel background mask ---- */
+/* Applied to the Y2KBackground wrapper when used inside an overlay panel.
+   Fades the shader to transparent at the edges so it doesn't hard-clip.
+   will-change forces a GPU compositing layer, required for mask-image on
+   position:absolute children inside a position:fixed parent in Chromium/OBS.
+   isolation: isolate on the overlay container ensures z-index: 0 keeps this
+   layer behind content siblings. */
+.y2k-bg-panel {
+  will-change: mask;
+  -webkit-mask-image: radial-gradient(ellipse 100% 100%, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
+  mask-image: radial-gradient(ellipse 100% 100%, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 80%);
+}

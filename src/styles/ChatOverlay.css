@@ -10,6 +10,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .chat-overlay.preview-mode {
@@ -160,15 +161,6 @@
 
 .chat-overlay.y2k-active {
   border: none;
-}
-
-/* Mask applied to the background layer only so text/messages are unaffected.
-   will-change forces a GPU compositing layer, required for mask-image on
-   position:absolute children inside a position:fixed parent in Chromium/OBS. */
-.y2k-bg-panel {
-  will-change: mask;
-  -webkit-mask-image: radial-gradient(closest-side, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 100%);
-  mask-image: radial-gradient(closest-side, black 20%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.2) 65%, transparent 100%);
 }
 
 .chat-overlay.y2k-active .chat-header h3 {
