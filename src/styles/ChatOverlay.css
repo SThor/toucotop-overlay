@@ -142,15 +142,15 @@
 .chat-messages.feed-from-bottom {
   flex-direction: column;
   justify-content: flex-start;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
+  mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
 }
 
 .chat-messages.feed-from-top {
   flex-direction: column-reverse;
   justify-content: flex-end;
-  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 30%);
-  mask-image: linear-gradient(to top, transparent 0%, black 30%);
+  -webkit-mask-image: linear-gradient(to top, transparent 10%, black 40%);
+  mask-image: linear-gradient(to top, transparent 10%, black 40%);
 }
 .chat-overlay.crt-active .connection-status.connected { color: #4ecdc4; }
 .chat-overlay.crt-active .message { color: var(--Light); }
@@ -167,6 +167,7 @@
   margin-bottom: 0;
   font-family: 'UnifrakturMaguntia', serif;
   font-feature-settings: "cv01" 1;
+  font-size: 2em;
   /* MeshGradient background is bright purple/magenta — dark glow keeps the text readable. */
   text-shadow:
     0 0 8px rgba(0, 0, 0, 0.9),
@@ -186,6 +187,27 @@
 .chat-overlay.y2k-active .chat-messages {
   padding-left: 15%;
   padding-right: 15%;
+}
+
+/* Ellipse mask on messages: same shape as the global bg panel ellipse, center shifted up
+   to align with the viewport centre (messages div starts ~14 vh from top).
+   "Harsher" = large opaque core, only fades in the outermost ~15% of the ellipse. */
+.chat-overlay.y2k-active .chat-messages.feed-from-bottom {
+  -webkit-mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to bottom, transparent 10%, black 40%);
+  mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to bottom, transparent 10%, black 40%);
+}
+
+.chat-overlay.y2k-active .chat-messages.feed-from-top {
+  -webkit-mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to top, transparent 10%, black 40%);
+  mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to top, transparent 10%, black 40%);
 }
 
 /* Twitch Emote Styling */
