@@ -105,7 +105,7 @@ const BarOverlayContent = () => {
       {settings.theme === 'y2k' && (
         <>
           <BarY2KOrnament />
-          <BarY2KOrnament src="/tribal_center.png" center />
+          <BarY2KOrnament src="/tribal_center.png" center height={65} yOffset={-72} />
           <BarY2KOrnament flip />
         </>
       )}
