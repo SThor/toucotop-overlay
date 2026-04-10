@@ -3,6 +3,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
+import BarY2KOrnament from '../../components/BarY2KOrnament';
 import '../../styles/BarOverlay.css';
 
 const BarOverlayContent = () => {
@@ -103,8 +104,8 @@ const BarOverlayContent = () => {
 
       {settings.theme === 'y2k' && (
         <>
-          <img src="/tribal.png" className="bar-y2k-ornament bar-y2k-ornament-left" alt="" aria-hidden="true" />
-          <img src="/tribal.png" className="bar-y2k-ornament bar-y2k-ornament-right" alt="" aria-hidden="true" />
+          <BarY2KOrnament />
+          <BarY2KOrnament flip />
         </>
       )}
       {(() => {
@@ -112,16 +113,20 @@ const BarOverlayContent = () => {
         const sections: React.ReactNode[] = [];
 
         if (sec.clock) sections.push(
-          <div key="clock" className="bar-section bar-time-section">
-            <div className="bar-time-label">Current Time</div>
-            <div className="bar-time-value">{formatTime(currentTime)}</div>
+          <div key="clock" className="bar-section">
+            <div className="bar-stat-content">
+              <div className="bar-time-value">{formatTime(currentTime)}</div>
+              <div className="bar-time-label">Current Time</div>
+            </div>
           </div>
         );
 
         if (sec.duration) sections.push(
-          <div key="duration" className="bar-section bar-time-section">
-            <div className="bar-time-label">Stream Duration</div>
-            <div className="bar-time-value">{formatStreamDuration()}</div>
+          <div key="duration" className="bar-section">
+            <div className="bar-stat-content">
+              <div className="bar-time-value">{formatStreamDuration()}</div>
+              <div className="bar-time-label">Stream Duration</div>
+            </div>
           </div>
         );
 
