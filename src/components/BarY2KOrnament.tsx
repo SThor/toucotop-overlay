@@ -10,9 +10,13 @@ const HEIGHT = 90;
 interface Props {
   /** Mirror the ornament for the right side. */
   flip?: boolean;
+  /** Source image path. Defaults to /tribal.png */
+  src?: string;
+  /** When true, centers the ornament horizontally instead of anchoring to an edge. */
+  center?: boolean;
 }
 
-const BarY2KOrnament: React.FC<Props> = ({ flip = false }) => {
+const BarY2KOrnament: React.FC<Props> = ({ flip = false, src = '/tribal.png', center = false }) => {
   const [mask, setMask] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
@@ -31,8 +35,14 @@ const BarY2KOrnament: React.FC<Props> = ({ flip = false }) => {
       out.onload = () => setMask(out);
       out.src = canvas.toDataURL('image/png');
     };
-    img.src = '/tribal.png';
-  }, [flip]);
+    img.src = src;
+  }, [flip, src]);
+
+  const positionStyle: React.CSSProperties = center
+    ? { left: '50%', transform: 'translateX(-50%) translateY(-65%)' }
+    : flip
+      ? { right: 0, transform: 'translateX(50%) translateY(-65%)' }
+      : { left: 0, transform: 'translateX(-50%) translateY(-65%)' };
 
   return (
     <div
@@ -41,9 +51,7 @@ const BarY2KOrnament: React.FC<Props> = ({ flip = false }) => {
         width: WIDTH,
         height: HEIGHT,
         top: 0,
-        ...(flip
-          ? { right: 0, transform: 'translateX(50%) translateY(-50%)' }
-          : { left: 0, transform: 'translateX(-50%) translateY(-50%)' }),
+        ...positionStyle,
         pointerEvents: 'none',
         zIndex: 2,
       }}
