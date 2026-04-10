@@ -320,6 +320,31 @@ export default function AuthSuccessPage() {
                 onChange={(e) => save({ barFloating: e.currentTarget.checked })}
               />
 
+              <div>
+                <Text size="sm" fw={500} mb="xs">Bar Sections</Text>
+                <Stack gap="xs">
+                  {(
+                    [
+                      ['clock', 'Current Time'],
+                      ['duration', 'Stream Duration'],
+                      ['title', 'Stream Title / Category'],
+                      ['stats', 'Viewers & Followers'],
+                      ['recentFollower', 'Last Follower'],
+                      ['recentSub', 'Last Subscriber'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <Switch
+                      key={key}
+                      label={label}
+                      checked={persistedSettings.barSections[key]}
+                      onChange={(e) =>
+                        save({ barSections: { ...persistedSettings.barSections, [key]: e.currentTarget.checked } })
+                      }
+                    />
+                  ))}
+                </Stack>
+              </div>
+
               {/* Chat */}
               <div>
                 <Text size="sm" fw={500} mb="xs">Chat Feed Direction</Text>

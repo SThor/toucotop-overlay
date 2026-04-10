@@ -299,8 +299,107 @@
 
 /* ---- Y2K theme overrides ---- */
 .bar-overlay.y2k-active {
-  border: none;
+  /* Glass panel */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(26, 0, 32, 0.75) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom-color: rgba(0, 0, 0, 0.45);
+  border-right-color: rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 4px 24px rgba(119, 0, 255, 0.25),
+    0 1px 8px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px);
+  overflow: visible;
+}
+
+.bar-overlay.y2k-active.full-width {
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
   box-shadow: none;
+}
+
+/* Corner ornaments */
+.bar-y2k-ornament {
+  position: absolute;
+  height: 130%;
+  width: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  /* Invert black-on-white to white-on-transparent, then tint cyan */
+  filter: invert(1) sepia(1) saturate(3) hue-rotate(140deg)
+          drop-shadow(0 0 6px rgba(0, 255, 204, 0.6));
+  mix-blend-mode: screen;
+  opacity: 0.75;
+  z-index: 1;
+}
+
+.bar-y2k-ornament-left {
+  left: 0;
+  transform: translateY(-50%) translateX(-42%);
+}
+
+.bar-y2k-ornament-right {
+  right: 0;
+  transform: translateY(-50%) translateX(42%) scaleX(-1);
+}
+
+/* Labels */
+.bar-overlay.y2k-active .bar-time-label,
+.bar-overlay.y2k-active .bar-stat-label,
+.bar-overlay.y2k-active .bar-stream-category,
+.bar-overlay.y2k-active .bar-recent-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5em;
+  color: var(--y2k-cyan);
+  text-shadow: 0 0 6px var(--y2k-cyan);
+  letter-spacing: 0.05em;
+}
+
+/* Values */
+.bar-overlay.y2k-active .bar-time-value,
+.bar-overlay.y2k-active .bar-stat-value,
+.bar-overlay.y2k-active .bar-stream-title,
+.bar-overlay.y2k-active .bar-recent-name {
+  color: #f0f0f0;
+  text-shadow:
+    0 0 4px rgba(0, 255, 204, 0.4),
+    0 0 10px rgba(119, 0, 255, 0.3);
+  font-weight: 600;
+}
+
+/* Dividers */
+.bar-overlay.y2k-active .bar-divider {
+  background: linear-gradient(to bottom, transparent, rgba(0, 255, 204, 0.35), transparent);
+  width: 1px;
+  height: 70%;
+}
+
+/* Recent items */
+.bar-overlay.y2k-active .bar-recent-item {
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  border-radius: 2px;
+  background: rgba(0, 255, 204, 0.04);
+}
+
+.bar-overlay.y2k-active .bar-recent-item.new-update {
+  animation: pulseGlow 2s ease-in-out;
+  border-color: var(--y2k-cyan);
+  background: rgba(0, 255, 204, 0.1);
+}
+
+/* Stat items */
+.bar-overlay.y2k-active .bar-stat-item {
+  background: rgba(0, 255, 204, 0.04);
+  border: 1px solid rgba(0, 255, 204, 0.15);
+  border-radius: 2px;
 }
 
 .bar-overlay.y2k-active.preview-mode {

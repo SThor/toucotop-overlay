@@ -8,6 +8,15 @@ export interface PerOverlayNumber {
   bar?: number | null;
 }
 
+export interface BarSections {
+  clock: boolean;
+  duration: boolean;
+  title: boolean;
+  stats: boolean;
+  recentFollower: boolean;
+  recentSub: boolean;
+}
+
 export interface OverlaySettings {
   overlayOpacity: number;
   perOverlayOpacity: PerOverlayNumber;
@@ -16,6 +25,7 @@ export interface OverlaySettings {
   chatFeedDirection: 'top' | 'bottom';
   maxChatMessages: number;
   barFloating: boolean;
+  barSections: BarSections;
   theme: OverlayTheme;
   themeSettings: {
     crt: {
@@ -38,6 +48,14 @@ export const defaultOverlaySettings: OverlaySettings = {
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
   barFloating: true,
+  barSections: {
+    clock: true,
+    duration: true,
+    title: true,
+    stats: true,
+    recentFollower: true,
+    recentSub: true,
+  },
   theme: 'crt',
   themeSettings: {
     crt: {

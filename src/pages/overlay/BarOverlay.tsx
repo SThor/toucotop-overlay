@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
@@ -100,85 +100,98 @@ const BarOverlayContent = () => {
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
-      
-      {/* Current Time Section */}
-      <div className="bar-section bar-time-section">
-        <div className="bar-time-label">Current Time</div>
-        <div className="bar-time-value">{formatTime(currentTime)}</div>
-      </div>
 
-      <div className="bar-divider"></div>
+      {settings.theme === 'y2k' && (
+        <>
+          <img src="/tribal.png" className="bar-y2k-ornament bar-y2k-ornament-left" alt="" aria-hidden="true" />
+          <img src="/tribal.png" className="bar-y2k-ornament bar-y2k-ornament-right" alt="" aria-hidden="true" />
+        </>
+      )}
+      {(() => {
+        const sec = settings.barSections;
+        const sections: React.ReactNode[] = [];
 
-      {/* Stream Duration Section */}
-      <div className="bar-section bar-time-section">
-        <div className="bar-time-label">Stream Duration</div>
-        <div className="bar-time-value">{formatStreamDuration()}</div>
-      </div>
+        if (sec.clock) sections.push(
+          <div key="clock" className="bar-section bar-time-section">
+            <div className="bar-time-label">Current Time</div>
+            <div className="bar-time-value">{formatTime(currentTime)}</div>
+          </div>
+        );
 
-      <div className="bar-divider"></div>
+        if (sec.duration) sections.push(
+          <div key="duration" className="bar-section bar-time-section">
+            <div className="bar-time-label">Stream Duration</div>
+            <div className="bar-time-value">{formatStreamDuration()}</div>
+          </div>
+        );
 
-      {/* Stream Info Section */}
-      <div className="bar-section bar-stream-section">
-        <MarqueeText
-          className="bar-stream-title"
-          text={twitch.streamInfo?.title || 'Stream Title'}
-        />
-        <MarqueeText
-          className="bar-stream-category"
-          text={twitch.streamInfo?.gameName || 'No Category'}
-        />
-      </div>
+        if (sec.title) sections.push(
+          <div key="title" className="bar-section bar-stream-section">
+            <MarqueeText
+              className="bar-stream-title"
+              text={twitch.streamInfo?.title || 'Stream Title'}
+            />
+            <MarqueeText
+              className="bar-stream-category"
+              text={twitch.streamInfo?.gameName || 'No Category'}
+            />
+          </div>
+        );
 
-      <div className="bar-divider"></div>
-
-      {/* Stats Section */}
-      <div className="bar-section bar-stats-section">
-        <div className="bar-stat-item">
-          <div className="bar-stat-icon" aria-hidden="true">👥</div>
-          <div className="bar-stat-content">
-            <div className="bar-stat-value">
-              {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
+        if (sec.stats) sections.push(
+          <div key="stats" className="bar-section bar-stats-section">
+            <div className="bar-stat-item">
+              <div className="bar-stat-icon" aria-hidden="true">👥</div>
+              <div className="bar-stat-content">
+                <div className="bar-stat-value">
+                  {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
+                </div>
+                <div className="bar-stat-label">Viewers</div>
+              </div>
             </div>
-            <div className="bar-stat-label">Viewers</div>
-          </div>
-        </div>
-
-        <div className="bar-stat-item">
-          <div className="bar-stat-icon" aria-hidden="true">❤️</div>
-          <div className="bar-stat-content">
-            <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
-            <div className="bar-stat-label">Followers</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bar-divider"></div>
-
-      {/* Recent Activity Section */}
-      <div className="bar-section bar-recent-section">
-        {twitch.lastFollower && (
-          <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
-            <div className="bar-recent-icon" aria-hidden="true">❤️</div>
-            <div className="bar-recent-content">
-              <div className="bar-recent-name">{twitch.lastFollower.userDisplayName}</div>
-              <div className="bar-recent-label">Last Follow {formatRelativeTime(twitch.lastFollower.followDate)}</div>
-            </div>
-          </div>
-        )}
-
-        {twitch.lastSubscriber && (
-          <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
-            <div className="bar-recent-icon" aria-hidden="true">⭐</div>
-            <div className="bar-recent-content">
-              <div className="bar-recent-name">{twitch.lastSubscriber.userDisplayName}</div>
-              <div className="bar-recent-label">
-                Last Sub{twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}
-                {twitch.lastSubscriber.isGift && ' (Gift)'}
+            <div className="bar-stat-item">
+              <div className="bar-stat-icon" aria-hidden="true">❤️</div>
+              <div className="bar-stat-content">
+                <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
+                <div className="bar-stat-label">Followers</div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        );
+
+        const hasRecent = sec.recentFollower || sec.recentSub;
+        if (hasRecent) sections.push(
+          <div key="recent" className="bar-section bar-recent-section">
+            {sec.recentFollower && twitch.lastFollower && (
+              <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
+                <div className="bar-recent-icon" aria-hidden="true">❤️</div>
+                <div className="bar-recent-content">
+                  <div className="bar-recent-name">{twitch.lastFollower.userDisplayName}</div>
+                  <div className="bar-recent-label">Last Follow {formatRelativeTime(twitch.lastFollower.followDate)}</div>
+                </div>
+              </div>
+            )}
+            {sec.recentSub && twitch.lastSubscriber && (
+              <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
+                <div className="bar-recent-icon" aria-hidden="true">⭐</div>
+                <div className="bar-recent-content">
+                  <div className="bar-recent-name">{twitch.lastSubscriber.userDisplayName}</div>
+                  <div className="bar-recent-label">
+                    Last Sub{twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}
+                    {twitch.lastSubscriber.isGift && ' (Gift)'}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+        return sections.flatMap((node, i) =>
+          i < sections.length - 1
+            ? [node, <div key={`div-${i}`} className="bar-divider" />]
+            : [node]
+        );
+      })()}
     </div>
   );
 };

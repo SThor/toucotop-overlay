@@ -25,6 +25,7 @@ router.get('/', (req: Request, res: Response) => {
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
+    barSections: { ...defaultOverlaySettings.barSections, ...(raw.barSections ?? {}) },
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -102,6 +103,26 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
       errors.push('barFloating must be a boolean');
     } else {
       patch.barFloating = v;
+    }
+  }
+
+  if ('barSections' in body) {
+    const v = body.barSections;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSections must be an object');
+    } else {
+      const sections: Partial<OverlaySettings['barSections']> = {};
+      for (const key of ['clock', 'duration', 'title', 'stats', 'recentFollower', 'recentSub'] as const) {
+        if (key in v) {
+          const val = (v as unknown as Record<string, unknown>)[key];
+          if (typeof val !== 'boolean') {
+            errors.push(`barSections.${key} must be a boolean`);
+          } else {
+            sections[key] = val;
+          }
+        }
+      }
+      if (errors.length === 0) patch.barSections = { ...defaultOverlaySettings.barSections, ...sections };
     }
   }
 

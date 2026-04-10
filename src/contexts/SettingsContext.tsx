@@ -172,6 +172,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           setServerSettings({
             ...defaultOverlaySettings,
             ...fetched,
+            barSections: { ...defaultOverlaySettings.barSections, ...(fetched.barSections ?? {}) },
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,
               ...(fetched.themeSettings ?? {}),
