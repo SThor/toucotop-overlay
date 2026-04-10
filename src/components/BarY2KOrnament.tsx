@@ -4,7 +4,7 @@ import { LiquidMetal } from '@paper-design/shaders-react';
 // Ornament intrinsic size: WIDTH x HEIGHT px.
 // Positioned so its horizontal center sits at the bar edge (half off-screen)
 // and its vertical center sits at the bar's top border (half above, half inside).
-const WIDTH = 300;
+const WIDTH = 500;
 const HEIGHT = 90;
 
 interface Props {

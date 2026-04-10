@@ -291,17 +291,10 @@
 
 /* ---- Y2K theme overrides ---- */
 .bar-overlay.y2k-active {
-  /* Glass panel — no borders */
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.07) 0%,
-    rgba(26, 0, 32, 0.75) 100%
-  );
   border: none;
   box-shadow:
     0 4px 24px rgba(119, 0, 255, 0.25),
     0 1px 8px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(14px);
   overflow: visible;
 }
 
@@ -325,6 +318,7 @@
 .bar-overlay.y2k-active .bar-time-value {
   font-family: 'UnifrakturMaguntia', serif;
   font-size: 1.2em;
+  text-transform: none;
   color: #f0f0f0;
   text-shadow:
     0 0 4px rgba(0, 255, 204, 0.4),
@@ -336,7 +330,8 @@
 .bar-overlay.y2k-active .bar-stream-title,
 .bar-overlay.y2k-active .bar-recent-name {
   font-family: 'UnifrakturMaguntia', serif;
-  font-size: 1em;
+  font-size: 1.2em;
+  text-transform: none;
   color: #f0f0f0;
   text-shadow:
     0 0 4px rgba(0, 255, 204, 0.4),
