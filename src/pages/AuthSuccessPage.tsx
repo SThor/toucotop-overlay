@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput,
 } from '@mantine/core';
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
+import { defaultOverlaySettings } from '../server/shared/overlaySettings';
 import '../styles/ServerPages.css';
 
 function formatExpiryDate(isoString: string): string {
@@ -348,6 +349,22 @@ export default function AuthSuccessPage() {
                   ]}
                 />
               </div>
+
+              {/* Pause overlay text */}
+              <TextInput
+                label="Pause title"
+                description="Main heading shown on the pause scene. Clear to reset to default."
+                placeholder={defaultOverlaySettings.pauseTitle}
+                value={persistedSettings.pauseTitle}
+                onChange={(e) => save({ pauseTitle: e.currentTarget.value })}
+              />
+              <TextInput
+                label="Pause subtitle"
+                description="Secondary line shown below the pause title. Clear to reset to default."
+                placeholder={defaultOverlaySettings.pauseSubtitle}
+                value={persistedSettings.pauseSubtitle}
+                onChange={(e) => save({ pauseSubtitle: e.currentTarget.value })}
+              />
 
               <Group justify="space-between" mt="sm">
                 <Button variant="light" onClick={resetSettings}>

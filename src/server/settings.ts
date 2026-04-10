@@ -149,6 +149,26 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
+  if ('pauseTitle' in body) {
+    const v = body.pauseTitle;
+    if (typeof v !== 'string') {
+      errors.push('pauseTitle must be a string');
+    } else {
+      // Empty string resets to default
+      patch.pauseTitle = v.trim() === '' ? defaultOverlaySettings.pauseTitle : v;
+    }
+  }
+
+  if ('pauseSubtitle' in body) {
+    const v = body.pauseSubtitle;
+    if (typeof v !== 'string') {
+      errors.push('pauseSubtitle must be a string');
+    } else {
+      // Empty string resets to default
+      patch.pauseSubtitle = v.trim() === '' ? defaultOverlaySettings.pauseSubtitle : v;
+    }
+  }
+
   if ('themeSettings' in body) {
     const ts = body.themeSettings;
     if (typeof ts !== 'object' || ts === null || Array.isArray(ts)) {
