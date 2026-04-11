@@ -1,0 +1,42 @@
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.alert-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  text-align: center;
+  padding: 1em;
+}
+
+/* ── CRT theme ──────────────────────────────────────────────────────────── */
+
+.alert-overlay.crt-active .alert-popup {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  font-family: 'Courier New', monospace;
+  max-width: 80vw;
+}
+
+.alert-overlay.crt-active .alert-icon {
+  color: var(--Main);
+}
+
+.alert-overlay.crt-active .alert-title {
+  color: var(--Light);
+}
+
+.alert-overlay.crt-active .alert-message {
+  color: rgba(var(--LightRGBA), 0.8);
+}

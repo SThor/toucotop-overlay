@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAlertStream, type AlertPayload } from '../../hooks/useAlertStream';
 import { useSettings } from '../../contexts/SettingsContext';
+import '../../styles/AlertOverlay.css';
 
 // ─── Per-type display helpers ─────────────────────────────────────────────────
 
@@ -67,20 +68,10 @@ export default function AlertOverlay() {
 
   return (
     <div
-      className="alert-overlay"
-      style={{
-        opacity: settings.overlayOpacity,
-        fontSize: `${settings.fontSize}rem`,
-        position: 'fixed',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none',
-        overflow: 'hidden',
-      }}
+      className={`alert-overlay${settings.theme === 'crt' ? ' crt-active' : ''}`}
+      style={{ opacity: settings.overlayOpacity, fontSize: `${settings.fontSize}rem` }}
     >
-      {/* Dev: connection status indicator (hidden in production-like use) */}
+      {/* Dev: connection status indicator */}
       {(isConnecting || error) && (
         <div
           style={{
@@ -100,25 +91,18 @@ export default function AlertOverlay() {
         {currentAlert && (
           <motion.div
             key={currentAlert.id}
+            className="alert-popup"
             initial={{ opacity: 0, scale: 0.8, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: -40 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.5em',
-              textAlign: 'center',
-              padding: '1em',
-            }}
           >
-            <span style={{ fontSize: '3em', lineHeight: 1 }}>{alertIcon(currentAlert.type)}</span>
-            <span style={{ fontSize: '1.4em', fontWeight: 700 }}>
+            <span className="alert-icon" style={{ fontSize: '3em', lineHeight: 1 }}>{alertIcon(currentAlert.type)}</span>
+            <span className="alert-title" style={{ fontSize: '1.4em', fontWeight: 700 }}>
               {alertTitle(currentAlert)}
             </span>
             {currentAlert.message && (
-              <span style={{ fontSize: '0.95em', opacity: 0.85, fontStyle: 'italic' }}>
+              <span className="alert-message" style={{ fontSize: '0.95em', opacity: 0.85, fontStyle: 'italic' }}>
                 "{currentAlert.message}"
               </span>
             )}
