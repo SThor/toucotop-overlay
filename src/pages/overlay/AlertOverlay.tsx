@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeBackground from '../../components/ThemeBackground';
 import { useAlertStream, type AlertPayload } from '../../hooks/useAlertStream';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -81,8 +80,6 @@ export default function AlertOverlay() {
         overflow: 'hidden',
       }}
     >
-      <ThemeBackground panelMode={false} />
-
       {/* Dev: connection status indicator (hidden in production-like use) */}
       {(isConnecting || error) && (
         <div
@@ -113,11 +110,7 @@ export default function AlertOverlay() {
               alignItems: 'center',
               gap: '0.5em',
               textAlign: 'center',
-              padding: '1.5em 2.5em',
-              background: 'rgba(0,0,0,0.6)',
-              borderRadius: '0.75em',
-              border: '2px solid',
-              maxWidth: '80vw',
+              padding: '1em',
             }}
           >
             <span style={{ fontSize: '3em', lineHeight: 1 }}>{alertIcon(currentAlert.type)}</span>
