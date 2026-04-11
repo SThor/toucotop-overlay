@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeBackground from '../../components/ThemeBackground';
+import BarY2KOrnament from '../../components/BarY2KOrnament';
 import { useAlertStream, type AlertPayload } from '../../hooks/useAlertStream';
 import { useSettings } from '../../contexts/SettingsContext';
 import '../../styles/AlertOverlay.css';
@@ -69,7 +70,7 @@ export default function AlertOverlay() {
 
   return (
     <div
-      className={`alert-overlay${settings.theme === 'crt' ? ' crt-active' : ''}`}
+      className={`alert-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.overlayOpacity, fontSize: `${settings.fontSize}rem` }}
     >
       {/* Dev: connection status indicator */}
@@ -98,7 +99,7 @@ export default function AlertOverlay() {
             exit={{ opacity: 0, scale: 0.8, y: -40 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
           >
-            {settings.theme === 'crt' && <ThemeBackground panelMode />}
+            {(settings.theme === 'crt' || settings.theme === 'y2k') && <ThemeBackground panelMode />}
             <span className="alert-icon" style={{ fontSize: '3em', lineHeight: 1 }}>{alertIcon(currentAlert.type)}</span>
             <span className="alert-title" style={{ fontSize: '1.4em', fontWeight: 700 }}>
               {alertTitle(currentAlert)}
@@ -107,6 +108,14 @@ export default function AlertOverlay() {
               <span className="alert-message" style={{ fontSize: '0.95em', opacity: 0.85, fontStyle: 'italic' }}>
                 "{currentAlert.message}"
               </span>
+            )}
+            {settings.theme === 'y2k' && (
+              <BarY2KOrnament
+                src="/tribal_alert.png"
+                center
+                height={88}
+                yOffset={92}
+              />
             )}
           </motion.div>
         )}
