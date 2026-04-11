@@ -38,6 +38,8 @@ export interface OverlaySettings {
   pauseSubtitle: string;
   /** When true, the theme background (CRT/Y2K shader) is not rendered for this overlay. */
   hideBackground: boolean;
+  /** When true, the foreground content (title, subtitle, barcode) is not rendered for this overlay. */
+  hideContent: boolean;
 }
 
 export const defaultOverlaySettings: OverlaySettings = {
@@ -67,4 +69,5 @@ export const defaultOverlaySettings: OverlaySettings = {
   pauseTitle: 'En pause',
   pauseSubtitle: '— je reviens —',
   hideBackground: false,
+  hideContent: false,
 };

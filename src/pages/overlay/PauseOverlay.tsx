@@ -81,12 +81,15 @@ const PauseOverlay: React.FC = () => {
     return () => { cancelled = true; controller.abort(); };
   }, [token]);
 
+  const hideBackground = settings.hideBackground;
+  const hideContent = settings.hideContent;
+
   return (
     <div
-      className={`pause-scene${theme === 'crt' ? ' crt-active' : ''}${theme === 'y2k' ? ' y2k-active' : ''}`}
+      className={`pause-scene${theme === 'crt' ? ' crt-active' : ''}${theme === 'y2k' ? ' y2k-active' : ''}${hideBackground ? ' bg-hidden' : ''}`}
     >
       {/* Y2K: custom MeshGradient fullscreen base */}
-      {theme === 'y2k' && (
+      {!hideBackground && theme === 'y2k' && (
         <div className="pause-shader">
           <MeshGradient
             width="100%"
@@ -103,13 +106,13 @@ const PauseOverlay: React.FC = () => {
       )}
 
       {/* CRT: scanline/glow overlay */}
-      {theme === 'crt' && <ThemeBackground />}
+      {!hideBackground && theme === 'crt' && <ThemeBackground />}
 
       {/* Y2K: dark centre vignette so text pops */}
-      {theme === 'y2k' && <div className="pause-vignette" />}
+      {!hideBackground && theme === 'y2k' && <div className="pause-vignette" />}
 
       {/* Centred content stack */}
-      <div className="pause-content">
+      {!hideContent && <div className="pause-content">
         {theme === 'y2k' ? (
           titleMask ? (
             <div
@@ -153,7 +156,7 @@ const PauseOverlay: React.FC = () => {
             {theme === 'y2k' ? `*${channelName.toUpperCase()}*` : channelName}
           </p>
         )}
-      </div>
+      </div>}
     </div>
   );
 };

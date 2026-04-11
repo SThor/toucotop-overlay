@@ -93,6 +93,7 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     o.themeSettings = { crt } as OverlaySettings['themeSettings'];
   }
   if (p.has('hideBackground')) o.hideBackground = p.get('hideBackground') !== 'false';
+  if (p.has('hideContent')) o.hideContent = p.get('hideContent') !== 'false';
 
   return o;
 }

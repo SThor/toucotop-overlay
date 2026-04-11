@@ -195,7 +195,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt&amp;hideBackground=true</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -389,6 +389,18 @@ export default function AuthSuccessPage() {
                 placeholder={defaultOverlaySettings.pauseSubtitle}
                 value={persistedSettings.pauseSubtitle}
                 onChange={(e) => save({ pauseSubtitle: e.currentTarget.value })}
+              />
+              <Switch
+                label="Hide background"
+                description="Hide the theme background (shader/CRT effects). Use with a second browser source to split background and content in OBS."
+                checked={persistedSettings.hideBackground}
+                onChange={(e) => save({ hideBackground: e.currentTarget.checked })}
+              />
+              <Switch
+                label="Hide content"
+                description="Hide the foreground content (title, subtitle, decoration). Use with a second browser source to split content from the background in OBS."
+                checked={persistedSettings.hideContent}
+                onChange={(e) => save({ hideContent: e.currentTarget.checked })}
               />
 
               <Group justify="space-between" mt="sm">

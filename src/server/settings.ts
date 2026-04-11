@@ -236,6 +236,24 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
+  if ('hideBackground' in body) {
+    const v = body.hideBackground;
+    if (typeof v !== 'boolean') {
+      errors.push('hideBackground must be a boolean');
+    } else {
+      patch.hideBackground = v;
+    }
+  }
+
+  if ('hideContent' in body) {
+    const v = body.hideContent;
+    if (typeof v !== 'boolean') {
+      errors.push('hideContent must be a boolean');
+    } else {
+      patch.hideContent = v;
+    }
+  }
+
   if (errors.length > 0) {
     res.status(400).json({ error: errors.join('; ') });
     return;

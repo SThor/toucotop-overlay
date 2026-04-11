@@ -8,6 +8,10 @@
   justify-content: center;
 }
 
+.pause-scene.bg-hidden {
+  background: transparent;
+}
+
 .pause-scene.crt-active {
   background: rgba(var(--DarkRGBA), 0.95);
 }
