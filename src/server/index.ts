@@ -32,6 +32,11 @@ import { addSSEClient } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import settingsRouter from './settings.js';
 
+const VALID_ALERT_TYPES = new Set([
+  'follow', 'subscribe', 'resubscribe', 'gift_sub',
+  'cheer', 'raid', 'hype_train_begin', 'hype_train_progress', 'hype_train_end',
+]);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -250,10 +255,7 @@ try {
         return;
       }
 
-      const VALID_TYPES = new Set([
-        'follow', 'subscribe', 'resubscribe', 'gift_sub',
-        'cheer', 'raid', 'hype_train_begin', 'hype_train_progress', 'hype_train_end',
-      ]);
+      const VALID_TYPES = VALID_ALERT_TYPES;
       if (!VALID_TYPES.has(type)) {
         res.status(400).json({ error: 'Invalid alert type', validTypes: [...VALID_TYPES] });
         return;
@@ -261,7 +263,7 @@ try {
 
       broadcastAlert(userData.username, {
         id: `test_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        type: type as import('./alert-relay.js').AlertType,
+        type: type as import('./shared/alertTypes.js').AlertType,
         timestamp: new Date().toISOString(),
         userName: 'TestUser',
         tier: '1000',

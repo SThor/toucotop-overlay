@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import type { UserData } from './twitch-api-client.js';
 import { updateLastFollower, updateLastSubscriber } from './storage.js';
-import { broadcastAlert, type AlertPayload, type AlertType } from './alert-relay.js';
+import { broadcastAlert } from './alert-relay.js';
 
 // EventSub configuration constants
 const MIN_EVENTSUB_SECRET_LENGTH = 32;
@@ -472,4 +472,3 @@ export {
   // Export constants for use by main server
   EVENTSUB_SECRET
 };
-export type { AlertPayload, AlertType };

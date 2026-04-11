@@ -44,9 +44,11 @@ export default function AuthSuccessPage() {
   const [showSaved, setShowSaved] = useState(false);
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [testAlertStatus, setTestAlertStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
-  // Clear pending timer on unmount to avoid setState on an unmounted component
+  const testAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Clear pending timers on unmount to avoid setState on an unmounted component
   useEffect(() => () => {
     if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
+    if (testAlertTimerRef.current) clearTimeout(testAlertTimerRef.current);
   }, []);
 
   // Strip all URL params and persist the token via updateSettings (handles both localStorage keys)
@@ -452,7 +454,8 @@ export default function AuthSuccessPage() {
                   } catch {
                     setTestAlertStatus('error');
                   }
-                  setTimeout(() => setTestAlertStatus('idle'), 2000);
+                  if (testAlertTimerRef.current) clearTimeout(testAlertTimerRef.current);
+                  testAlertTimerRef.current = setTimeout(() => setTestAlertStatus('idle'), 2000);
                 }}
               >
                 {label}

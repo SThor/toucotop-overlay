@@ -5,54 +5,9 @@
  */
 
 import type { Response } from 'express';
-
-// ─── Alert payload types ─────────────────────────────────────────────────────
-
-export type AlertType =
-  | 'follow'
-  | 'subscribe'
-  | 'resubscribe'
-  | 'gift_sub'
-  | 'cheer'
-  | 'raid'
-  | 'hype_train_begin'
-  | 'hype_train_progress'
-  | 'hype_train_end';
-
-export interface AlertPayload {
-  /** Unique id for this alert event */
-  id: string;
-  type: AlertType;
-  /** ISO timestamp */
-  timestamp: string;
-  // ── per-type optional fields ──────────────────────────────────────────────
-  /** Display name of the acting user (follower, subscriber, raider, cheerer…) */
-  userName?: string;
-  /** Sub tier: '1000' | '2000' | '3000' */
-  tier?: string;
-  /** Whether this is a gifted sub */
-  isGift?: boolean;
-  /** Gifter display name */
-  gifterName?: string;
-  /** Re-sub cumulative months */
-  cumulativeMonths?: number;
-  /** Streak months for re-sub */
-  streakMonths?: number;
-  /** Re-sub / custom reward message */
-  message?: string;
-  /** Number of gifted subs in a gift-bomb */
-  giftCount?: number;
-  /** Bits amount for cheers */
-  bits?: number;
-  /** Raiding channel display name */
-  raiderName?: string;
-  /** Viewer count for raids */
-  viewerCount?: number;
-  /** Hype train level */
-  level?: number;
-  /** Hype train progress 0-100 */
-  progress?: number;
-}
+import { extendOverlayToken } from './storage.js';
+export type { AlertType, AlertPayload } from './shared/alertTypes.js';
+import type { AlertPayload } from './shared/alertTypes.js';
 
 // ─── SSE infrastructure ───────────────────────────────────────────────────────
 
@@ -67,6 +22,9 @@ interface ChannelAlertRelay {
 
 const CLEANUP_DELAY_MS = 30_000;
 const KEEPALIVE_INTERVAL_MS = 15_000;
+// Extend overlay token at most once per hour per channel on keepalive
+const KEEPALIVE_EXTEND_DEBOUNCE_MS = 60 * 60 * 1000;
+const keepaliveExtendLastRun = new Map<string, number>();
 
 const channelRelays = new Map<string, ChannelAlertRelay>();
 
@@ -98,6 +56,7 @@ function scheduleCleanup(channel: string): void {
   relay.cleanupTimer = setTimeout(() => {
     if (relay.clients.size === 0) {
       channelRelays.delete(channel);
+      keepaliveExtendLastRun.delete(channel);
       console.log(`🔔 Alert relay removed for channel: ${channel}`);
     }
   }, CLEANUP_DELAY_MS);
@@ -123,9 +82,15 @@ export function addAlertSSEClient(channel: string, res: Response): void {
   // Confirm connection
   sendSSE(client, 'connected', { channel });
 
-  // Keepalive heartbeat
+  // Keepalive heartbeat + debounced token extension
   const keepaliveTimer = setInterval(() => {
     sendSSE(client, 'keepalive', { ts: Date.now() });
+    const now = Date.now();
+    const lastExtended = keepaliveExtendLastRun.get(channel) ?? 0;
+    if (now - lastExtended > KEEPALIVE_EXTEND_DEBOUNCE_MS) {
+      keepaliveExtendLastRun.set(channel, now);
+      extendOverlayToken(channel);
+    }
   }, KEEPALIVE_INTERVAL_MS);
 
   res.on('close', () => {
@@ -133,6 +98,7 @@ export function addAlertSSEClient(channel: string, res: Response): void {
     relay.clients.delete(client);
     console.log(`🔔 Alert SSE client disconnected (${channel}), ${relay.clients.size} remaining`);
     if (relay.clients.size === 0) {
+      keepaliveExtendLastRun.delete(channel);
       scheduleCleanup(channel);
     }
   });

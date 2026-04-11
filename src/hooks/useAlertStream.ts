@@ -1,35 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import type { AlertType, AlertPayload } from '../server/shared/alertTypes';
 
-export type AlertType =
-  | 'follow'
-  | 'subscribe'
-  | 'resubscribe'
-  | 'gift_sub'
-  | 'cheer'
-  | 'raid'
-  | 'hype_train_begin'
-  | 'hype_train_progress'
-  | 'hype_train_end';
-
-export interface AlertPayload {
-  id: string;
-  type: AlertType;
-  timestamp: string;
-  userName?: string;
-  tier?: string;
-  isGift?: boolean;
-  gifterName?: string;
-  cumulativeMonths?: number;
-  streakMonths?: number;
-  message?: string;
-  giftCount?: number;
-  bits?: number;
-  raiderName?: string;
-  viewerCount?: number;
-  level?: number;
-  progress?: number;
-}
+export type { AlertType, AlertPayload };
 
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -116,6 +89,13 @@ export function useAlertStream() {
         esRef.current = null;
         scheduleReconnect();
       };
+    }
+
+    // Reset attempt counter when token changes so a re-auth always gets a fresh start
+    reconnectAttemptsRef.current = 0;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
     }
 
     connect();
