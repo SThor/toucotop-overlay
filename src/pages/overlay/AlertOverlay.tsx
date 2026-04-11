@@ -114,7 +114,7 @@ export default function AlertOverlay() {
                 src="/tribal_alert.png"
                 center
                 height={88}
-                yOffset={92}
+                yOffset={128}
               />
             )}
           </motion.div>
