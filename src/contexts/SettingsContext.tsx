@@ -98,6 +98,18 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
   return o;
 }
 
+const SETTINGS_CACHE_KEY = 'toucotop-overlay-cached-settings';
+
+// Load last-known-good settings from localStorage so overlays can render
+// immediately without waiting for the server fetch on every load.
+function loadCachedSettings(): OverlaySettings | null {
+  try {
+    const cached = localStorage.getItem(SETTINGS_CACHE_KEY);
+    if (cached) return JSON.parse(cached) as OverlaySettings;
+  } catch { /* ignore corrupt storage */ }
+  return null;
+}
+
 // Load overlay token synchronously from URL or localStorage
 function loadInitialToken(): string {
   const urlToken = new URLSearchParams(window.location.search).get('token');
@@ -121,10 +133,15 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     overlayTokenRef.current = overlayToken;
   }, [overlayToken]);
 
-  // Server-side overlay settings, fetched async after token is available
-  const [serverSettings, setServerSettings] = useState<OverlaySettings>(defaultOverlaySettings);
-  // Start as true when a token is already present so overlays never flash default settings.
-  const [isLoadingSettings, setIsLoadingSettings] = useState(() => !!loadInitialToken());
+  // Server-side overlay settings, fetched async after token is available.
+  // Seeded from the localStorage cache so overlays render immediately on reload.
+  const [serverSettings, setServerSettings] = useState<OverlaySettings>(() => {
+    const cached = loadCachedSettings();
+    return cached ? { ...defaultOverlaySettings, ...cached } : defaultOverlaySettings;
+  });
+  // Skip the loading gate when we already have cached settings — the overlay can
+  // render right away and update silently when the fresh fetch completes.
+  const [isLoadingSettings, setIsLoadingSettings] = useState(() => !!loadInitialToken() && !loadCachedSettings());
 
   // URL overrides are re-derived whenever the location search string changes so they
   // don't persist across SPA navigation to a route with different (or no) query params.
@@ -151,9 +168,25 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }
 
     let controller = new AbortController();
+    // Track whether we had a cache at the time this effect ran so the
+    // loading-gate logic inside attemptFetch stays consistent across retries.
+    const hasCache = !!loadCachedSettings();
+
+    // Safety net: if no cached settings exist this is a first-ever load.
+    // Unblock rendering after 10 s in case the fetch hangs (OBS browser quirk).
+    let loadingTimeout: ReturnType<typeof setTimeout> | null =
+      !hasCache
+        ? setTimeout(() => {
+            if (isCurrent) {
+              console.warn('[SettingsProvider] settings fetch timed out — rendering with defaults');
+              setIsLoadingSettings(false);
+            }
+          }, 10_000)
+        : null;
 
     const attemptFetch = (attempt: number) => {
-      if (attempt === 0) setIsLoadingSettings(true);
+      // Only enter loading state when there is no cache to fall back on.
+      if (attempt === 0 && !hasCache) setIsLoadingSettings(true);
       controller = new AbortController();
 
       fetch(`/api/settings?token=${encodeURIComponent(overlayToken)}`, { signal: controller.signal })
@@ -166,12 +199,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         })
         .then((fetched) => {
           if (!isCurrent) return;
+          if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
           setIsLoadingSettings(false);
           if (!fetched) {
             setServerSettings(defaultOverlaySettings);
             return;
           }
-          setServerSettings({
+          const merged: OverlaySettings = {
             ...defaultOverlaySettings,
             ...fetched,
             barSections: { ...defaultOverlaySettings.barSections, ...(fetched.barSections ?? {}) },
@@ -183,13 +217,17 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 ...(fetched.themeSettings?.crt ?? {}),
               },
             },
-          });
+          };
+          setServerSettings(merged);
+          // Cache so the next load renders immediately without waiting for the fetch.
+          try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(merged)); } catch { /* ignore quota errors */ }
         })
         .catch((err) => {
           if (!isCurrent || err.name === 'AbortError') return;
+          if (loadingTimeout) { clearTimeout(loadingTimeout); loadingTimeout = null; }
           // Network error — server may be restarting. Retry with exponential backoff
           // (5 s → 10 s → 20 s → … capped at 60 s).
-          if (attempt === 0) setIsLoadingSettings(false);
+          if (attempt === 0 && !hasCache) setIsLoadingSettings(false);
           const delay = Math.min(5_000 * 2 ** attempt, 60_000);
           retryTimer = setTimeout(() => { if (isCurrent) attemptFetch(attempt + 1); }, delay);
         });
@@ -201,6 +239,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       isCurrent = false;
       controller.abort();
       if (retryTimer) clearTimeout(retryTimer);
+      if (loadingTimeout) clearTimeout(loadingTimeout);
     };
   }, [overlayToken]);
 
@@ -281,6 +320,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     setServerSettings(defaultOverlaySettings);
     localStorage.removeItem('toucotop-overlay-settings');
     localStorage.removeItem('toucotop-overlay-token');
+    localStorage.removeItem(SETTINGS_CACHE_KEY);
     setOverlayToken('');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     // Reset on server too if we have a token
