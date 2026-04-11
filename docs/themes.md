@@ -18,7 +18,7 @@ A clean, minimal overlay with no background. Content (text, stats, chat messages
 
 ### `crt` — CRT Effects
 
-Emulates the look of an old cathode-ray tube monitor. Layered on top of the animated background with three independently toggleable effects:
+Emulates the look of an old cathode-ray tube monitor. Renders a dedicated CRT-style background directly, with three independently toggleable effects:
 
 | Sub-setting | Description |
 |-------------|-------------|

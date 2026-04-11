@@ -88,6 +88,7 @@
     var(--Main),
     transparent
   );
+  opacity: 0.6;
 }
 
 .bar-stats-section {
@@ -279,7 +280,6 @@
 /* ---- CRT color overrides ---- */
 .bar-overlay.crt-active .bar-time-label { color: var(--Main); }
 .bar-overlay.crt-active .bar-time-value { color: var(--Light); }
-.bar-overlay.crt-active .bar-divider { background: rgba(var(--MainRGBA), 0.3); opacity: 0.6; }
 .bar-overlay.crt-active .bar-stat-value { color: var(--Light); }
 .bar-overlay.crt-active .bar-stat-label { color: rgba(var(--LightRGBA), 0.7); }
 .bar-overlay.crt-active .bar-stream-title { color: var(--Light); }

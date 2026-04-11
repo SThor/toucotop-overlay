@@ -31,8 +31,10 @@ const BarY2KOrnament: FC<Props> = ({
   const [mask, setMask] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const img = new Image();
     img.onload = () => {
+      if (cancelled) return;
       const canvas = document.createElement('canvas');
       canvas.width = WIDTH;
       canvas.height = height;
@@ -43,10 +45,11 @@ const BarY2KOrnament: FC<Props> = ({
       }
       ctx.drawImage(img, 0, 0, WIDTH, height);
       const out = new Image();
-      out.onload = () => setMask(out);
+      out.onload = () => { if (!cancelled) setMask(out); };
       out.src = canvas.toDataURL('image/png');
     };
     img.src = src;
+    return () => { cancelled = true; };
   }, [flip, src, height]);
 
   const positionStyle: CSSProperties = center
