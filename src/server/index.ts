@@ -30,12 +30,15 @@ import {
 import { defaultTokenManager } from './token-manager.js';
 import { addSSEClient } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
+import { ALERT_TYPES } from './shared/alertTypes.js';
+import type { AlertType } from './shared/alertTypes.js';
 import settingsRouter from './settings.js';
 
-const VALID_ALERT_TYPES = new Set([
-  'follow', 'subscribe', 'resubscribe', 'gift_sub',
-  'cheer', 'raid', 'hype_train_begin', 'hype_train_progress', 'hype_train_end',
-]);
+const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
+
+function isAlertType(value: string): value is AlertType {
+  return VALID_ALERT_TYPES.has(value as AlertType);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -261,7 +264,7 @@ try {
         return;
       }
 
-      if (!VALID_ALERT_TYPES.has(type)) {
+      if (!isAlertType(type)) {
         res.status(400).json({ error: 'Invalid alert type', validTypes: [...VALID_ALERT_TYPES] });
         return;
       }
@@ -288,7 +291,7 @@ try {
         ...extraData,
         // Required core fields last — cannot be overridden by caller
         id: `test_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        type: type as import('./shared/alertTypes.js').AlertType,
+        type,
         timestamp: new Date().toISOString(),
       });
 

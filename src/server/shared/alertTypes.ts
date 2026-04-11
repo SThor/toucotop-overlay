@@ -3,16 +3,19 @@
  * and client (useAlertStream hook) to avoid type drift between the two sides.
  */
 
-export type AlertType =
-  | 'follow'
-  | 'subscribe'
-  | 'resubscribe'
-  | 'gift_sub'
-  | 'cheer'
-  | 'raid'
-  | 'hype_train_begin'
-  | 'hype_train_progress'
-  | 'hype_train_end';
+export const ALERT_TYPES = [
+  'follow',
+  'subscribe',
+  'resubscribe',
+  'gift_sub',
+  'cheer',
+  'raid',
+  'hype_train_begin',
+  'hype_train_progress',
+  'hype_train_end',
+] as const;
+
+export type AlertType = (typeof ALERT_TYPES)[number];
 
 export interface AlertPayload {
   /** Unique id for this alert event */
