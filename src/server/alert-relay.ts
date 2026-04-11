@@ -53,7 +53,13 @@ function getOrCreateRelay(channel: string): ChannelAlertRelay {
 function scheduleCleanup(channel: string): void {
   const relay = channelRelays.get(channel);
   if (!relay) return;
+  // Clear any previously scheduled cleanup to avoid multiple timers accumulating
+  if (relay.cleanupTimer) {
+    clearTimeout(relay.cleanupTimer);
+    relay.cleanupTimer = null;
+  }
   relay.cleanupTimer = setTimeout(() => {
+    relay.cleanupTimer = null;
     if (relay.clients.size === 0) {
       channelRelays.delete(channel);
       keepaliveExtendLastRun.delete(channel);

@@ -274,9 +274,13 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           ...(gifterLogin !== undefined ? { gifterName: gifterLogin } : {}),
           subscribedAt: new Date().toISOString(),
         });
+        // channel.subscribe fires for both regular and individual gifted subs.
+        // Keep type as 'subscribe' in both cases: the overlay uses isGift + gifterName
+        // to distinguish them. 'gift_sub' is reserved for channel.subscription.gift
+        // (gift bombs) where userName is the gifter, not the recipient.
         broadcastAlert(broadcasterLogin, {
           id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-          type: Boolean(eventData['is_gift']) ? 'gift_sub' : 'subscribe',
+          type: 'subscribe',
           timestamp: new Date().toISOString(),
           userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
           tier: String(eventData['tier'] ?? '1000'),

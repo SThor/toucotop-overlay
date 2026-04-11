@@ -247,7 +247,13 @@ try {
   app.post('/api/alerts/trigger',
     validateJsonBody(['token', 'type']),
     (req: Request, res: Response) => {
-      const { token, type, data } = req.body as { token: string; type: string; data?: Record<string, unknown> };
+      const { token, type, data } = req.body as { token: unknown; type: unknown; data?: unknown };
+
+      // Explicit runtime type checks — validateJsonBody only verifies presence, not type
+      if (typeof token !== 'string' || typeof type !== 'string') {
+        res.status(400).json({ error: 'token and type must be strings' });
+        return;
+      }
 
       const userData = defaultTokenManager.getUserByOverlayToken(token);
       if (!userData) {
@@ -255,16 +261,19 @@ try {
         return;
       }
 
-      const VALID_TYPES = VALID_ALERT_TYPES;
-      if (!VALID_TYPES.has(type)) {
-        res.status(400).json({ error: 'Invalid alert type', validTypes: [...VALID_TYPES] });
+      if (!VALID_ALERT_TYPES.has(type)) {
+        res.status(400).json({ error: 'Invalid alert type', validTypes: [...VALID_ALERT_TYPES] });
         return;
       }
 
+      // Sanitize caller-supplied extras: only allow plain objects, spread first so
+      // required core fields (id, type, timestamp) cannot be overridden
+      const extraData = data !== null && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : {};
+
       broadcastAlert(userData.username, {
-        id: `test_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        type: type as import('./shared/alertTypes.js').AlertType,
-        timestamp: new Date().toISOString(),
+        // Default optional per-type fields (can be overridden by extraData)
         userName: 'TestUser',
         tier: '1000',
         bits: 100,
@@ -275,8 +284,12 @@ try {
         progress: 50,
         cumulativeMonths: 3,
         message: 'Test alert message!',
-        // Allow caller to override any field
-        ...data,
+        // Caller-supplied overrides for optional fields
+        ...extraData,
+        // Required core fields last — cannot be overridden by caller
+        id: `test_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        type: type as import('./shared/alertTypes.js').AlertType,
+        timestamp: new Date().toISOString(),
       });
 
       res.json({ ok: true, type, channel: userData.username });
