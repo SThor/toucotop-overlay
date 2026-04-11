@@ -43,6 +43,7 @@ export default function AuthSuccessPage() {
   const [sessionExpired, setSessionExpired] = useState(() => !overlayToken && !urlToken);
   const [showSaved, setShowSaved] = useState(false);
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [testAlertStatus, setTestAlertStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
   // Clear pending timer on unmount to avoid setState on an unmounted component
   useEffect(() => () => {
     if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
@@ -115,6 +116,7 @@ export default function AuthSuccessPage() {
   const clockUrl = `${baseUrl}/clock?token=${encodeURIComponent(overlayToken)}`;
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
   const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
+  const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
 
   return (
@@ -158,6 +160,7 @@ export default function AuthSuccessPage() {
               { label: '🕐 Clock Overlay', url: clockUrl },
               { label: '📊 Info Bar Overlay', url: barUrl },
               { label: '⏸ Pause Scene', url: pauseUrl },
+              { label: '🔔 Alerts Overlay', url: alertsUrl },
             ].map(({ label, url }) => (
               <div key={url}>
                 <Text size="sm" fw={500} mb="xs">{label}</Text>
@@ -411,6 +414,53 @@ export default function AuthSuccessPage() {
               </Group>
             </Stack>
           )}
+        </Paper>
+
+        {/* Test Alerts */}
+        <Paper p="xl" radius="md" withBorder shadow="sm">
+          <Title order={2} mb="sm">
+            <span className="section-title">🔔 Test Alerts</span>
+          </Title>
+          <Text size="sm" c="dimmed" mb="lg">
+            Fire a test alert to the <strong>Alerts Overlay</strong> browser source. Make sure the
+            overlay is open in OBS (or in a separate browser tab) before sending.
+          </Text>
+          <Group gap="xs" wrap="wrap">
+            {([
+              { type: 'follow', label: '❤️ Follow' },
+              { type: 'subscribe', label: '⭐ Subscribe' },
+              { type: 'resubscribe', label: '🌟 Resub' },
+              { type: 'gift_sub', label: '🎁 Gift Sub' },
+              { type: 'cheer', label: '💎 Cheer' },
+              { type: 'raid', label: '⚔️ Raid' },
+              { type: 'hype_train_begin', label: '🚂 Hype Train' },
+            ] as const).map(({ type, label }) => (
+              <Button
+                key={type}
+                variant="light"
+                size="xs"
+                disabled={testAlertStatus === 'sending'}
+                onClick={async () => {
+                  setTestAlertStatus('sending');
+                  try {
+                    const res = await fetch('/api/alerts/trigger', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token: overlayToken, type }),
+                    });
+                    setTestAlertStatus(res.ok ? 'ok' : 'error');
+                  } catch {
+                    setTestAlertStatus('error');
+                  }
+                  setTimeout(() => setTestAlertStatus('idle'), 2000);
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </Group>
+          {testAlertStatus === 'ok' && <Text c="green" size="xs" mt="xs">✓ Alert sent!</Text>}
+          {testAlertStatus === 'error' && <Text c="red" size="xs" mt="xs">Failed to send alert. Is the server running?</Text>}
         </Paper>
 
         {/* Visual effects */}

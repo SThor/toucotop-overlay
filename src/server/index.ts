@@ -29,6 +29,7 @@ import {
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
 import { addSSEClient } from './chat-relay.js';
+import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import settingsRouter from './settings.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -215,6 +216,68 @@ try {
         return;
       }
       addSSEClient(userData.username, res);
+    }
+  );
+
+  /**
+   * Alerts SSE stream endpoint
+   * Streams real-time alert events (follow, sub, hype-train, etc.) to overlay clients
+   */
+  app.get('/api/alerts/stream',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    (req: Request, res: Response) => {
+      const { userData } = req;
+      if (!userData) {
+        res.status(401).json({ error: 'User data not found' });
+        return;
+      }
+      addAlertSSEClient(userData.username, res);
+    }
+  );
+
+  /**
+   * Manual test-alert trigger endpoint
+   * Allows the dashboard to fire a fake alert for testing overlay appearance
+   */
+  app.post('/api/alerts/trigger',
+    validateJsonBody(['token', 'type']),
+    (req: Request, res: Response) => {
+      const { token, type, data } = req.body as { token: string; type: string; data?: Record<string, unknown> };
+
+      const userData = defaultTokenManager.getUserByOverlayToken(token);
+      if (!userData) {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+
+      const VALID_TYPES = new Set([
+        'follow', 'subscribe', 'resubscribe', 'gift_sub',
+        'cheer', 'raid', 'hype_train_begin', 'hype_train_progress', 'hype_train_end',
+      ]);
+      if (!VALID_TYPES.has(type)) {
+        res.status(400).json({ error: 'Invalid alert type', validTypes: [...VALID_TYPES] });
+        return;
+      }
+
+      broadcastAlert(userData.username, {
+        id: `test_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        type: type as import('./alert-relay.js').AlertType,
+        timestamp: new Date().toISOString(),
+        userName: 'TestUser',
+        tier: '1000',
+        bits: 100,
+        giftCount: 5,
+        raiderName: 'TestRaider',
+        viewerCount: 42,
+        level: 1,
+        progress: 50,
+        cumulativeMonths: 3,
+        message: 'Test alert message!',
+        // Allow caller to override any field
+        ...data,
+      });
+
+      res.json({ ok: true, type, channel: userData.username });
     }
   );
 

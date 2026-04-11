@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import type { UserData } from './twitch-api-client.js';
 import { updateLastFollower, updateLastSubscriber } from './storage.js';
+import { broadcastAlert, type AlertPayload, type AlertType } from './alert-relay.js';
 
 // EventSub configuration constants
 const MIN_EVENTSUB_SECRET_LENGTH = 32;
@@ -254,6 +255,12 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           userDisplayName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
           followedAt: String(eventData['followed_at'] ?? new Date().toISOString()),
         });
+        broadcastAlert(broadcasterLogin, {
+          id: `follow_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'follow',
+          timestamp: new Date().toISOString(),
+          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+        });
       } else if (subType === 'channel.subscribe') {
         const gifterLogin = Boolean(eventData['is_gift']) && typeof eventData['gifter_user_login'] === 'string'
           ? eventData['gifter_user_login'] as string
@@ -266,6 +273,84 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           isGift: Boolean(eventData['is_gift']),
           ...(gifterLogin !== undefined ? { gifterName: gifterLogin } : {}),
           subscribedAt: new Date().toISOString(),
+        });
+        broadcastAlert(broadcasterLogin, {
+          id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: Boolean(eventData['is_gift']) ? 'gift_sub' : 'subscribe',
+          timestamp: new Date().toISOString(),
+          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          tier: String(eventData['tier'] ?? '1000'),
+          isGift: Boolean(eventData['is_gift']),
+          ...(gifterLogin !== undefined ? { gifterName: gifterLogin } : {}),
+        });
+      } else if (subType === 'channel.subscription.message') {
+        const cumMonths = typeof eventData['cumulative_months'] === 'number' ? eventData['cumulative_months'] : undefined;
+        const streakMo = typeof eventData['streak_months'] === 'number' ? eventData['streak_months'] : undefined;
+        const resubMsg = typeof eventData['message']?.['text'] === 'string' ? eventData['message']['text'] as string : undefined;
+        broadcastAlert(broadcasterLogin, {
+          id: `resub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'resubscribe',
+          timestamp: new Date().toISOString(),
+          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          tier: String(eventData['tier'] ?? '1000'),
+          ...(cumMonths !== undefined ? { cumulativeMonths: cumMonths } : {}),
+          ...(streakMo !== undefined ? { streakMonths: streakMo } : {}),
+          ...(resubMsg !== undefined ? { message: resubMsg } : {}),
+        });
+      } else if (subType === 'channel.subscription.gift') {
+        broadcastAlert(broadcasterLogin, {
+          id: `giftsub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'gift_sub',
+          timestamp: new Date().toISOString(),
+          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          tier: String(eventData['tier'] ?? '1000'),
+          giftCount: typeof eventData['total'] === 'number' ? eventData['total'] : 1,
+        });
+      } else if (subType === 'channel.cheer') {
+        const cheerBits = typeof eventData['bits'] === 'number' ? eventData['bits'] : undefined;
+        const cheerMsg = typeof eventData['message'] === 'string' ? eventData['message'] as string : undefined;
+        broadcastAlert(broadcasterLogin, {
+          id: `cheer_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'cheer',
+          timestamp: new Date().toISOString(),
+          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          ...(cheerBits !== undefined ? { bits: cheerBits } : {}),
+          ...(cheerMsg !== undefined ? { message: cheerMsg } : {}),
+        });
+      } else if (subType === 'channel.raid') {
+        const raidViewers = typeof eventData['viewers'] === 'number' ? eventData['viewers'] : undefined;
+        broadcastAlert(broadcasterLogin, {
+          id: `raid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'raid',
+          timestamp: new Date().toISOString(),
+          raiderName: String(eventData['from_broadcaster_user_name'] ?? eventData['from_broadcaster_user_login'] ?? ''),
+          ...(raidViewers !== undefined ? { viewerCount: raidViewers } : {}),
+        });
+      } else if (subType === 'channel.hype_train.begin') {
+        broadcastAlert(broadcasterLogin, {
+          id: `hypetrain_begin_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'hype_train_begin',
+          timestamp: new Date().toISOString(),
+          level: typeof eventData['level'] === 'number' ? eventData['level'] : 1,
+          progress: typeof eventData['progress'] === 'number' ? eventData['progress'] : 0,
+        });
+      } else if (subType === 'channel.hype_train.progress') {
+        const htLevel = typeof eventData['level'] === 'number' ? eventData['level'] : undefined;
+        const htProgress = typeof eventData['progress'] === 'number' ? eventData['progress'] : undefined;
+        broadcastAlert(broadcasterLogin, {
+          id: `hypetrain_progress_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'hype_train_progress',
+          timestamp: new Date().toISOString(),
+          ...(htLevel !== undefined ? { level: htLevel } : {}),
+          ...(htProgress !== undefined ? { progress: htProgress } : {}),
+        });
+      } else if (subType === 'channel.hype_train.end') {
+        const htEndLevel = typeof eventData['level'] === 'number' ? eventData['level'] : undefined;
+        broadcastAlert(broadcasterLogin, {
+          id: `hypetrain_end_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          type: 'hype_train_end',
+          timestamp: new Date().toISOString(),
+          ...(htEndLevel !== undefined ? { level: htEndLevel } : {}),
         });
       }
     }
@@ -387,3 +472,4 @@ export {
   // Export constants for use by main server
   EVENTSUB_SECRET
 };
+export type { AlertPayload, AlertType };
