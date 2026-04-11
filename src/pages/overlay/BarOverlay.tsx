@@ -7,7 +7,7 @@ import BarY2KOrnament from '../../components/BarY2KOrnament';
 import '../../styles/BarOverlay.css';
 
 const BarOverlayContent = () => {
-  const { settings } = useSettings();
+  const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [newFollowerAnimation, setNewFollowerAnimation] = useState(false);
@@ -94,6 +94,8 @@ const BarOverlayContent = () => {
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
   };
+
+  if (isLoadingSettings) return null;
 
   return (
     <div

@@ -58,7 +58,7 @@ function useFrakturMask(text: string): TextMask | null {
 }
 
 const PauseOverlay: React.FC = () => {
-  const { settings } = useSettings();
+  const { settings, isLoadingSettings } = useSettings();
   const theme = settings.theme;
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
@@ -83,6 +83,8 @@ const PauseOverlay: React.FC = () => {
 
   const hideBackground = settings.hideBackground;
   const hideContent = settings.hideContent;
+
+  if (isLoadingSettings) return null;
 
   return (
     <div

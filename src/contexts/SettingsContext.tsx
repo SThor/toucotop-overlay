@@ -123,7 +123,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   // Server-side overlay settings, fetched async after token is available
   const [serverSettings, setServerSettings] = useState<OverlaySettings>(defaultOverlaySettings);
-  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  // Start as true when a token is already present so overlays never flash default settings.
+  const [isLoadingSettings, setIsLoadingSettings] = useState(() => !!loadInitialToken());
 
   // URL overrides are re-derived whenever the location search string changes so they
   // don't persist across SPA navigation to a route with different (or no) query params.

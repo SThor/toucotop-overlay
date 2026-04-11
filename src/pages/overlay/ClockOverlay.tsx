@@ -9,7 +9,7 @@ import '../../styles/ClockOverlay.css';
 const { useTwitch } = TwitchProvider;
 
 const ClockOverlay = () => {
-  const { settings } = useSettings();
+  const { settings, isLoadingSettings } = useSettings();
   const { streamInfo } = useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [streamDuration, setStreamDuration] = useState('00:00:00');
@@ -79,6 +79,8 @@ const ClockOverlay = () => {
       day: 'numeric'
     });
   };
+
+  if (isLoadingSettings) return null;
 
   return (
     <div

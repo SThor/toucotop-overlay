@@ -8,7 +8,7 @@ import Y2KDivider from '../../components/Y2KDivider';
 import '../../styles/ChatOverlay.css';
 
 const ChatOverlay = () => {
-  const { settings } = useSettings();
+  const { settings, isLoadingSettings } = useSettings();
   const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
 
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -20,6 +20,8 @@ const ChatOverlay = () => {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
   }, [messages, settings.chatFeedDirection]);
+
+  if (isLoadingSettings) return null;
 
   return (
     <div
