@@ -4,18 +4,22 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(var(--DarkRGBA), 0.9);
-  border: 2px solid var(--Main);
-  border-radius: 16px;
   padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  font-family: 'Courier New', monospace;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
+}
+
+.clock-overlay.crt-active {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  font-family: 'Courier New', monospace;
 }
 
 .clock-overlay.preview-mode {
@@ -34,7 +38,7 @@
 }
 
 .time-label {
-  color: var(--Main);
+  color: rgba(255,255,255,0.55);
   font-size: 0.9em;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -45,32 +49,37 @@
 .current-time {
   font-size: 2.5em;
   font-weight: 700;
-  color: var(--Light);
+  color: #fff;
   margin-bottom: 0.25rem;
 }
 
 .current-date {
-  color: rgba(var(--LightRGBA), 0.8);
+  color: rgba(255,255,255,0.6);
   font-size: 0.9em;
   font-family: inherit;
 }
 
 .divider {
   width: 100%;
+  height: 1px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 1px;
+}
+
+.clock-overlay.crt-active .divider {
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--Main), transparent);
-  border-radius: 1px;
 }
 
 .stream-duration {
   font-size: 2em;
   font-weight: 700;
-  color: var(--Main);
+  color: #fff;
   margin-bottom: 0.25rem;
 }
 
 .stream-info {
-  color: rgba(var(--LightRGBA), 0.9);
+  color: rgba(255,255,255,0.7);
   font-size: 0.9em;
   font-family: inherit;
   display: flex;
@@ -80,8 +89,7 @@
 }
 
 .stream-info::before {
-  content: '🔴';
-  animation: pulse 2s infinite;
+  content: '';
 }
 
 @keyframes pulse {
@@ -92,12 +100,12 @@
 .clock-footer {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(var(--MainRGBA), 0.3);
+  border-top: 1px solid rgba(255,255,255,0.15);
   text-align: center;
 }
 
 .stream-title {
-  color: var(--Light);
+  color: #fff;
   font-size: 1em;
   font-family: inherit;
   font-weight: 500;
@@ -106,8 +114,33 @@
   line-height: 1.4;
 }
 
+/* ---- CRT color overrides ---- */
+.clock-overlay.crt-active .time-label { color: var(--Main); }
+.clock-overlay.crt-active .current-time { color: var(--Light); }
+.clock-overlay.crt-active .current-date { color: rgba(var(--LightRGBA), 0.8); }
+.clock-overlay.crt-active .stream-duration { color: var(--Main); }
+.clock-overlay.crt-active .stream-info { color: rgba(var(--LightRGBA), 0.9); }
+.clock-overlay.crt-active .stream-info::before { content: '🔴'; animation: pulse 2s infinite; }
+.clock-overlay.crt-active .clock-footer { border-top-color: rgba(var(--MainRGBA), 0.3); }
+.clock-overlay.crt-active .stream-title { color: var(--Light); }
+.clock-overlay.crt-active .stream-category { color: rgba(var(--LightRGBA), 0.7); }
+
+/* ---- Y2K theme overrides ---- */
+.clock-overlay.y2k-active .current-time-section .time-label::before { content: '⋆˚☆˖° '; opacity: 0.7; }
+.clock-overlay.y2k-active .current-time-section .time-label::after  { content: ' °˖☆˚⋆'; opacity: 0.7; }
+.clock-overlay.y2k-active .stream-time-section .time-label::before  { content: '✮˖ ࣪⊹ '; opacity: 0.7; }
+.clock-overlay.y2k-active .stream-time-section .time-label::after   { content: ' ⊹࣪ ˖✮'; opacity: 0.7; }
+
+.clock-overlay.y2k-active {
+  border: none;
+}
+
+.clock-overlay.y2k-active.preview-mode {
+  position: relative;
+}
+
 .stream-category {
-  color: rgba(var(--LightRGBA), 0.7);
+  color: rgba(255,255,255,0.55);
   font-size: 0.85em;
   font-family: inherit;
   font-weight: 400;

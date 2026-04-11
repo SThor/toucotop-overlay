@@ -220,24 +220,13 @@ router.get('/callback', async (req: Request, res: Response) => {
       displayName: user.display_name
     });
 
-    // Retrieve the actual stored overlay token expiry from storage
-    let overlayExpiresAt: string | undefined = undefined;
-    try {
-      const stored = getUserByOverlayToken(overlayToken);
-      overlayExpiresAt = stored?.overlayExpiresAt;
-    } catch (e) {
-      overlayExpiresAt = undefined;
-    }
-
     console.log(`✅ OAuth completed for ${username}`);
-    
-    // Redirect to React success page with token data in query params
-    const successParams = new URLSearchParams({
-      token: overlayToken,
-      displayName: user.display_name,
-      ...(overlayExpiresAt ? { expiresAt: overlayExpiresAt } : {})
-    });
-    res.redirect(`/auth/success?${successParams.toString()}`);
+
+    // Redirect to React success page with only the token.
+    // displayName and expiresAt are intentionally omitted: AuthSuccessPage fetches
+    // them from /auth/status, avoiding a race where RequireToken (parent component)
+    // re-adds stripped params back to the URL after AuthSuccessPage clears them.
+    res.redirect(`/auth/success?token=${encodeURIComponent(overlayToken)}`);
     return;
 
   } catch (error) {

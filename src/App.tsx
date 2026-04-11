@@ -12,11 +12,12 @@ import AuthErrorPage from './pages/AuthErrorPage';
 import AccessDeniedPage from './pages/AccessDeniedPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DemoPage from './pages/DemoPage';
-import ChatOverlay from './pages/ChatOverlay';
-import ClockOverlay from './pages/ClockOverlay';
-import BarOverlay from './pages/BarOverlay';
+import ShaderTestPage from './pages/ShaderTestPage';
+import ChatOverlay from './pages/overlay/ChatOverlay';
+import ClockOverlay from './pages/overlay/ClockOverlay';
+import BarOverlay from './pages/overlay/BarOverlay';
+import PauseOverlay from './pages/overlay/PauseOverlay';
 import NavMenu from './components/NavMenu';
-import './App.css';
 import './styles/ServerPages.css';
 
 import { useEffect, useRef, useState } from 'react';
@@ -24,12 +25,12 @@ import { useSearchParams } from 'react-router-dom';
 
 // Pages that don't need a valid token
 const ALLOW_NO_TOKEN = [
-  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound'
+  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound', '/shader-test'
 ];
 
 // Overlay paths: invalid/expired token shows an inline message instead of redirecting,
 // since OBS Browser Sources can't interact with a Twitch auth flow.
-const OVERLAY_PATHS = ['/chat', '/clock', '/bar'];
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause'];
 
 // Shown inside an overlay when the token is missing or expired
 function OverlayExpired() {
@@ -72,15 +73,21 @@ function RequireToken({ children }: { children: React.ReactNode }) {
       if (urlToken !== settings.overlayToken) {
         updateSettings({ overlayToken: urlToken });
       }
-      // Strip the token from the address bar so it doesn't linger in browser history
-      const nextParams = new URLSearchParams(params);
-      nextParams.delete('token');
-      const nextSearch = nextParams.toString();
-      window.history.replaceState(
-        window.history.state,
-        '',
-        `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
-      );
+      // Strip the token from the address bar so it doesn't linger in browser history.
+      // Exception: overlay paths are opened in OBS Browser Sources which refresh from
+      // the browser engine's *current* URL (post-replaceState), not the configured URL.
+      // Keeping the token in the URL there ensures a manual refresh still works,
+      // even when localStorage is unavailable (e.g. "Clear cache on refresh" is on).
+      if (!OVERLAY_PATHS.includes(location.pathname)) {
+        const nextParams = new URLSearchParams(params);
+        nextParams.delete('token');
+        const nextSearch = nextParams.toString();
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
+        );
+      }
       return;
     }
     // No URL token — try dedicated localStorage key as fallback
@@ -173,9 +180,11 @@ function App() {
                   <Route path="/auth/error" element={<AuthErrorPage />} />
                   <Route path="/auth/denied" element={<AccessDeniedPage />} />
                   <Route path="/demo" element={<DemoPage />} />
+                  <Route path="/shader-test" element={<ShaderTestPage />} />
                   <Route path="/chat" element={<ChatOverlay />} />
                   <Route path="/clock" element={<ClockOverlay />} />
                   <Route path="/bar" element={<BarOverlay />} />
+                  <Route path="/pause" element={<PauseOverlay />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </div>

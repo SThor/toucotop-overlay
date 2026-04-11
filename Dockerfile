@@ -37,6 +37,10 @@ COPY --from=builder /app/dist-server /app/dist-server
 # Create tokens directory with proper permissions
 RUN mkdir -p /app/tokens && chmod 700 /app/tokens
 
+# Point storage.ts to the correct volume path (dist-server/../../tokens would
+# resolve to /tokens at the filesystem root, missing the Docker volume at /app/tokens)
+ENV TOKENS_DIR=/app/tokens
+
 # Declare /app/tokens as a volume so token/settings data survives container replacement
 VOLUME ["/app/tokens"]
 

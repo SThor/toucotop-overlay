@@ -1,11 +1,20 @@
 // Single canonical definition of OverlaySettings — imported by both
 // src/server/storage.ts (server) and src/contexts/SettingsContext.tsx (client)
-export type OverlayTheme = 'crt' | 'default';
+export type OverlayTheme = 'crt' | 'default' | 'y2k';
 
 export interface PerOverlayNumber {
   chat?: number | null;
   clock?: number | null;
   bar?: number | null;
+}
+
+export interface BarSections {
+  clock: boolean;
+  duration: boolean;
+  title: boolean;
+  stats: boolean;
+  recentFollower: boolean;
+  recentSub: boolean;
 }
 
 export interface OverlaySettings {
@@ -16,6 +25,7 @@ export interface OverlaySettings {
   chatFeedDirection: 'top' | 'bottom';
   maxChatMessages: number;
   barFloating: boolean;
+  barSections: BarSections;
   theme: OverlayTheme;
   themeSettings: {
     crt: {
@@ -24,6 +34,12 @@ export interface OverlaySettings {
       animation: boolean;
     };
   };
+  pauseTitle: string;
+  pauseSubtitle: string;
+  /** When true, the theme background (CRT/Y2K shader) is not rendered for this overlay. */
+  hideBackground: boolean;
+  /** When true, the foreground content (title, subtitle, barcode) is not rendered for this overlay. */
+  hideContent: boolean;
 }
 
 export const defaultOverlaySettings: OverlaySettings = {
@@ -34,6 +50,14 @@ export const defaultOverlaySettings: OverlaySettings = {
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
   barFloating: true,
+  barSections: {
+    clock: true,
+    duration: true,
+    title: true,
+    stats: true,
+    recentFollower: true,
+    recentSub: true,
+  },
   theme: 'crt',
   themeSettings: {
     crt: {
@@ -42,4 +66,8 @@ export const defaultOverlaySettings: OverlaySettings = {
       animation: true,
     }
   },
+  pauseTitle: 'En pause',
+  pauseSubtitle: '— je reviens —',
+  hideBackground: false,
+  hideContent: false,
 };

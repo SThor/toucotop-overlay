@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput,
 } from '@mantine/core';
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
+import { defaultOverlaySettings } from '../server/shared/overlaySettings';
 import '../styles/ServerPages.css';
 
 function formatExpiryDate(isoString: string): string {
@@ -29,19 +30,14 @@ export default function AuthSuccessPage() {
   const [params] = useSearchParams();
   const { settings, persistedSettings, updateSettings, resetSettings, isLoadingSettings } = useSettings();
 
-  // On a fresh OAuth callback, the server puts all three into the redirect URL.
-  // On a direct visit (e.g. bookmarked dashboard), only the stored token is available.
+  // On a fresh OAuth callback the server puts only `token` in the redirect URL.
+  // On a direct visit (e.g. bookmarked dashboard) no URL token is present.
   const urlToken = params.get('token');
-  const urlDisplayName = params.get('displayName');
-  const urlExpiresAt = params.get('expiresAt');
   const overlayToken = settings.overlayToken;
 
   console.log('[AuthSuccessPage] mounted — overlayToken:', overlayToken ? '(set)' : '(empty)', '| urlToken:', urlToken ? '(set)' : null);
 
-  // Seed auth info immediately from URL params when present (avoids a redundant round-trip)
-  const [authInfo, setAuthInfo] = useState<AuthInfo | null>(
-    urlDisplayName ? { displayName: urlDisplayName, expiresAt: urlExpiresAt ?? '' } : null,
-  );
+  const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
   // Guard synchronously: if there's no token anywhere on first render, show the
   // expired UI immediately rather than flashing valid-looking URLs for one frame.
   const [sessionExpired, setSessionExpired] = useState(() => !overlayToken && !urlToken);
@@ -60,10 +56,8 @@ export default function AuthSuccessPage() {
     }
   }, [urlToken, updateSettings]);
 
-  // Call /auth/status only when auth info wasn't already in the URL params
-  // (i.e. the user navigated to the dashboard directly rather than arriving from OAuth)
+  // Fetch auth info from /auth/status (always — no URL params to seed from)
   useEffect(() => {
-    if (urlDisplayName) return; // Already seeded — skip the fetch
     if (!overlayToken) {
       setSessionExpired(true);
       return;
@@ -78,7 +72,7 @@ export default function AuthSuccessPage() {
         }
       })
       .catch(() => { /* keep rendering on network error */ });
-  }, [overlayToken, urlDisplayName]);
+  }, [overlayToken]);
 
   // Helper for CRT sub-settings: sends only the changed CRT fields so session-only
   // URL overrides in the effective `settings` view are never persisted to the server.
@@ -120,6 +114,7 @@ export default function AuthSuccessPage() {
   const chatUrl = `${baseUrl}/chat?token=${encodeURIComponent(overlayToken)}`;
   const clockUrl = `${baseUrl}/clock?token=${encodeURIComponent(overlayToken)}`;
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
+  const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
 
   return (
@@ -162,6 +157,7 @@ export default function AuthSuccessPage() {
               { label: '💬 Chat Overlay', url: chatUrl },
               { label: '🕐 Clock Overlay', url: clockUrl },
               { label: '📊 Info Bar Overlay', url: barUrl },
+              { label: '⏸ Pause Scene', url: pauseUrl },
             ].map(({ label, url }) => (
               <div key={url}>
                 <Text size="sm" fw={500} mb="xs">{label}</Text>
@@ -199,7 +195,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -324,6 +320,31 @@ export default function AuthSuccessPage() {
                 onChange={(e) => save({ barFloating: e.currentTarget.checked })}
               />
 
+              <div>
+                <Text size="sm" fw={500} mb="xs">Bar Sections</Text>
+                <Stack gap="xs">
+                  {(
+                    [
+                      ['clock', 'Current Time'],
+                      ['duration', 'Stream Duration'],
+                      ['title', 'Stream Title / Category'],
+                      ['stats', 'Viewers & Followers'],
+                      ['recentFollower', 'Last Follower'],
+                      ['recentSub', 'Last Subscriber'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <Switch
+                      key={key}
+                      label={label}
+                      checked={persistedSettings.barSections[key]}
+                      onChange={(e) =>
+                        save({ barSections: { ...persistedSettings.barSections, [key]: e.currentTarget.checked } })
+                      }
+                    />
+                  ))}
+                </Stack>
+              </div>
+
               {/* Chat */}
               <div>
                 <Text size="sm" fw={500} mb="xs">Chat Feed Direction</Text>
@@ -354,6 +375,34 @@ export default function AuthSuccessPage() {
                 />
               </div>
 
+              {/* Pause overlay text */}
+              <TextInput
+                label="Pause title"
+                description="Main heading shown on the pause scene. Clear to reset to default."
+                placeholder={defaultOverlaySettings.pauseTitle}
+                value={persistedSettings.pauseTitle}
+                onChange={(e) => save({ pauseTitle: e.currentTarget.value })}
+              />
+              <TextInput
+                label="Pause subtitle"
+                description="Secondary line shown below the pause title. Clear to reset to default."
+                placeholder={defaultOverlaySettings.pauseSubtitle}
+                value={persistedSettings.pauseSubtitle}
+                onChange={(e) => save({ pauseSubtitle: e.currentTarget.value })}
+              />
+              <Switch
+                label="Hide background"
+                description="Hide the theme background (shader/CRT effects). Use with a second browser source to split background and content in OBS."
+                checked={persistedSettings.hideBackground}
+                onChange={(e) => save({ hideBackground: e.currentTarget.checked })}
+              />
+              <Switch
+                label="Hide content"
+                description="Hide the foreground content (title, subtitle, decoration). Use with a second browser source to split content from the background in OBS."
+                checked={persistedSettings.hideContent}
+                onChange={(e) => save({ hideContent: e.currentTarget.checked })}
+              />
+
               <Group justify="space-between" mt="sm">
                 <Button variant="light" onClick={resetSettings}>
                   Reset to Defaults
@@ -383,8 +432,9 @@ export default function AuthSuccessPage() {
                 value={persistedSettings.theme}
                 onChange={(v) => { if (v) save({ theme: v as import('../server/shared/overlaySettings').OverlayTheme }); }}
                 data={[
-                  { value: 'default', label: 'Animated background' },
+                  { value: 'default', label: 'Default' },
                   { value: 'crt', label: 'CRT effects' },
+                  { value: 'y2k', label: 'Gothic Techno (Y2K)' },
                 ]}
                 allowDeselect={false}
               />

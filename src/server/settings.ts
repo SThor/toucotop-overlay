@@ -25,6 +25,7 @@ router.get('/', (req: Request, res: Response) => {
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
+    barSections: { ...defaultOverlaySettings.barSections, ...(raw.barSections ?? {}) },
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -80,8 +81,8 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
 
   if ('theme' in body) {
     const v = body.theme;
-    if (v !== 'crt' && v !== 'default') {
-      errors.push('theme must be "crt" or "default"');
+    if (v !== 'crt' && v !== 'default' && v !== 'y2k') {
+      errors.push('theme must be "crt", "default", or "y2k"');
     } else {
       patch.theme = v;
     }
@@ -102,6 +103,26 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
       errors.push('barFloating must be a boolean');
     } else {
       patch.barFloating = v;
+    }
+  }
+
+  if ('barSections' in body) {
+    const v = body.barSections;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSections must be an object');
+    } else {
+      const sections: Partial<OverlaySettings['barSections']> = {};
+      for (const key of ['clock', 'duration', 'title', 'stats', 'recentFollower', 'recentSub'] as const) {
+        if (key in v) {
+          const val = (v as unknown as Record<string, unknown>)[key];
+          if (typeof val !== 'boolean') {
+            errors.push(`barSections.${key} must be a boolean`);
+          } else {
+            sections[key] = val;
+          }
+        }
+      }
+      if (errors.length === 0) patch.barSections = { ...defaultOverlaySettings.barSections, ...sections };
     }
   }
 
@@ -149,6 +170,26 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
+  if ('pauseTitle' in body) {
+    const v = body.pauseTitle;
+    if (typeof v !== 'string') {
+      errors.push('pauseTitle must be a string');
+    } else {
+      // Empty string resets to default
+      patch.pauseTitle = v.trim() === '' ? defaultOverlaySettings.pauseTitle : v;
+    }
+  }
+
+  if ('pauseSubtitle' in body) {
+    const v = body.pauseSubtitle;
+    if (typeof v !== 'string') {
+      errors.push('pauseSubtitle must be a string');
+    } else {
+      // Empty string resets to default
+      patch.pauseSubtitle = v.trim() === '' ? defaultOverlaySettings.pauseSubtitle : v;
+    }
+  }
+
   if ('themeSettings' in body) {
     const ts = body.themeSettings;
     if (typeof ts !== 'object' || ts === null || Array.isArray(ts)) {
@@ -192,6 +233,24 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
           };
         }
       }
+    }
+  }
+
+  if ('hideBackground' in body) {
+    const v = body.hideBackground;
+    if (typeof v !== 'boolean') {
+      errors.push('hideBackground must be a boolean');
+    } else {
+      patch.hideBackground = v;
+    }
+  }
+
+  if ('hideContent' in body) {
+    const v = body.hideContent;
+    if (typeof v !== 'boolean') {
+      errors.push('hideContent must be a boolean');
+    } else {
+      patch.hideContent = v;
     }
   }
 

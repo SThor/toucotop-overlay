@@ -62,8 +62,7 @@
   justify-content: center;
   height: 100vh;
   background: rgba(0, 0, 0, 0.85);
-  color: var(--Main);
-  font-family: 'Courier New', monospace;
+  color: var(--sv-text);
   font-size: 1rem;
   text-align: center;
   padding: 2rem;
@@ -85,7 +84,7 @@
 }
 
 .overlay-expired__message strong {
-  color: var(--Main);
+  color: var(--sv-text-2);
 }
 
 
@@ -236,7 +235,6 @@
   white-space: nowrap;
   flex-shrink: 0;
   font-family: inherit;
-  transform: none;
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
@@ -244,7 +242,6 @@
   background: rgba(255, 255, 255, 0.1);
   color: var(--sv-text-2);
   border-color: rgba(255, 255, 255, 0.2);
-  transform: none;
 }
 
 .copy-btn:focus-visible {
@@ -569,13 +566,9 @@
 /*  Auth success dashboard (Mantine-based)  */
 
 .main-page [data-paper] {
-  background: rgba(var(--LightRGBA), 0.03) !important;
-  border-color: rgba(var(--LightRGBA), 0.1) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
-
-/* Neutralise the global orange link colour inside the dashboard */
-.main-page a       { color: var(--sv-text-3); }
-.main-page a:hover { color: var(--sv-text-2); }
 
 /* Gradient titles  emoji must live outside this span so it keeps its natural colour */
 .main-title {

@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
-import { TwitchProvider } from '../contexts/TwitchContext';
-import AnimatedBackground from '../components/AnimatedBackground';
-import CRTBackground from '../components/CRTBackground';
-import MarqueeText from '../components/MarqueeText';
-import '../styles/ClockOverlay.css';
+import { useSettings } from '../../contexts/SettingsContext';
+import { TwitchProvider } from '../../contexts/TwitchContext';
+import ThemeBackground from '../../components/ThemeBackground';
+import MarqueeText from '../../components/MarqueeText';
+import '../../styles/ClockOverlay.css';
 
 // Destructure the hook for cleaner usage
 const { useTwitch } = TwitchProvider;
 
 const ClockOverlay = () => {
-  const { settings } = useSettings();
+  const { settings, isLoadingSettings } = useSettings();
   const { streamInfo } = useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [streamDuration, setStreamDuration] = useState('00:00:00');
@@ -81,12 +80,14 @@ const ClockOverlay = () => {
     });
   };
 
+  if (isLoadingSettings) return null;
+
   return (
     <div
-      className="clock-overlay"
+      className={`clock-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
-      {settings.theme === 'crt' ? <CRTBackground /> : <AnimatedBackground />}
+      <ThemeBackground panelMode />
       <div className="current-time-section">
         <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
         <div className={`current-time ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>
