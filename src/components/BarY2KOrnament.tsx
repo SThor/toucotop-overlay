@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import type { FC, CSSProperties } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
 
-// Ornament intrinsic size: WIDTH x HEIGHT px.
-// Positioned so its horizontal center sits at the bar edge (half off-screen)
-// and its vertical center sits at the bar's top border (half above, half inside).
-const WIDTH = 500;
+
+// Default ornament size for bar overlay
+const DEFAULT_WIDTH = 500;
 const DEFAULT_HEIGHT = 90;
 
 interface Props {
@@ -15,16 +14,20 @@ interface Props {
   src?: string;
   /** When true, centers the ornament horizontally instead of anchoring to an edge. */
   center?: boolean;
+  /** Override rendered width in px. Defaults to 500. */
+  width?: number;
   /** Override rendered height in px. Defaults to 90. */
   height?: number;
   /** How far above the top border to push the ornament (as a translateY percentage). Defaults to -65. */
   yOffset?: number;
 }
 
+
 const BarY2KOrnament: FC<Props> = ({
   flip = false,
   src = '/tribal.png',
   center = false,
+  width = DEFAULT_WIDTH,
   height = DEFAULT_HEIGHT,
   yOffset = -65,
 }) => {
@@ -36,21 +39,21 @@ const BarY2KOrnament: FC<Props> = ({
     img.onload = () => {
       if (cancelled) return;
       const canvas = document.createElement('canvas');
-      canvas.width = WIDTH;
+      canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d')!;
       if (flip) {
-        ctx.translate(WIDTH, 0);
+        ctx.translate(width, 0);
         ctx.scale(-1, 1);
       }
-      ctx.drawImage(img, 0, 0, WIDTH, height);
+      ctx.drawImage(img, 0, 0, width, height);
       const out = new Image();
       out.onload = () => { if (!cancelled) setMask(out); };
       out.src = canvas.toDataURL('image/png');
     };
     img.src = src;
     return () => { cancelled = true; };
-  }, [flip, src, height]);
+  }, [flip, src, width, height]);
 
   const positionStyle: CSSProperties = center
     ? { left: '50%', transform: `translateX(-50%) translateY(${yOffset}%)` }
@@ -62,7 +65,7 @@ const BarY2KOrnament: FC<Props> = ({
     <div
       style={{
         position: 'absolute',
-        width: WIDTH,
+        width,
         height,
         top: 0,
         ...positionStyle,
@@ -72,7 +75,7 @@ const BarY2KOrnament: FC<Props> = ({
     >
       {mask && (
         <LiquidMetal
-          width={WIDTH}
+          width={width}
           height={height}
           image={mask}
           colorBack="#00000000"

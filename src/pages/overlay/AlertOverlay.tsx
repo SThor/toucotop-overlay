@@ -113,6 +113,7 @@ export default function AlertOverlay() {
               <BarY2KOrnament
                 src="/tribal_alert.png"
                 center
+                width={340}
                 height={88}
                 yOffset={128}
               />
