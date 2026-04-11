@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { FC, CSSProperties } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
 
 // Ornament intrinsic size: WIDTH x HEIGHT px.
@@ -20,7 +21,7 @@ interface Props {
   yOffset?: number;
 }
 
-const BarY2KOrnament: React.FC<Props> = ({
+const BarY2KOrnament: FC<Props> = ({
   flip = false,
   src = '/tribal.png',
   center = false,
@@ -48,7 +49,7 @@ const BarY2KOrnament: React.FC<Props> = ({
     img.src = src;
   }, [flip, src, height]);
 
-  const positionStyle: React.CSSProperties = center
+  const positionStyle: CSSProperties = center
     ? { left: '50%', transform: `translateX(-50%) translateY(${yOffset}%)` }
     : flip
       ? { right: 0, transform: `translateX(50%) translateY(${yOffset}%)` }

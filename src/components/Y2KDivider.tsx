@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import type { FC } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
 
 interface Dims { w: number; h: number; }
 
-const Y2KDivider: React.FC = () => {
+const Y2KDivider: FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<Dims | null>(null);
   const [sourceImg, setSourceImg] = useState<HTMLImageElement | null>(null);

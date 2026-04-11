@@ -7,8 +7,8 @@ const LazyY2KBackground = React.lazy(() => import('./Y2KBackground'));
 interface Props {
   /**
    * When true the component is being used inside an overlay panel (chat/clock/bar).
-   * In panel mode only CRT gets a rendered background component; default and Y2K
-   * themes rely purely on CSS for their panel background.
+   * In panel mode CRT and Y2K both get rendered background components; the default
+   * theme has no background component.
    */
   panelMode?: boolean;
 }

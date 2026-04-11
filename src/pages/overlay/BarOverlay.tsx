@@ -34,20 +34,24 @@ const BarOverlayContent = () => {
 
   // Animate when new follower detected
   useEffect(() => {
+    let id: ReturnType<typeof setTimeout> | null = null;
     if (twitch.lastFollower && twitch.lastFollower.userName !== prevFollower) {
       setPrevFollower(twitch.lastFollower.userName);
       setNewFollowerAnimation(true);
-      setTimeout(() => setNewFollowerAnimation(false), 2000);
+      id = setTimeout(() => setNewFollowerAnimation(false), 2000);
     }
+    return () => { if (id !== null) clearTimeout(id); };
   }, [twitch.lastFollower, prevFollower]);
 
   // Animate when new subscriber detected
   useEffect(() => {
+    let id: ReturnType<typeof setTimeout> | null = null;
     if (twitch.lastSubscriber && twitch.lastSubscriber.userName !== prevSubscriber) {
       setPrevSubscriber(twitch.lastSubscriber.userName);
       setNewSubscriberAnimation(true);
-      setTimeout(() => setNewSubscriberAnimation(false), 2000);
+      id = setTimeout(() => setNewSubscriberAnimation(false), 2000);
     }
+    return () => { if (id !== null) clearTimeout(id); };
   }, [twitch.lastSubscriber, prevSubscriber]);
 
   const formatTime = (date: Date) => {

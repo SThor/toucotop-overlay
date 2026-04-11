@@ -1,6 +1,6 @@
 # Overlay Themes
 
-Themes control the visual style of all three overlay components (Chat, Clock, Bar) simultaneously. The active theme is set from the settings dashboard (`/auth/success`) and persisted server-side, so every OBS Browser Source picks it up without any URL changes.
+Themes control the visual style of all four overlay components (Chat, Clock, Bar, Pause) simultaneously. The active theme is set from the settings dashboard (`/auth/success`) and persisted server-side, so every OBS Browser Source picks it up without any URL changes.
 
 A theme can also be forced for a single OBS scene via URL parameter: `?theme=crt`
 

@@ -25,8 +25,10 @@ function useFrakturMask(text: string): TextMask | null {
     document.fonts.load(`${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`).then(() => {
       const canvas = document.createElement('canvas');
       // cv01 selects the alternate 'k' glyph in UnifrakturMaguntia.
-      // Setting it on the element style lets Chromium's font renderer pick it up
-      // even though font-feature-settings is not part of the CSS font shorthand.
+      // Setting font-feature-settings on the canvas element is non-standard
+      // for Canvas 2D — the context font shorthand doesn't include it. However,
+      // Chromium (used by OBS) appears to pick it up from the element style in
+      // some versions. If it has no effect the fallback 'k' glyph is used instead.
       canvas.style.fontFeatureSettings = '"cv01" 1';
       const ctx = canvas.getContext('2d')!;
       ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
@@ -140,7 +142,7 @@ const PauseOverlay: React.FC = () => {
               />
             </div>
           ) : (
-            <h1 className="pause-title-fallback y2k-chrome-text">{settings.pauseTitle}</h1>
+            <h1 className="pause-title-fallback y2k-chrome-text y2k-font-fraktur">{settings.pauseTitle}</h1>
           )
         ) : (
           <h1 className="pause-title">{settings.pauseTitle}</h1>
