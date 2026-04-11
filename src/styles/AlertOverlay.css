@@ -16,6 +16,8 @@
   gap: 0.5em;
   text-align: center;
   padding: 1em;
+  position: relative;
+  isolation: isolate;
 }
 
 /* ── CRT theme ──────────────────────────────────────────────────────────── */

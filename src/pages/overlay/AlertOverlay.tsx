@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ThemeBackground from '../../components/ThemeBackground';
 import { useAlertStream, type AlertPayload } from '../../hooks/useAlertStream';
 import { useSettings } from '../../contexts/SettingsContext';
 import '../../styles/AlertOverlay.css';
@@ -97,6 +98,7 @@ export default function AlertOverlay() {
             exit={{ opacity: 0, scale: 0.8, y: -40 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
           >
+            {settings.theme === 'crt' && <ThemeBackground panelMode />}
             <span className="alert-icon" style={{ fontSize: '3em', lineHeight: 1 }}>{alertIcon(currentAlert.type)}</span>
             <span className="alert-title" style={{ fontSize: '1.4em', fontWeight: 700 }}>
               {alertTitle(currentAlert)}
