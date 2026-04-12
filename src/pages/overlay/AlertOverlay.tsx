@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ThemeBackground from '../../components/ThemeBackground';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import { useAlertStream, type AlertPayload } from '../../hooks/useAlertStream';
@@ -68,6 +68,13 @@ export default function AlertOverlay() {
 
   if (isLoadingSettings) return null;
 
+  // Animation state: visible if alert is active
+  const isVisible = !!currentAlert;
+  // Fallbacks for empty state
+  const type = currentAlert?.type || 'follow';
+  const title = currentAlert ? alertTitle(currentAlert) : '';
+  const message = currentAlert?.message || '';
+
   return (
     <div
       className={`alert-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
@@ -89,38 +96,38 @@ export default function AlertOverlay() {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        {currentAlert && (
-          <motion.div
-            key={currentAlert.id}
-            className="alert-popup"
-            initial={{ opacity: 0, scale: 0.8, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -40 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
-          >
-            {(settings.theme === 'crt' || settings.theme === 'y2k') && <ThemeBackground panelMode />}
-            <span className="alert-icon" style={{ fontSize: '3em', lineHeight: 1 }}>{alertIcon(currentAlert.type)}</span>
-            <span className="alert-title" style={{ fontSize: '1.4em', fontWeight: 700 }}>
-              {alertTitle(currentAlert)}
-            </span>
-            {currentAlert.message && (
-              <span className="alert-message" style={{ fontSize: '0.95em', opacity: 0.85, fontStyle: 'italic' }}>
-                "{currentAlert.message}"
-              </span>
-            )}
-            {settings.theme === 'y2k' && (
-              <BarY2KOrnament
-                src="/tribal_alert.png"
-                center
-                width={340}
-                height={88}
-                yOffset={128}
-              />
-            )}
-          </motion.div>
+      {/* Always mounted alert popup, animate presence */}
+      <motion.div
+        className="alert-popup"
+        animate={isVisible ? { opacity: 1, scale: 1, y: 0, pointerEvents: 'auto' } : { opacity: 0, scale: 0.8, y: 40, pointerEvents: 'none' }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        style={{ position: 'relative' }}
+      >
+        {(settings.theme === 'crt' || settings.theme === 'y2k') && <ThemeBackground panelMode />}
+        <span className="alert-icon" style={{ fontSize: '3em', lineHeight: 1 }}>
+          {alertIcon(type)}
+        </span>
+        <span className="alert-title" style={{ fontSize: '1.4em', fontWeight: 700 }}>
+          {title}
+        </span>
+        {/* Always render message span for layout stability */}
+        <span
+          className="alert-message"
+          style={{ fontSize: '0.95em', opacity: 0.85, fontStyle: 'italic', visibility: message ? 'visible' : 'hidden' }}
+        >
+          {message ? `"${message}"` : ''}
+        </span>
+        {/* Always render ornament for Y2K theme, animate with popup */}
+        {settings.theme === 'y2k' && (
+          <BarY2KOrnament
+            src="/tribal_alert.png"
+            center
+            width={340}
+            height={88}
+            yOffset={128}
+          />
         )}
-      </AnimatePresence>
+      </motion.div>
 
       {/* Invisible connected indicator for debugging */}
       {isConnected && (
