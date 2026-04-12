@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import ThemeBackground from '../../components/ThemeBackground';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
@@ -53,27 +53,47 @@ function alertIcon(type: AlertPayload['type']): string {
 /** Duration (ms) an alert is shown before auto-dismissing */
 const ALERT_DURATION_MS = 5000;
 
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AlertOverlay() {
   const { settings, isLoadingSettings } = useSettings();
   const { currentAlert, isConnected, isConnecting, error, dismissAlert } = useAlertStream();
 
-  // Auto-dismiss after ALERT_DURATION_MS
+  // Track the last non-null alert for animation
+  const [displayedAlert, setDisplayedAlert] = useState<AlertPayload | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const hideTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // When a new alert arrives, show and update displayedAlert
   useEffect(() => {
-    if (!currentAlert) return;
-    const timer = setTimeout(dismissAlert, ALERT_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [currentAlert, dismissAlert]);
+    if (currentAlert) {
+      setDisplayedAlert(currentAlert);
+      setIsVisible(true);
+      // Auto-dismiss after ALERT_DURATION_MS
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+      hideTimeout.current = setTimeout(() => setIsVisible(false), ALERT_DURATION_MS);
+    } else {
+      // If alert is dismissed, start hide animation
+      setIsVisible(false);
+    }
+    return () => { if (hideTimeout.current) clearTimeout(hideTimeout.current); };
+  }, [currentAlert]);
+
+  // After hide animation, clear displayedAlert and call dismissAlert
+  const handleAnimationComplete = () => {
+    if (!isVisible && displayedAlert) {
+      setDisplayedAlert(null);
+      dismissAlert();
+    }
+  };
 
   if (isLoadingSettings) return null;
 
-  // Animation state: visible if alert is active
-  const isVisible = !!currentAlert;
   // Fallbacks for empty state
-  const type = currentAlert?.type || 'follow';
-  const title = currentAlert ? alertTitle(currentAlert) : '';
-  const message = currentAlert?.message || '';
+  const type = displayedAlert?.type || 'follow';
+  const title = displayedAlert ? alertTitle(displayedAlert) : '';
+  const message = displayedAlert?.message || '';
 
   return (
     <div
@@ -102,6 +122,7 @@ export default function AlertOverlay() {
         animate={isVisible ? { opacity: 1, scale: 1, y: 0, pointerEvents: 'auto' } : { opacity: 0, scale: 0.8, y: 40, pointerEvents: 'none' }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
         style={{ position: 'relative' }}
+        onAnimationComplete={handleAnimationComplete}
       >
         {(settings.theme === 'crt' || settings.theme === 'y2k') && <ThemeBackground panelMode />}
         <span className="alert-icon" style={{ fontSize: '3em', lineHeight: 1 }}>
