@@ -19,6 +19,14 @@ const EVENTSUB_ALLOWED_HOSTS = (process.env.EVENTSUB_ALLOWED_HOSTS || '')
   .map(h => h.trim().toLowerCase())
   .filter(Boolean);
 
+interface AppAccessTokenResponse {
+  access_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+let cachedAppAccessToken: { token: string; expiresAt: number } | null = null;
+
 // Type definitions for EventSub
 export interface EventSubEvent {
   subscription: {
@@ -204,6 +212,51 @@ function getEventSubWebhookUrl(req: Request): string {
   }
 
   return `${protocol}://${host}/webhooks/eventsub`;
+}
+
+async function getAppAccessToken(): Promise<string> {
+  const now = Date.now();
+  if (cachedAppAccessToken && cachedAppAccessToken.expiresAt > now + 60_000) {
+    return cachedAppAccessToken.token;
+  }
+
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET are required to create an app access token');
+  }
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'client_credentials',
+  });
+
+  const response = await fetch('https://id.twitch.tv/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create Twitch app access token: ${response.status} ${errorText}`);
+  }
+
+  const tokenResponse = await response.json() as AppAccessTokenResponse;
+  if (!tokenResponse.access_token || !tokenResponse.expires_in) {
+    throw new Error('Twitch app access token response was missing access_token or expires_in');
+  }
+
+  cachedAppAccessToken = {
+    token: tokenResponse.access_token,
+    expiresAt: now + (tokenResponse.expires_in * 1000),
+  };
+
+  return tokenResponse.access_token;
 }
 
 /**
@@ -400,19 +453,20 @@ async function handleEventSubSubscription(
   }
 
   try {
-    const clientId = process.env.TWITCH_CLIENT_ID;
-    if (!clientId) {
-      return res.status(500).json({ error: 'TWITCH_CLIENT_ID is not configured' });
-    }
-
     const webhookUrl = getEventSubWebhookUrl(req);
+    const appAccessToken = await getAppAccessToken();
     
     const subscriptionData: EventSubSubscriptionData = {
       type: eventType,
-      version: '1',
-      condition: {
-        broadcaster_user_id: userData.twitchUserId
-      },
+      version: eventType === 'channel.follow' ? '2' : '1',
+      condition: eventType === 'channel.follow'
+        ? {
+            broadcaster_user_id: userData.twitchUserId,
+            moderator_user_id: userData.twitchUserId,
+          }
+        : {
+            broadcaster_user_id: userData.twitchUserId,
+          },
       transport: {
         method: 'webhook',
         callback: webhookUrl,
@@ -423,8 +477,8 @@ async function handleEventSubSubscription(
     const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${userData.accessToken}`,
-        'Client-Id': clientId,
+        'Authorization': `Bearer ${appAccessToken}`,
+        'Client-Id': process.env.TWITCH_CLIENT_ID!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(subscriptionData)
