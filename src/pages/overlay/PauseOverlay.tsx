@@ -153,7 +153,7 @@ const PauseOverlay: React.FC = () => {
             </div>
           ) : (
             <h1
-              className={`pause-title-fallback y2k-font-fraktur${reducedEffects ? ' y2k-iridescent-text pause-title-fallback-reduced' : ' y2k-chrome-text'}`}
+              className={`pause-title-fallback y2k-font-fraktur y2k-iridescent-text${reducedEffects ? ' pause-title-fallback-reduced' : ''}`}
               data-text={settings.pauseTitle}
             >
               {settings.pauseTitle}
