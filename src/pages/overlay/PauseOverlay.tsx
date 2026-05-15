@@ -28,34 +28,34 @@ function useFrakturMask(text: string): TextMask | null {
     document.fonts.ready
       .then(() => document.fonts.load(`${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`))
       .then(() => {
-      const canvas = document.createElement('canvas');
-      // cv01 selects the alternate 'k' glyph in UnifrakturMaguntia.
-      // Setting font-feature-settings on the canvas element is non-standard
-      // for Canvas 2D — the context font shorthand doesn't include it. However,
-      // Chromium (used by OBS) appears to pick it up from the element style in
-      // some versions. If it has no effect the fallback 'k' glyph is used instead.
-      canvas.style.fontFeatureSettings = '"cv01" 1';
-      const ctx = canvas.getContext('2d')!;
-      ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
-      // Measure actual ink bounds on all four sides so no glyph stroke is clipped.
-      // PAD also absorbs the chromatic aberration shift from the LiquidMetal shader.
-      const metrics = ctx.measureText(text);
-      const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft);
-      const yOrigin = Math.ceil(metrics.actualBoundingBoxAscent);
-      const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight);
-      const h = yOrigin + Math.ceil(metrics.actualBoundingBoxDescent);
-      canvas.width = w;
-      canvas.height = h;
-      // Re-apply font after canvas resize (resize resets context state)
-      ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
-      ctx.fillStyle = 'white';
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillText(text, xOrigin, yOrigin);
-      if (cancelled) return;
-      const img = new Image();
-      img.onload = () => { if (!cancelled) setMask({ img, w, h }); };
-      img.src = canvas.toDataURL('image/png');
-    }).catch(() => { /* font unavailable — mask stays null, fallback text renders */ });
+        const canvas = document.createElement('canvas');
+        // cv01 selects the alternate 'k' glyph in UnifrakturMaguntia.
+        // Setting font-feature-settings on the canvas element is non-standard
+        // for Canvas 2D — the context font shorthand doesn't include it. However,
+        // Chromium (used by OBS) appears to pick it up from the element style in
+        // some versions. If it has no effect the fallback 'k' glyph is used instead.
+        canvas.style.fontFeatureSettings = '"cv01" 1';
+        const ctx = canvas.getContext('2d')!;
+        ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
+        // Measure actual ink bounds on all four sides so no glyph stroke is clipped.
+        // PAD also absorbs the chromatic aberration shift from the LiquidMetal shader.
+        const metrics = ctx.measureText(text);
+        const xOrigin = Math.ceil(metrics.actualBoundingBoxLeft);
+        const yOrigin = Math.ceil(metrics.actualBoundingBoxAscent);
+        const w = xOrigin + Math.ceil(metrics.actualBoundingBoxRight);
+        const h = yOrigin + Math.ceil(metrics.actualBoundingBoxDescent);
+        canvas.width = w;
+        canvas.height = h;
+        // Re-apply font after canvas resize (resize resets context state)
+        ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`;
+        ctx.fillStyle = 'white';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(text, xOrigin, yOrigin);
+        if (cancelled) return;
+        const img = new Image();
+        img.onload = () => { if (!cancelled) setMask({ img, w, h }); };
+        img.src = canvas.toDataURL('image/png');
+      }).catch(() => { /* font unavailable — mask stays null, fallback text renders */ });
 
     return () => { cancelled = true; };
   }, [text]);
