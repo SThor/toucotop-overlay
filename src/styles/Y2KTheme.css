@@ -42,11 +42,9 @@
 @keyframes y2k-iridescent-shift {
   0%, 100% {
     background-position: 0% 45%;
-    filter: saturate(1.12);
   }
   50% {
     background-position: 100% 55%;
-    filter: saturate(1.35);
   }
 }
 
