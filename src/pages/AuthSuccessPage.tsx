@@ -120,6 +120,7 @@ export default function AuthSuccessPage() {
   const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
   const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
+  const y2k = persistedSettings.themeSettings.y2k;
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -200,7 +201,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=crt&amp;hideBackground=true&amp;hideContent=true</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=y2k&amp;reducedEffects=true&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -519,6 +520,14 @@ export default function AuthSuccessPage() {
                     onChange={(e) => updateCrtSettings({ animation: e.currentTarget.checked })}
                   />
                 </>
+              )}
+              {persistedSettings.theme === 'y2k' && (
+                <Switch
+                  label="Reduced effects"
+                  description="Use static ornaments and title treatment instead of animated shader effects for better OBS stability."
+                  checked={y2k.reducedEffects}
+                  onChange={(e) => save({ themeSettings: { y2k: { reducedEffects: e.currentTarget.checked } } as typeof persistedSettings.themeSettings })}
+                />
               )}
             </Stack>
           )}

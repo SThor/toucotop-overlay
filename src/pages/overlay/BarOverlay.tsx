@@ -9,6 +9,7 @@ import '../../styles/BarOverlay.css';
 const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
+  const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [newFollowerAnimation, setNewFollowerAnimation] = useState(false);
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
@@ -110,9 +111,9 @@ const BarOverlayContent = () => {
 
       {settings.theme === 'y2k' && (
         <>
-          <BarY2KOrnament />
-          <BarY2KOrnament src="/tribal_center.png" center height={65} yOffset={-72} />
-          <BarY2KOrnament flip />
+          <BarY2KOrnament staticMode={reducedEffects} />
+          <BarY2KOrnament src="/tribal_center.png" center height={65} yOffset={-72} staticMode={reducedEffects} />
+          <BarY2KOrnament flip staticMode={reducedEffects} />
         </>
       )}
       {(() => {

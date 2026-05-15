@@ -4,20 +4,27 @@ import { LiquidMetal } from '@paper-design/shaders-react';
 
 interface Dims { w: number; h: number; }
 
-const Y2KDivider: FC = () => {
+interface Props {
+  /** Render a static chromed divider (no WebGL shader) for low-effects mode. */
+  staticMode?: boolean;
+}
+
+const Y2KDivider: FC<Props> = ({ staticMode = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<Dims | null>(null);
   const [sourceImg, setSourceImg] = useState<HTMLImageElement | null>(null);
   const [stretchedMask, setStretchedMask] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    if (staticMode) return;
     const img = new Image();
     img.onload = () => setSourceImg(img);
     img.src = '/tribal.png';
-  }, []);
+  }, [staticMode]);
 
   // Re-draw the source image stretched to exact container dims whenever either changes
   useEffect(() => {
+    if (staticMode) return;
     if (!sourceImg || !dims || dims.w <= 0) return;
     let cancelled = false;
     const canvas = document.createElement('canvas');
@@ -29,7 +36,7 @@ const Y2KDivider: FC = () => {
     out.onload = () => { if (!cancelled) setStretchedMask(out); };
     out.src = canvas.toDataURL('image/png');
     return () => { cancelled = true; };
-  }, [sourceImg, dims]);
+  }, [sourceImg, dims, staticMode]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -49,7 +56,57 @@ const Y2KDivider: FC = () => {
       ref={containerRef}
       style={{ width: '100%', height: 72, flexShrink: 0, pointerEvents: 'none' }}
     >
-      {stretchedMask && dims && dims.w > 0 && (
+      {staticMode ? (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <img
+            src="/tribal.png"
+            alt=""
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'fill',
+              filter: 'grayscale(1) brightness(1.25) contrast(1.2)',
+              opacity: 0.9,
+            }}
+          />
+          <img
+            src="/tribal.png"
+            alt=""
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'fill',
+              transform: 'translateX(1.2px)',
+              filter: 'brightness(1.3) saturate(2.1) hue-rotate(338deg)',
+              mixBlendMode: 'screen',
+              opacity: 0.45,
+            }}
+          />
+          <img
+            src="/tribal.png"
+            alt=""
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'fill',
+              transform: 'translateX(-1.2px)',
+              filter: 'brightness(1.25) saturate(1.9) hue-rotate(190deg)',
+              mixBlendMode: 'screen',
+              opacity: 0.4,
+            }}
+          />
+        </div>
+      ) : (
+        stretchedMask && dims && dims.w > 0 && (
         <LiquidMetal
           width={dims.w}
           height={dims.h}
@@ -67,6 +124,7 @@ const Y2KDivider: FC = () => {
           scale={0.9}
           fit="cover"
         />
+        )
       )}
     </div>
   );

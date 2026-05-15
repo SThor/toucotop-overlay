@@ -66,6 +66,7 @@ function useFrakturMask(text: string): TextMask | null {
 const PauseOverlay: React.FC = () => {
   const { settings, isLoadingSettings } = useSettings();
   const theme = settings.theme;
+  const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
   const titleMask = useFrakturMask(settings.pauseTitle);
@@ -122,7 +123,7 @@ const PauseOverlay: React.FC = () => {
       {/* Centred content stack */}
       {!hideContent && <div className="pause-content">
         {theme === 'y2k' ? (
-          titleMask ? (
+          !reducedEffects && titleMask ? (
             <div
               className="pause-title-wrapper"
               style={{ aspectRatio: `${titleMask.w} / ${titleMask.h}` }}

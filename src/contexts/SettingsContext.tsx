@@ -90,7 +90,16 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') crt.intensity = intensity;
     if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') !== 'false';
     if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') !== 'false';
-    o.themeSettings = { crt } as OverlaySettings['themeSettings'];
+    o.themeSettings = { ...(o.themeSettings ?? {}), crt } as OverlaySettings['themeSettings'];
+  }
+  if (p.has('reducedEffects')) {
+    o.themeSettings = {
+      ...(o.themeSettings ?? {}),
+      y2k: {
+        ...(o.themeSettings?.y2k ?? {}),
+        reducedEffects: p.get('reducedEffects') !== 'false',
+      },
+    } as OverlaySettings['themeSettings'];
   }
   if (p.has('hideBackground')) o.hideBackground = p.get('hideBackground') !== 'false';
   if (p.has('hideContent')) o.hideContent = p.get('hideContent') !== 'false';
@@ -216,6 +225,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 ...defaultOverlaySettings.themeSettings.crt,
                 ...(fetched.themeSettings?.crt ?? {}),
               },
+              y2k: {
+                ...defaultOverlaySettings.themeSettings.y2k,
+                ...(fetched.themeSettings?.y2k ?? {}),
+              },
             },
           };
           setServerSettings(merged);
@@ -266,6 +279,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         ...serverSettings.themeSettings.crt,
         ...urlOverrides.themeSettings?.crt,
       },
+      y2k: {
+        ...serverSettings.themeSettings.y2k,
+        ...urlOverrides.themeSettings?.y2k,
+      },
     },
   };
 
@@ -299,6 +316,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         crt: {
           ...prev.themeSettings.crt,
           ...(overlayPatch.themeSettings?.crt ?? {}),
+        },
+        y2k: {
+          ...prev.themeSettings.y2k,
+          ...(overlayPatch.themeSettings?.y2k ?? {}),
         },
       },
     }));
