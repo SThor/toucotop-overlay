@@ -22,7 +22,12 @@ function useFrakturMask(text: string): TextMask | null {
     const FONT_SIZE = 200;
     const FONT_WEIGHT = 400;
     const FONT_FAMILY = 'UnifrakturMaguntia';
-    document.fonts.load(`${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`).then(() => {
+    let cancelled = false;
+    // Wait for all @font-face rules to be registered (important in OBS/CEF where
+    // CSS parsing may lag behind JS execution), then explicitly load the face.
+    document.fonts.ready
+      .then(() => document.fonts.load(`${FONT_WEIGHT} ${FONT_SIZE}px "${FONT_FAMILY}"`))
+      .then(() => {
       const canvas = document.createElement('canvas');
       // cv01 selects the alternate 'k' glyph in UnifrakturMaguntia.
       // Setting font-feature-settings on the canvas element is non-standard
@@ -52,7 +57,6 @@ function useFrakturMask(text: string): TextMask | null {
       img.src = canvas.toDataURL('image/png');
     }).catch(() => { /* font unavailable — mask stays null, fallback text renders */ });
 
-    let cancelled = false;
     return () => { cancelled = true; };
   }, [text]);
 
