@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MeshGradient, LiquidMetal } from '@paper-design/shaders-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import ThemeBackground from '../../components/ThemeBackground';
+import GlobalAlertLayer from '../../components/GlobalAlertLayer';
 import '../../styles/Y2KTheme.css';
 import './PauseOverlay.css';
 import '@fontsource/unifrakturmaguntia/400.css';
@@ -176,6 +177,8 @@ const PauseOverlay: React.FC = () => {
           </p>
         )}
       </div>}
+
+      <GlobalAlertLayer />
     </div>
   );
 };

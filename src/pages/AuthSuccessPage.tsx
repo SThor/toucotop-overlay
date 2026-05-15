@@ -22,6 +22,7 @@ function formatExpiryDate(isoString: string): string {
 }
 
 interface AuthInfo {
+  username: string;
   displayName: string;
   expiresAt: string;
 }
@@ -45,10 +46,19 @@ export default function AuthSuccessPage() {
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [testAlertStatus, setTestAlertStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
   const testAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [customAlertTitle, setCustomAlertTitle] = useState('Message from silmassan');
+  const [customAlertMessage, setCustomAlertMessage] = useState('');
+  const [customAlertIcon, setCustomAlertIcon] = useState('📣');
+  const [customAlertTarget, setCustomAlertTarget] = useState<string | null>('toucotop');
+  const [customAlertTargets, setCustomAlertTargets] = useState<string[]>([]);
+  const [isLoadingCustomTargets, setIsLoadingCustomTargets] = useState(false);
+  const [customAlertStatus, setCustomAlertStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
+  const customAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Clear pending timers on unmount to avoid setState on an unmounted component
   useEffect(() => () => {
     if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
     if (testAlertTimerRef.current) clearTimeout(testAlertTimerRef.current);
+    if (customAlertTimerRef.current) clearTimeout(customAlertTimerRef.current);
   }, []);
 
   // Strip all URL params and persist the token via updateSettings (handles both localStorage keys)
@@ -66,16 +76,41 @@ export default function AuthSuccessPage() {
       return;
     }
     fetch(`/auth/status?token=${encodeURIComponent(overlayToken)}`)
-      .then((res) => res.json() as Promise<{ authenticated: boolean; displayName?: string; expiresAt?: string }>)
+      .then((res) => res.json() as Promise<{ authenticated: boolean; username?: string; displayName?: string; expiresAt?: string }>)
       .then((data) => {
         if (data.authenticated) {
-          setAuthInfo({ displayName: data.displayName || '', expiresAt: data.expiresAt || '' });
+          setAuthInfo({
+            username: data.username || '',
+            displayName: data.displayName || '',
+            expiresAt: data.expiresAt || '',
+          });
         } else {
           setSessionExpired(true);
         }
       })
       .catch(() => { /* keep rendering on network error */ });
   }, [overlayToken]);
+
+  useEffect(() => {
+    if (authInfo?.username !== 'silmassan' || !overlayToken) return;
+
+    setIsLoadingCustomTargets(true);
+    fetch(`/api/alerts/custom-targets?token=${encodeURIComponent(overlayToken)}`)
+      .then((res) => res.json() as Promise<{ targets?: string[]; defaultTarget?: string | null }>)
+      .then((data) => {
+        const targets = (data.targets ?? []).filter((t) => typeof t === 'string' && t.length > 0);
+        setCustomAlertTargets(targets);
+        if (data.defaultTarget && targets.includes(data.defaultTarget)) {
+          setCustomAlertTarget(data.defaultTarget);
+        } else if (targets.length > 0) {
+          setCustomAlertTarget((prev) => (prev && targets.includes(prev) ? prev : targets[0]));
+        }
+      })
+      .catch(() => {
+        setCustomAlertTargets([]);
+      })
+      .finally(() => setIsLoadingCustomTargets(false));
+  }, [authInfo?.username, overlayToken]);
 
   // Helper for CRT sub-settings: sends only the changed CRT fields so session-only
   // URL overrides in the effective `settings` view are never persisted to the server.
@@ -121,6 +156,7 @@ export default function AuthSuccessPage() {
   const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
+  const canSendTargetedCustomAlert = authInfo?.username === 'silmassan';
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -465,6 +501,86 @@ export default function AuthSuccessPage() {
           </Group>
           {testAlertStatus === 'ok' && <Text c="green" size="xs" mt="xs">✓ Alert sent!</Text>}
           {testAlertStatus === 'error' && <Text c="red" size="xs" mt="xs">Failed to send alert. Is the server running?</Text>}
+
+          {canSendTargetedCustomAlert && (
+            <>
+              <Text size="sm" c="dimmed" mt="md" mb="xs">
+                Special sender mode: send a custom alert to any authenticated channel.
+              </Text>
+              <Stack gap="xs">
+                <Select
+                  label="Target channel"
+                  placeholder={isLoadingCustomTargets ? 'Loading channels...' : 'Select a channel'}
+                  data={customAlertTargets.map((u) => ({ value: u, label: u }))}
+                  value={customAlertTarget}
+                  onChange={setCustomAlertTarget}
+                  searchable
+                  disabled={isLoadingCustomTargets || customAlertStatus === 'sending'}
+                  nothingFoundMessage="No authenticated channels found"
+                />
+                <TextInput
+                  label="Custom alert title"
+                  value={customAlertTitle}
+                  onChange={(e) => setCustomAlertTitle(e.currentTarget.value)}
+                  placeholder="Enter alert title"
+                  maxLength={120}
+                />
+                <TextInput
+                  label="Message (optional)"
+                  value={customAlertMessage}
+                  onChange={(e) => setCustomAlertMessage(e.currentTarget.value)}
+                  placeholder="Enter optional message"
+                  maxLength={200}
+                />
+                <TextInput
+                  label="Icon (optional)"
+                  value={customAlertIcon}
+                  onChange={(e) => setCustomAlertIcon(e.currentTarget.value)}
+                  placeholder="📣"
+                  maxLength={8}
+                />
+                <Group justify="flex-start">
+                  <Button
+                    size="xs"
+                    disabled={
+                      customAlertStatus === 'sending'
+                      || customAlertTitle.trim().length === 0
+                      || !customAlertTarget
+                    }
+                    onClick={async () => {
+                      setCustomAlertStatus('sending');
+                      try {
+                        const res = await fetch('/api/alerts/custom', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            token: overlayToken,
+                            targetUsername: customAlertTarget,
+                            title: customAlertTitle,
+                            message: customAlertMessage,
+                            icon: customAlertIcon,
+                          }),
+                        });
+                        setCustomAlertStatus(res.ok ? 'ok' : 'error');
+                      } catch {
+                        setCustomAlertStatus('error');
+                      }
+                      if (customAlertTimerRef.current) clearTimeout(customAlertTimerRef.current);
+                      customAlertTimerRef.current = setTimeout(() => setCustomAlertStatus('idle'), 2500);
+                    }}
+                  >
+                    Send custom alert
+                  </Button>
+                </Group>
+                {customAlertStatus === 'ok' && (
+                  <Text c="green" size="xs">✓ Custom alert sent to {customAlertTarget}.</Text>
+                )}
+                {customAlertStatus === 'error' && (
+                  <Text c="red" size="xs">Custom alert failed or was not authorized.</Text>
+                )}
+              </Stack>
+            </>
+          )}
         </Paper>
 
         {/* Visual effects */}

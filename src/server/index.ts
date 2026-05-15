@@ -28,6 +28,7 @@ import {
   configureTrustProxy 
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
+import { listAuthenticatedUsers } from './storage.js';
 import { addSSEClient } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import { ALERT_TYPES } from './shared/alertTypes.js';
@@ -35,6 +36,9 @@ import type { AlertType } from './shared/alertTypes.js';
 import settingsRouter from './settings.js';
 
 const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
+const CUSTOM_ALERT_SENDER = 'silmassan';
+const DEFAULT_CUSTOM_ALERT_TARGET = 'toucotop_';
+const TWITCH_USERNAME_REGEX = /^[a-z0-9_]{3,25}$/;
 
 function isAlertType(value: string): value is AlertType {
   return VALID_ALERT_TYPES.has(value as AlertType);
@@ -296,6 +300,115 @@ try {
       });
 
       res.json({ ok: true, type, channel: userData.username });
+    }
+  );
+
+  /**
+   * Restricted custom alert targets endpoint
+   * Returns all currently authenticated usernames so silmassan can pick one.
+   */
+  app.get('/api/alerts/custom-targets', (req: Request, res: Response) => {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    if (!token) {
+      res.status(400).json({ error: 'token is required' });
+      return;
+    }
+
+    const userData = defaultTokenManager.getUserByOverlayToken(token);
+    if (!userData) {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+
+    if (userData.username !== CUSTOM_ALERT_SENDER) {
+      res.status(403).json({ error: 'This endpoint is restricted to silmassan' });
+      return;
+    }
+
+    const targets = listAuthenticatedUsers()
+      .map((u) => u.toLowerCase())
+      .filter((u) => TWITCH_USERNAME_REGEX.test(u))
+      .sort((a, b) => a.localeCompare(b));
+
+    res.json({
+      targets,
+      defaultTarget: targets.includes(DEFAULT_CUSTOM_ALERT_TARGET)
+        ? DEFAULT_CUSTOM_ALERT_TARGET
+        : (targets[0] ?? null),
+    });
+  });
+
+  /**
+   * Restricted custom alert endpoint
+   * Only the silmassan account can push a custom alert into a selected overlay channel.
+   */
+  app.post('/api/alerts/custom',
+    validateJsonBody(['token', 'title']),
+    (req: Request, res: Response) => {
+      const { token, title, message, icon, targetUsername } = req.body as {
+        token: unknown;
+        title: unknown;
+        message?: unknown;
+        icon?: unknown;
+        targetUsername?: unknown;
+      };
+
+      if (typeof token !== 'string' || typeof title !== 'string') {
+        res.status(400).json({ error: 'token and title must be strings' });
+        return;
+      }
+
+      const userData = defaultTokenManager.getUserByOverlayToken(token);
+      if (!userData) {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+
+      if (userData.username !== CUSTOM_ALERT_SENDER) {
+        res.status(403).json({ error: 'This endpoint is restricted to silmassan' });
+        return;
+      }
+
+      const customTitle = title.trim();
+      if (!customTitle) {
+        res.status(400).json({ error: 'title must not be empty' });
+        return;
+      }
+      if (customTitle.length > 120) {
+        res.status(400).json({ error: 'title is too long (max 120 chars)' });
+        return;
+      }
+
+      const rawTarget = typeof targetUsername === 'string'
+        ? targetUsername.trim().toLowerCase()
+        : DEFAULT_CUSTOM_ALERT_TARGET;
+      if (!TWITCH_USERNAME_REGEX.test(rawTarget)) {
+        res.status(400).json({ error: 'targetUsername is invalid' });
+        return;
+      }
+
+      const allowedTargets = new Set(
+        listAuthenticatedUsers().map((u) => u.toLowerCase()).filter((u) => TWITCH_USERNAME_REGEX.test(u))
+      );
+      if (!allowedTargets.has(rawTarget)) {
+        res.status(400).json({ error: 'targetUsername not found in authenticated users' });
+        return;
+      }
+
+      const customMessage = typeof message === 'string' ? message.trim().slice(0, 200) : '';
+      const customIcon = typeof icon === 'string' ? icon.trim().slice(0, 8) : '📣';
+
+      broadcastAlert(rawTarget, {
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        type: 'custom',
+        timestamp: new Date().toISOString(),
+        userName: userData.displayName || userData.username,
+        customTitle,
+        customIcon: customIcon || '📣',
+        ...(customMessage ? { message: customMessage } : {}),
+      });
+
+      res.json({ ok: true, channel: rawTarget });
     }
   );
 

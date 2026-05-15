@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ThemeBackground from '../../components/ThemeBackground';
 import EmoteMessage from '../../components/EmoteMessage';
 import Y2KDivider from '../../components/Y2KDivider';
+import GlobalAlertLayer from '../../components/GlobalAlertLayer';
 import '../../styles/ChatOverlay.css';
 
 const ChatOverlay = () => {
@@ -87,6 +88,7 @@ const ChatOverlay = () => {
           ))}
         </AnimatePresence>
       </div>
+      <GlobalAlertLayer />
     </div>
   );
 };

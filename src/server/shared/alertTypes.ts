@@ -13,6 +13,7 @@ export const ALERT_TYPES = [
   'hype_train_begin',
   'hype_train_progress',
   'hype_train_end',
+  'custom',
 ] as const;
 
 export type AlertType = (typeof ALERT_TYPES)[number];
@@ -50,4 +51,8 @@ export interface AlertPayload {
   level?: number;
   /** Hype train progress 0-100 */
   progress?: number;
+  /** Custom heading shown when type=custom */
+  customTitle?: string;
+  /** Optional custom icon shown when type=custom */
+  customIcon?: string;
 }
