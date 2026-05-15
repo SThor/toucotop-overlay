@@ -104,10 +104,13 @@ export default function AuthSuccessPage() {
           setCustomAlertTarget(data.defaultTarget);
         } else if (targets.length > 0) {
           setCustomAlertTarget((prev) => (prev && targets.includes(prev) ? prev : targets[0]));
+        } else {
+          setCustomAlertTarget(null);
         }
       })
       .catch(() => {
         setCustomAlertTargets([]);
+        setCustomAlertTarget(null);
       })
       .finally(() => setIsLoadingCustomTargets(false));
   }, [authInfo?.username, overlayToken]);
@@ -157,6 +160,7 @@ export default function AuthSuccessPage() {
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const canSendTargetedCustomAlert = authInfo?.username === 'silmassan';
+  const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -545,9 +549,14 @@ export default function AuthSuccessPage() {
                     disabled={
                       customAlertStatus === 'sending'
                       || customAlertTitle.trim().length === 0
-                      || !customAlertTarget
+                      || !selectedTargetIsValid
                     }
                     onClick={async () => {
+                      if (!selectedTargetIsValid || !customAlertTarget) {
+                        setCustomAlertStatus('error');
+                        return;
+                      }
+
                       setCustomAlertStatus('sending');
                       try {
                         const res = await fetch('/api/alerts/custom', {

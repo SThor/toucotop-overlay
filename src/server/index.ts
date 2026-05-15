@@ -28,7 +28,7 @@ import {
   configureTrustProxy 
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
-import { listAuthenticatedUsers } from './storage.js';
+import { getUserTokens, listAuthenticatedUsers } from './storage.js';
 import { addSSEClient } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import { ALERT_TYPES } from './shared/alertTypes.js';
@@ -39,6 +39,19 @@ const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
 const CUSTOM_ALERT_SENDER = 'silmassan';
 const DEFAULT_CUSTOM_ALERT_TARGET = 'toucotop_';
 const TWITCH_USERNAME_REGEX = /^[a-z0-9_]{3,25}$/;
+
+function listValidCustomTargets(): string[] {
+  const now = Date.now();
+  return listAuthenticatedUsers()
+    .map((u) => u.toLowerCase())
+    .filter((u) => TWITCH_USERNAME_REGEX.test(u))
+    .filter((u) => {
+      const tokenData = getUserTokens(u);
+      if (!tokenData?.overlayExpiresAt) return false;
+      return new Date(tokenData.overlayExpiresAt).getTime() > now;
+    })
+    .sort((a, b) => a.localeCompare(b));
+}
 
 function isAlertType(value: string): value is AlertType {
   return VALID_ALERT_TYPES.has(value as AlertType);
@@ -325,10 +338,7 @@ try {
       return;
     }
 
-    const targets = listAuthenticatedUsers()
-      .map((u) => u.toLowerCase())
-      .filter((u) => TWITCH_USERNAME_REGEX.test(u))
-      .sort((a, b) => a.localeCompare(b));
+    const targets = listValidCustomTargets();
 
     res.json({
       targets,
@@ -387,9 +397,7 @@ try {
         return;
       }
 
-      const allowedTargets = new Set(
-        listAuthenticatedUsers().map((u) => u.toLowerCase()).filter((u) => TWITCH_USERNAME_REGEX.test(u))
-      );
+      const allowedTargets = new Set(listValidCustomTargets());
       if (!allowedTargets.has(rawTarget)) {
         res.status(400).json({ error: 'targetUsername not found in authenticated users' });
         return;

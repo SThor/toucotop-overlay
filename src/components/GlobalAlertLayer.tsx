@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import ThemeBackground from './ThemeBackground';
 import BarY2KOrnament from './BarY2KOrnament';
 import { useAlertStream, type AlertPayload } from '../hooks/useAlertStream';
@@ -75,24 +76,24 @@ export default function GlobalAlertLayer({ showConnectionStatus = false, mode = 
       // Non-alert overlays should only render bypass/custom alerts.
       if (mode === 'customOnly' && currentAlert.type !== 'custom') {
         dismissAlert();
-        return;
+      } else {
+        setDisplayedAlert(currentAlert);
+        setIsVisible(true);
+        if (hideTimeout.current) clearTimeout(hideTimeout.current);
+        hideTimeout.current = setTimeout(() => setIsVisible(false), ALERT_DURATION_MS);
       }
-
-      setDisplayedAlert(currentAlert);
-      setIsVisible(true);
-      if (hideTimeout.current) clearTimeout(hideTimeout.current);
-      hideTimeout.current = setTimeout(() => setIsVisible(false), ALERT_DURATION_MS);
-      return;
     }
 
     if (displayedAlert && !currentAlert) {
       setIsVisible(false);
     }
+  }, [currentAlert, displayedAlert, mode, dismissAlert]);
 
+  useEffect(() => {
     return () => {
       if (hideTimeout.current) clearTimeout(hideTimeout.current);
     };
-  }, [currentAlert, displayedAlert, mode, dismissAlert]);
+  }, []);
 
   const handleAnimationComplete = () => {
     if (!isVisible && displayedAlert) {
@@ -102,12 +103,13 @@ export default function GlobalAlertLayer({ showConnectionStatus = false, mode = 
   };
 
   if (isLoadingSettings) return null;
+  if (typeof document === 'undefined') return null;
 
   const title = displayedAlert ? alertTitle(displayedAlert) : '';
   const icon = displayedAlert ? alertIcon(displayedAlert) : '🔔';
   const message = displayedAlert?.message || '';
 
-  return (
+  return createPortal(
     <div
       className={`alert-overlay global-alert-layer${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.overlayOpacity, fontSize: `${settings.fontSize}rem` }}
@@ -164,6 +166,7 @@ export default function GlobalAlertLayer({ showConnectionStatus = false, mode = 
           ●
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
