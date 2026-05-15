@@ -146,7 +146,35 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // Seeded from the localStorage cache so overlays render immediately on reload.
   const [serverSettings, setServerSettings] = useState<OverlaySettings>(() => {
     const cached = loadCachedSettings();
-    return cached ? { ...defaultOverlaySettings, ...cached } : defaultOverlaySettings;
+    if (!cached) return defaultOverlaySettings;
+    return {
+      ...defaultOverlaySettings,
+      ...cached,
+      perOverlayOpacity: {
+        ...defaultOverlaySettings.perOverlayOpacity,
+        ...(cached.perOverlayOpacity ?? {}),
+      },
+      perOverlayFontSize: {
+        ...defaultOverlaySettings.perOverlayFontSize,
+        ...(cached.perOverlayFontSize ?? {}),
+      },
+      barSections: {
+        ...defaultOverlaySettings.barSections,
+        ...(cached.barSections ?? {}),
+      },
+      themeSettings: {
+        ...defaultOverlaySettings.themeSettings,
+        ...(cached.themeSettings ?? {}),
+        crt: {
+          ...defaultOverlaySettings.themeSettings.crt,
+          ...(cached.themeSettings?.crt ?? {}),
+        },
+        y2k: {
+          ...defaultOverlaySettings.themeSettings.y2k,
+          ...(cached.themeSettings?.y2k ?? {}),
+        },
+      },
+    };
   });
   // Skip the loading gate when we already have cached settings — the overlay can
   // render right away and update silently when the fresh fetch completes.

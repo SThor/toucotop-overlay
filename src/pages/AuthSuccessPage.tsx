@@ -120,7 +120,7 @@ export default function AuthSuccessPage() {
   const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
   const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
-  const y2k = persistedSettings.themeSettings.y2k;
+  const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
 
   return (
     <Container size="lg" py="xl" className="main-page">
