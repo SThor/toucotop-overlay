@@ -65,22 +65,25 @@ export default function AlertOverlay() {
   const [isVisible, setIsVisible] = useState(false);
   const hideTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // When a new alert arrives, show and update displayedAlert
+  // Only take the queue head when no alert is currently being displayed.
   useEffect(() => {
-    if (currentAlert) {
+    if (!displayedAlert && currentAlert) {
       setDisplayedAlert(currentAlert);
       setIsVisible(true);
-      // Auto-dismiss after ALERT_DURATION_MS
       if (hideTimeout.current) clearTimeout(hideTimeout.current);
       hideTimeout.current = setTimeout(() => setIsVisible(false), ALERT_DURATION_MS);
-    } else {
-      // If alert is dismissed, start hide animation
+      return;
+    }
+
+    if (displayedAlert && !currentAlert) {
       setIsVisible(false);
     }
-    return () => { if (hideTimeout.current) clearTimeout(hideTimeout.current); };
-  }, [currentAlert]);
 
-  // After hide animation, clear displayedAlert and call dismissAlert
+    return () => { if (hideTimeout.current) clearTimeout(hideTimeout.current); };
+  }, [currentAlert, displayedAlert]);
+
+  // Framer Motion fires onAnimationComplete for both show and hide transitions.
+  // We only advance the queue once the hide transition is done.
   const handleAnimationComplete = () => {
     if (!isVisible && displayedAlert) {
       setDisplayedAlert(null);

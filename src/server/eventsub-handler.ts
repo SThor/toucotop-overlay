@@ -27,6 +27,20 @@ interface AppAccessTokenResponse {
 
 let cachedAppAccessToken: { token: string; expiresAt: number } | null = null;
 
+function toOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+function pickDisplayName(...candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    const normalized = toOptionalString(candidate);
+    if (normalized !== undefined) {
+      return normalized;
+    }
+  }
+  return undefined;
+}
+
 // Type definitions for EventSub
 export interface EventSubEvent {
   subscription: {
@@ -224,6 +238,8 @@ async function getAppAccessToken(): Promise<string> {
   const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
+    // Webhook transport subscriptions require an app access token.
+    // This means both TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET must be present.
     throw new Error('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET are required to create an app access token');
   }
 
@@ -300,6 +316,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
 
     if (broadcasterLogin) {
       const subType = parsedBody.subscription.type;
+      const actorName = pickDisplayName(eventData['user_name'], eventData['user_login']);
 
       if (subType === 'channel.follow') {
         updateLastFollower(broadcasterLogin, {
@@ -312,7 +329,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           id: `follow_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'follow',
           timestamp: new Date().toISOString(),
-          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          ...(actorName !== undefined ? { userName: actorName } : {}),
         });
       } else if (subType === 'channel.subscribe') {
         const gifterLogin = Boolean(eventData['is_gift']) && typeof eventData['gifter_user_login'] === 'string'
@@ -335,7 +352,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'subscribe',
           timestamp: new Date().toISOString(),
-          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          ...(actorName !== undefined ? { userName: actorName } : {}),
           tier: String(eventData['tier'] ?? '1000'),
           isGift: Boolean(eventData['is_gift']),
           ...(gifterLogin !== undefined ? { gifterName: gifterLogin } : {}),
@@ -348,7 +365,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           id: `resub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'resubscribe',
           timestamp: new Date().toISOString(),
-          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          ...(actorName !== undefined ? { userName: actorName } : {}),
           tier: String(eventData['tier'] ?? '1000'),
           ...(cumMonths !== undefined ? { cumulativeMonths: cumMonths } : {}),
           ...(streakMo !== undefined ? { streakMonths: streakMo } : {}),
@@ -359,28 +376,30 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           id: `giftsub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'gift_sub',
           timestamp: new Date().toISOString(),
-          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          ...(actorName !== undefined ? { userName: actorName } : {}),
           tier: String(eventData['tier'] ?? '1000'),
           giftCount: typeof eventData['total'] === 'number' ? eventData['total'] : 1,
         });
       } else if (subType === 'channel.cheer') {
         const cheerBits = typeof eventData['bits'] === 'number' ? eventData['bits'] : undefined;
         const cheerMsg = typeof eventData['message'] === 'string' ? eventData['message'] as string : undefined;
+        const cheerActor = Boolean(eventData['is_anonymous']) ? undefined : actorName;
         broadcastAlert(broadcasterLogin, {
           id: `cheer_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'cheer',
           timestamp: new Date().toISOString(),
-          userName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
+          ...(cheerActor !== undefined ? { userName: cheerActor } : {}),
           ...(cheerBits !== undefined ? { bits: cheerBits } : {}),
           ...(cheerMsg !== undefined ? { message: cheerMsg } : {}),
         });
       } else if (subType === 'channel.raid') {
         const raidViewers = typeof eventData['viewers'] === 'number' ? eventData['viewers'] : undefined;
+        const raiderName = pickDisplayName(eventData['from_broadcaster_user_name'], eventData['from_broadcaster_user_login']);
         broadcastAlert(broadcasterLogin, {
           id: `raid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'raid',
           timestamp: new Date().toISOString(),
-          raiderName: String(eventData['from_broadcaster_user_name'] ?? eventData['from_broadcaster_user_login'] ?? ''),
+          ...(raiderName !== undefined ? { raiderName } : {}),
           ...(raidViewers !== undefined ? { viewerCount: raidViewers } : {}),
         });
       } else if (subType === 'channel.hype_train.begin') {
@@ -453,6 +472,11 @@ async function handleEventSubSubscription(
   }
 
   try {
+    const clientId = process.env.TWITCH_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: 'TWITCH_CLIENT_ID is not configured' });
+    }
+
     const webhookUrl = getEventSubWebhookUrl(req);
     const appAccessToken = await getAppAccessToken();
     
@@ -478,7 +502,7 @@ async function handleEventSubSubscription(
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${appAccessToken}`,
-        'Client-Id': process.env.TWITCH_CLIENT_ID!,
+        'Client-Id': clientId,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(subscriptionData)

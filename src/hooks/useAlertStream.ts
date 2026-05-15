@@ -72,7 +72,14 @@ export function useAlertStream() {
       es.addEventListener('alert', (e) => {
         try {
           const payload = JSON.parse((e as MessageEvent).data) as AlertPayload;
-          setQueue((q) => q.length >= MAX_QUEUE ? q : [...q, payload]);
+          setQueue((q) => {
+            if (q.length < MAX_QUEUE) {
+              return [...q, payload];
+            }
+
+            console.warn(`[useAlertStream] Alert queue full (${MAX_QUEUE}), dropping oldest alert`);
+            return [...q.slice(1), payload];
+          });
         } catch {
           console.error('[useAlertStream] Failed to parse alert payload');
         }
