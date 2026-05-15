@@ -15,10 +15,14 @@ interface TextMask {
   h: number;
 }
 
-function useFrakturMask(text: string): TextMask | null {
+function useFrakturMask(text: string, enabled: boolean): TextMask | null {
   const [mask, setMask] = useState<TextMask | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setMask(null);
+      return;
+    }
     const FONT_SIZE = 200;
     const FONT_WEIGHT = 400;
     const FONT_FAMILY = 'UnifrakturMaguntia';
@@ -55,10 +59,11 @@ function useFrakturMask(text: string): TextMask | null {
         const img = new Image();
         img.onload = () => { if (!cancelled) setMask({ img, w, h }); };
         img.src = canvas.toDataURL('image/png');
-      }).catch(() => { /* font unavailable — mask stays null, fallback text renders */ });
+      })
+      .catch(() => { /* font unavailable — mask stays null, fallback text renders */ });
 
     return () => { cancelled = true; };
-  }, [text]);
+  }, [text, enabled]);
 
   return mask;
 }
@@ -69,7 +74,7 @@ const PauseOverlay: React.FC = () => {
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const token = settings.overlayToken;
   const [channelName, setChannelName] = useState<string>('');
-  const titleMask = useFrakturMask(settings.pauseTitle);
+  const titleMask = useFrakturMask(settings.pauseTitle, theme === 'y2k' && !reducedEffects);
 
   useEffect(() => {
     if (!token) return;

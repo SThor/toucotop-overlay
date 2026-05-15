@@ -254,19 +254,10 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
 
       if (Object.keys(themePatch).length > 0) {
         patch.themeSettings = {
-          ...defaultOverlaySettings.themeSettings,
           ...(patch.themeSettings ?? {}),
-          crt: {
-            ...defaultOverlaySettings.themeSettings.crt,
-            ...(patch.themeSettings?.crt ?? {}),
-            ...(themePatch.crt ?? {}),
-          },
-          y2k: {
-            ...defaultOverlaySettings.themeSettings.y2k,
-            ...(patch.themeSettings?.y2k ?? {}),
-            ...(themePatch.y2k ?? {}),
-          },
-        };
+          ...(themePatch.crt ? { crt: themePatch.crt } : {}),
+          ...(themePatch.y2k ? { y2k: themePatch.y2k } : {}),
+        } as OverlaySettings['themeSettings'];
       }
     }
   }
