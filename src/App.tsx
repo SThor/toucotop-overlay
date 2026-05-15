@@ -17,6 +17,7 @@ import ChatOverlay from './pages/overlay/ChatOverlay';
 import ClockOverlay from './pages/overlay/ClockOverlay';
 import BarOverlay from './pages/overlay/BarOverlay';
 import PauseOverlay from './pages/overlay/PauseOverlay';
+import AlertOverlay from './pages/overlay/AlertOverlay';
 import NavMenu from './components/NavMenu';
 import './styles/ServerPages.css';
 
@@ -30,7 +31,7 @@ const ALLOW_NO_TOKEN = [
 
 // Overlay paths: invalid/expired token shows an inline message instead of redirecting,
 // since OBS Browser Sources can't interact with a Twitch auth flow.
-const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause'];
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause', '/alerts'];
 
 // Shown inside an overlay when the token is missing or expired
 function OverlayExpired() {
@@ -185,6 +186,7 @@ function App() {
                   <Route path="/clock" element={<ClockOverlay />} />
                   <Route path="/bar" element={<BarOverlay />} />
                   <Route path="/pause" element={<PauseOverlay />} />
+                  <Route path="/alerts" element={<AlertOverlay />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </div>

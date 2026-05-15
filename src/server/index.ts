@@ -29,7 +29,16 @@ import {
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
 import { addSSEClient } from './chat-relay.js';
+import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
+import { ALERT_TYPES } from './shared/alertTypes.js';
+import type { AlertType } from './shared/alertTypes.js';
 import settingsRouter from './settings.js';
+
+const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
+
+function isAlertType(value: string): value is AlertType {
+  return VALID_ALERT_TYPES.has(value as AlertType);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -215,6 +224,78 @@ try {
         return;
       }
       addSSEClient(userData.username, res);
+    }
+  );
+
+  /**
+   * Alerts SSE stream endpoint
+   * Streams real-time alert events (follow, sub, hype-train, etc.) to overlay clients
+   */
+  app.get('/api/alerts/stream',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    (req: Request, res: Response) => {
+      const { userData } = req;
+      if (!userData) {
+        res.status(401).json({ error: 'User data not found' });
+        return;
+      }
+      addAlertSSEClient(userData.username, res);
+    }
+  );
+
+  /**
+   * Manual test-alert trigger endpoint
+   * Allows the dashboard to fire a fake alert for testing overlay appearance
+   */
+  app.post('/api/alerts/trigger',
+    validateJsonBody(['token', 'type']),
+    (req: Request, res: Response) => {
+      const { token, type, data } = req.body as { token: unknown; type: unknown; data?: unknown };
+
+      // Explicit runtime type checks — validateJsonBody only verifies presence, not type
+      if (typeof token !== 'string' || typeof type !== 'string') {
+        res.status(400).json({ error: 'token and type must be strings' });
+        return;
+      }
+
+      const userData = defaultTokenManager.getUserByOverlayToken(token);
+      if (!userData) {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+
+      if (!isAlertType(type)) {
+        res.status(400).json({ error: 'Invalid alert type', validTypes: [...VALID_ALERT_TYPES] });
+        return;
+      }
+
+      // Sanitize caller-supplied extras: only allow plain objects, spread first so
+      // required core fields (id, type, timestamp) cannot be overridden
+      const extraData = data !== null && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : {};
+
+      broadcastAlert(userData.username, {
+        // Default optional per-type fields (can be overridden by extraData)
+        userName: 'TestUser',
+        tier: '1000',
+        bits: 100,
+        giftCount: 5,
+        raiderName: 'TestRaider',
+        viewerCount: 42,
+        level: 1,
+        progress: 50,
+        cumulativeMonths: 3,
+        message: 'Test alert message!',
+        // Caller-supplied overrides for optional fields
+        ...extraData,
+        // Required core fields last — cannot be overridden by caller
+        id: `test_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        type,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.json({ ok: true, type, channel: userData.username });
     }
   );
 
