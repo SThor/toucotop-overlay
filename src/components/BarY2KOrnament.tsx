@@ -117,7 +117,7 @@ const BarY2KOrnament: FC<Props> = ({
             aria-hidden="true"
             style={{
               ...maskBaseStyle,
-              transform: `${flip ? 'scaleX(-1) ' : ''}translateX(1.2px)`,
+              transform: flip ? 'scaleX(-1)' : undefined,
               background: 'linear-gradient(112deg, #ffffff 0%, #d6daea 18%, #8f86b0 34%, #72f3ff 50%, #ff6dd7 65%, #f9fbff 82%, #8afcff 100%)',
               backgroundSize: '200% 200%',
               mixBlendMode: 'screen',
@@ -129,7 +129,7 @@ const BarY2KOrnament: FC<Props> = ({
             aria-hidden="true"
             style={{
               ...maskBaseStyle,
-              transform: `${flip ? 'scaleX(-1) ' : ''}translateX(-1.2px)`,
+              transform: flip ? 'scaleX(-1)' : undefined,
               background: 'conic-gradient(from 210deg at 50% 45%, #ffffff 0deg, #66f2ff 70deg, #a56bff 135deg, #ff58c5 220deg, #f7fcff 300deg, #ffffff 360deg)',
               backgroundSize: '165% 165%',
               mixBlendMode: 'color-dodge',
