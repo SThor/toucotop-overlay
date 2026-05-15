@@ -77,6 +77,56 @@
   50%       { background-position: 0% 0; }
 }
 
+@keyframes y2k-iridescent-shift {
+  0%, 100% {
+    background-position: 0% 45%;
+    filter: saturate(1.12);
+  }
+  50% {
+    background-position: 100% 55%;
+    filter: saturate(1.35);
+  }
+}
+
+@keyframes y2k-prism-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes y2k-specular-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.75; }
+}
+
+.y2k-iridescent-text {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(112deg, #ffffff 0%, #d6daea 18%, #8f86b0 34%, #72f3ff 50%, #ff6dd7 65%, #f9fbff 82%, #8afcff 100%);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: y2k-iridescent-shift 9s ease-in-out infinite;
+  filter: drop-shadow(0 0 7px rgba(0, 255, 204, 0.45))
+          drop-shadow(0 2px 15px rgba(119, 0, 255, 0.45));
+}
+
+.y2k-iridescent-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 210deg at 50% 45%, #ffffff 0deg, #66f2ff 70deg, #a56bff 135deg, #ff58c5 220deg, #f7fcff 300deg, #ffffff 360deg);
+  background-size: 175% 175%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  mix-blend-mode: color-dodge;
+  opacity: 0.58;
+  animation: y2k-prism-drift 11s linear infinite;
+  pointer-events: none;
+}
+
 /* ---- Glitch ---- */
 .y2k-glitch {
   position: relative;
