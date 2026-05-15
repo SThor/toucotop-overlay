@@ -1,23 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FC } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
+import IridescentMaskedLayers from './IridescentMaskedLayers';
 
 interface Dims { w: number; h: number; }
 
-const Y2KDivider: FC = () => {
+interface Props {
+  /** Render a static chromed divider (no WebGL shader) for low-effects mode. */
+  staticMode?: boolean;
+}
+
+const Y2KDivider: FC<Props> = ({ staticMode = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<Dims | null>(null);
   const [sourceImg, setSourceImg] = useState<HTMLImageElement | null>(null);
   const [stretchedMask, setStretchedMask] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    if (staticMode) return;
     const img = new Image();
     img.onload = () => setSourceImg(img);
     img.src = '/tribal.png';
-  }, []);
+  }, [staticMode]);
 
   // Re-draw the source image stretched to exact container dims whenever either changes
   useEffect(() => {
+    if (staticMode) return;
     if (!sourceImg || !dims || dims.w <= 0) return;
     let cancelled = false;
     const canvas = document.createElement('canvas');
@@ -29,7 +37,7 @@ const Y2KDivider: FC = () => {
     out.onload = () => { if (!cancelled) setStretchedMask(out); };
     out.src = canvas.toDataURL('image/png');
     return () => { cancelled = true; };
-  }, [sourceImg, dims]);
+  }, [sourceImg, dims, staticMode]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -49,7 +57,12 @@ const Y2KDivider: FC = () => {
       ref={containerRef}
       style={{ width: '100%', height: 72, flexShrink: 0, pointerEvents: 'none' }}
     >
-      {stretchedMask && dims && dims.w > 0 && (
+      {staticMode ? (
+        <div style={{ position: 'relative', width: '100%', height: '100%', transform: 'scaleY(0.9)', transformOrigin: 'center top' }}>
+          <IridescentMaskedLayers maskSrc="/tribal.png" />
+        </div>
+      ) : (
+        stretchedMask && dims && dims.w > 0 && (
         <LiquidMetal
           width={dims.w}
           height={dims.h}
@@ -67,6 +80,7 @@ const Y2KDivider: FC = () => {
           scale={0.9}
           fit="cover"
         />
+        )
       )}
     </div>
   );

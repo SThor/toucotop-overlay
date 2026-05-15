@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FC, CSSProperties } from 'react';
 import { LiquidMetal } from '@paper-design/shaders-react';
+import IridescentMaskedLayers from './IridescentMaskedLayers';
 
 
 // Default ornament size for bar overlay
@@ -20,6 +21,8 @@ interface Props {
   height?: number;
   /** How far above the top border to push the ornament (as a translateY percentage). Defaults to -65. */
   yOffset?: number;
+  /** Render a static chromed image (no WebGL shader) for low-effects mode. */
+  staticMode?: boolean;
 }
 
 
@@ -30,10 +33,12 @@ const BarY2KOrnament: FC<Props> = ({
   width = DEFAULT_WIDTH,
   height = DEFAULT_HEIGHT,
   yOffset = -65,
+  staticMode = false,
 }) => {
   const [mask, setMask] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
+    if (staticMode) return;
     let cancelled = false;
     const img = new Image();
     img.onload = () => {
@@ -53,13 +58,20 @@ const BarY2KOrnament: FC<Props> = ({
     };
     img.src = src;
     return () => { cancelled = true; };
-  }, [flip, src, width, height]);
+  }, [flip, src, width, height, staticMode]);
 
   const positionStyle: CSSProperties = center
     ? { left: '50%', transform: `translateX(-50%) translateY(${yOffset}%)` }
     : flip
       ? { right: 0, transform: `translateX(50%) translateY(${yOffset}%)` }
       : { left: 0, transform: `translateX(-50%) translateY(${yOffset}%)` };
+
+  const staticScaleStyle: CSSProperties = staticMode
+    ? {
+        transform: 'scale(0.93)',
+        transformOrigin: center ? 'center top' : (flip ? 'right top' : 'left top'),
+      }
+    : {};
 
   return (
     <div
@@ -73,24 +85,30 @@ const BarY2KOrnament: FC<Props> = ({
         zIndex: 2,
       }}
     >
-      {mask && (
-        <LiquidMetal
-          width={width}
-          height={height}
-          image={mask}
-          colorBack="#00000000"
-          colorTint="#e0e0e0"
-          shape="none"
-          shiftRed={0.35}
-          shiftBlue={-0.35}
-          distortion={0.12}
-          softness={0.15}
-          contour={0.4}
-          angle={70}
-          speed={0.4}
-          scale={0.9}
-          fit="cover"
-        />
+      {staticMode ? (
+        <div style={{ position: 'relative', width: '100%', height: '100%', ...staticScaleStyle }}>
+          <IridescentMaskedLayers maskSrc={src} flip={flip} />
+        </div>
+      ) : (
+        mask && (
+          <LiquidMetal
+            width={width}
+            height={height}
+            image={mask}
+            colorBack="#00000000"
+            colorTint="#e0e0e0"
+            shape="none"
+            shiftRed={0.35}
+            shiftBlue={-0.35}
+            distortion={0.12}
+            softness={0.15}
+            contour={0.4}
+            angle={70}
+            speed={0.4}
+            scale={0.9}
+            fit="cover"
+          />
+        )
       )}
     </div>
   );

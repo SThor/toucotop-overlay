@@ -114,6 +114,10 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
           ...defaultOverlaySettings.themeSettings.crt,
           ...(existingData?.overlaySettings?.themeSettings?.crt ?? {}),
         },
+        y2k: {
+          ...defaultOverlaySettings.themeSettings.y2k,
+          ...(existingData?.overlaySettings?.themeSettings?.y2k ?? {}),
+        },
       },
     },
     ...(existingData?.lastFollower !== undefined ? { lastFollower: existingData.lastFollower } : {}),
@@ -256,6 +260,11 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
           ...defaultOverlaySettings.themeSettings.crt,
           ...(base.themeSettings?.crt ?? {}),
           ...(settings.themeSettings?.crt ?? {}),
+        },
+        y2k: {
+          ...defaultOverlaySettings.themeSettings.y2k,
+          ...(base.themeSettings?.y2k ?? {}),
+          ...(settings.themeSettings?.y2k ?? {}),
         },
       },
     };

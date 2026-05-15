@@ -10,6 +10,7 @@ import '../../styles/ChatOverlay.css';
 const ChatOverlay = () => {
   const { settings, isLoadingSettings } = useSettings();
   const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
+  const reducedEffects = settings.themeSettings.y2k.reducedEffects;
 
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +37,7 @@ const ChatOverlay = () => {
           {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
           {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
         </h3>
-        {settings.theme === 'y2k' ? <Y2KDivider /> : <div className="chat-divider"></div>}
+        {settings.theme === 'y2k' ? <Y2KDivider staticMode={reducedEffects} /> : <div className="chat-divider"></div>}
       </div>
       
       <div ref={messagesRef} className={`chat-messages ${settings.chatFeedDirection === 'top' ? 'feed-from-top' : 'feed-from-bottom'}`}>

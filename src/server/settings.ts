@@ -33,6 +33,10 @@ router.get('/', (req: Request, res: Response) => {
         ...defaultOverlaySettings.themeSettings.crt,
         ...(raw.themeSettings?.crt ?? {}),
       },
+      y2k: {
+        ...defaultOverlaySettings.themeSettings.y2k,
+        ...(raw.themeSettings?.y2k ?? {}),
+      },
     },
   };
   res.json({ settings: normalized });
@@ -194,44 +198,66 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     const ts = body.themeSettings;
     if (typeof ts !== 'object' || ts === null || Array.isArray(ts)) {
       errors.push('themeSettings must be an object');
-    } else if (ts.crt !== undefined) {
-      const c = ts.crt;
-      if (typeof c !== 'object' || c === null || Array.isArray(c)) {
-        errors.push('themeSettings.crt must be an object');
-      } else {
-        const crtPatch: Partial<OverlaySettings['themeSettings']['crt']> = {};
-        if ('intensity' in c) {
-          if (c.intensity !== 'minimal' && c.intensity !== 'subtle' && c.intensity !== 'medium') {
-            errors.push('themeSettings.crt.intensity must be "minimal", "subtle", or "medium"');
-          } else {
-            crtPatch.intensity = c.intensity;
+    } else {
+      const themePatch: {
+        crt?: Partial<OverlaySettings['themeSettings']['crt']>;
+        y2k?: Partial<OverlaySettings['themeSettings']['y2k']>;
+      } = {};
+
+      if (ts.crt !== undefined) {
+        const c = ts.crt;
+        if (typeof c !== 'object' || c === null || Array.isArray(c)) {
+          errors.push('themeSettings.crt must be an object');
+        } else {
+          const crtPatch: Partial<OverlaySettings['themeSettings']['crt']> = {};
+          if ('intensity' in c) {
+            if (c.intensity !== 'minimal' && c.intensity !== 'subtle' && c.intensity !== 'medium') {
+              errors.push('themeSettings.crt.intensity must be "minimal", "subtle", or "medium"');
+            } else {
+              crtPatch.intensity = c.intensity;
+            }
           }
-        }
-        if ('scanlines' in c) {
-          if (typeof c.scanlines !== 'boolean') {
-            errors.push('themeSettings.crt.scanlines must be a boolean');
-          } else {
-            crtPatch.scanlines = c.scanlines;
+          if ('scanlines' in c) {
+            if (typeof c.scanlines !== 'boolean') {
+              errors.push('themeSettings.crt.scanlines must be a boolean');
+            } else {
+              crtPatch.scanlines = c.scanlines;
+            }
           }
-        }
-        if ('animation' in c) {
-          if (typeof c.animation !== 'boolean') {
-            errors.push('themeSettings.crt.animation must be a boolean');
-          } else {
-            crtPatch.animation = c.animation;
+          if ('animation' in c) {
+            if (typeof c.animation !== 'boolean') {
+              errors.push('themeSettings.crt.animation must be a boolean');
+            } else {
+              crtPatch.animation = c.animation;
+            }
           }
+          if (Object.keys(crtPatch).length > 0) themePatch.crt = crtPatch;
         }
-        if (Object.keys(crtPatch).length > 0) {
-          patch.themeSettings = {
-            ...defaultOverlaySettings.themeSettings,
-            ...(patch.themeSettings ?? {}),
-            crt: {
-              ...defaultOverlaySettings.themeSettings.crt,
-              ...(patch.themeSettings?.crt ?? {}),
-              ...crtPatch,
-            },
-          };
+      }
+
+      if (ts.y2k !== undefined) {
+        const y = ts.y2k;
+        if (typeof y !== 'object' || y === null || Array.isArray(y)) {
+          errors.push('themeSettings.y2k must be an object');
+        } else {
+          const y2kPatch: Partial<OverlaySettings['themeSettings']['y2k']> = {};
+          if ('reducedEffects' in y) {
+            if (typeof y.reducedEffects !== 'boolean') {
+              errors.push('themeSettings.y2k.reducedEffects must be a boolean');
+            } else {
+              y2kPatch.reducedEffects = y.reducedEffects;
+            }
+          }
+          if (Object.keys(y2kPatch).length > 0) themePatch.y2k = y2kPatch;
         }
+      }
+
+      if (Object.keys(themePatch).length > 0) {
+        patch.themeSettings = {
+          ...(patch.themeSettings ?? {}),
+          ...(themePatch.crt ? { crt: themePatch.crt } : {}),
+          ...(themePatch.y2k ? { y2k: themePatch.y2k } : {}),
+        } as OverlaySettings['themeSettings'];
       }
     }
   }

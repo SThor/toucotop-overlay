@@ -90,7 +90,16 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     if (intensity === 'minimal' || intensity === 'subtle' || intensity === 'medium') crt.intensity = intensity;
     if (p.has('crtScanlines')) crt.scanlines = p.get('crtScanlines') !== 'false';
     if (p.has('crtAnimation')) crt.animation = p.get('crtAnimation') !== 'false';
-    o.themeSettings = { crt } as OverlaySettings['themeSettings'];
+    o.themeSettings = { ...(o.themeSettings ?? {}), crt } as OverlaySettings['themeSettings'];
+  }
+  if (p.has('reducedEffects')) {
+    o.themeSettings = {
+      ...(o.themeSettings ?? {}),
+      y2k: {
+        ...(o.themeSettings?.y2k ?? {}),
+        reducedEffects: p.get('reducedEffects') !== 'false',
+      },
+    } as OverlaySettings['themeSettings'];
   }
   if (p.has('hideBackground')) o.hideBackground = p.get('hideBackground') !== 'false';
   if (p.has('hideContent')) o.hideContent = p.get('hideContent') !== 'false';
@@ -137,7 +146,35 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // Seeded from the localStorage cache so overlays render immediately on reload.
   const [serverSettings, setServerSettings] = useState<OverlaySettings>(() => {
     const cached = loadCachedSettings();
-    return cached ? { ...defaultOverlaySettings, ...cached } : defaultOverlaySettings;
+    if (!cached) return defaultOverlaySettings;
+    return {
+      ...defaultOverlaySettings,
+      ...cached,
+      perOverlayOpacity: {
+        ...defaultOverlaySettings.perOverlayOpacity,
+        ...(cached.perOverlayOpacity ?? {}),
+      },
+      perOverlayFontSize: {
+        ...defaultOverlaySettings.perOverlayFontSize,
+        ...(cached.perOverlayFontSize ?? {}),
+      },
+      barSections: {
+        ...defaultOverlaySettings.barSections,
+        ...(cached.barSections ?? {}),
+      },
+      themeSettings: {
+        ...defaultOverlaySettings.themeSettings,
+        ...(cached.themeSettings ?? {}),
+        crt: {
+          ...defaultOverlaySettings.themeSettings.crt,
+          ...(cached.themeSettings?.crt ?? {}),
+        },
+        y2k: {
+          ...defaultOverlaySettings.themeSettings.y2k,
+          ...(cached.themeSettings?.y2k ?? {}),
+        },
+      },
+    };
   });
   // Skip the loading gate when we already have cached settings — the overlay can
   // render right away and update silently when the fresh fetch completes.
@@ -216,6 +253,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
                 ...defaultOverlaySettings.themeSettings.crt,
                 ...(fetched.themeSettings?.crt ?? {}),
               },
+              y2k: {
+                ...defaultOverlaySettings.themeSettings.y2k,
+                ...(fetched.themeSettings?.y2k ?? {}),
+              },
             },
           };
           setServerSettings(merged);
@@ -266,6 +307,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         ...serverSettings.themeSettings.crt,
         ...urlOverrides.themeSettings?.crt,
       },
+      y2k: {
+        ...serverSettings.themeSettings.y2k,
+        ...urlOverrides.themeSettings?.y2k,
+      },
     },
   };
 
@@ -299,6 +344,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         crt: {
           ...prev.themeSettings.crt,
           ...(overlayPatch.themeSettings?.crt ?? {}),
+        },
+        y2k: {
+          ...prev.themeSettings.y2k,
+          ...(overlayPatch.themeSettings?.y2k ?? {}),
         },
       },
     }));

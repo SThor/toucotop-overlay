@@ -12,15 +12,24 @@
   --y2k-magenta:   #ff00aa;
   --y2k-purple:    #7700ff;
   --y2k-hud-red:   #cc0033;
-
-  --y2k-chrome-gradient: linear-gradient(
-    180deg,
+  --y2k-iridescent-linear: linear-gradient(
+    112deg,
     #ffffff 0%,
-    #d0d0d0 18%,
-    #ffffff 36%,
-    #707070 54%,
-    #ffffff 72%,
-    #b0b0b0 100%
+    #d6daea 18%,
+    #8f86b0 34%,
+    #72f3ff 50%,
+    #ff6dd7 65%,
+    #f9fbff 82%,
+    #8afcff 100%
+  );
+  --y2k-iridescent-conic: conic-gradient(
+    from 210deg at 50% 45%,
+    #ffffff 0deg,
+    #66f2ff 70deg,
+    #a56bff 135deg,
+    #ff58c5 220deg,
+    #f7fcff 300deg,
+    #ffffff 360deg
   );
 }
 
@@ -30,51 +39,47 @@
 .y2k-font-pixel     { font-family: 'Press Start 2P', monospace; }
 .y2k-font-barcode   { font-family: 'Libre Barcode 39 Extended Text', cursive; }
 
-/* ---- Chrome text ---- */
-.y2k-chrome-text {
+@keyframes y2k-iridescent-shift {
+  0%, 100% {
+    background-position: 0% 45%;
+  }
+  50% {
+    background-position: 100% 55%;
+  }
+}
+
+@keyframes y2k-prism-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.y2k-iridescent-text {
   position: relative;
   display: inline-block;
-  background: var(--y2k-chrome-gradient);
-  background-size: 100% 200%;
+  background: var(--y2k-iridescent-linear);
+  background-size: 220% 220%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: chrome-shine 4s ease-in-out infinite;
-  text-shadow: none;
-  filter: drop-shadow(0 0 6px rgba(0, 255, 204, 0.35))
-          drop-shadow(0 2px 12px rgba(119, 0, 255, 0.4));
+  animation: y2k-iridescent-shift 9s ease-in-out infinite;
+  filter: drop-shadow(0 0 7px rgba(0, 255, 204, 0.45))
+          drop-shadow(0 2px 15px rgba(119, 0, 255, 0.45));
 }
 
-@keyframes chrome-shine {
-  0%, 100% { background-position: 0% 0%; }
-  50%       { background-position: 0% 100%; }
-}
-
-/* ---- Colour-dodge accent layer (cyan + magenta in chrome) ---- */
-.y2k-chrome-text::after {
+.y2k-iridescent-text::after {
   content: attr(data-text);
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    120deg,
-    transparent 20%,
-    rgba(0, 255, 204, 0.18) 38%,
-    transparent 50%,
-    rgba(255, 0, 170, 0.14) 65%,
-    transparent 82%
-  );
-  background-size: 200% 100%;
+  background: var(--y2k-iridescent-conic);
+  background-size: 175% 175%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   mix-blend-mode: color-dodge;
-  animation: color-sweep 6s ease-in-out infinite;
+  opacity: 0.58;
+  animation: y2k-prism-drift 11s linear infinite;
   pointer-events: none;
-}
-
-@keyframes color-sweep {
-  0%, 100% { background-position: 200% 0; }
-  50%       { background-position: 0% 0; }
 }
 
 /* ---- Glitch ---- */

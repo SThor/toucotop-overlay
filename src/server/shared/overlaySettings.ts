@@ -33,6 +33,9 @@ export interface OverlaySettings {
       scanlines: boolean;
       animation: boolean;
     };
+    y2k: {
+      reducedEffects: boolean;
+    };
   };
   pauseTitle: string;
   pauseSubtitle: string;
@@ -64,7 +67,10 @@ export const defaultOverlaySettings: OverlaySettings = {
       intensity: 'subtle',
       scanlines: true,
       animation: true,
-    }
+    },
+    y2k: {
+      reducedEffects: false,
+    },
   },
   pauseTitle: 'En pause',
   pauseSubtitle: '— je reviens —',

@@ -59,6 +59,7 @@ const ALERT_DURATION_MS = 5000;
 export default function AlertOverlay() {
   const { settings, isLoadingSettings } = useSettings();
   const { currentAlert, isConnected, isConnecting, error, dismissAlert } = useAlertStream();
+  const reducedEffects = settings.themeSettings.y2k.reducedEffects;
 
   // Track the last non-null alert for animation
   const [displayedAlert, setDisplayedAlert] = useState<AlertPayload | null>(null);
@@ -149,6 +150,7 @@ export default function AlertOverlay() {
             width={340}
             height={88}
             yOffset={128}
+            staticMode={reducedEffects}
           />
         )}
       </motion.div>
