@@ -68,40 +68,59 @@ const Y2KDivider: FC<Props> = ({ staticMode = false }) => {
               width: '100%',
               height: '100%',
               objectFit: 'fill',
-              filter: 'grayscale(1) brightness(1.25) contrast(1.2)',
-              opacity: 0.9,
+              filter: 'grayscale(0.35) brightness(1.08) contrast(1.28) saturate(1.2)',
+              opacity: 0.96,
             }}
           />
-          <img
-            src="/tribal.png"
-            alt=""
+          <div
             aria-hidden="true"
             style={{
               position: 'absolute',
               inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'fill',
+              WebkitMaskImage: 'url(/tribal.png)',
+              maskImage: 'url(/tribal.png)',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskSize: '100% 100%',
+              maskSize: '100% 100%',
               transform: 'translateX(1.2px)',
-              filter: 'brightness(1.3) saturate(2.1) hue-rotate(338deg)',
+              background: 'linear-gradient(112deg, #ffffff 0%, #d6daea 18%, #8f86b0 34%, #72f3ff 50%, #ff6dd7 65%, #f9fbff 82%, #8afcff 100%)',
               mixBlendMode: 'screen',
-              opacity: 0.45,
+              opacity: 0.72,
             }}
           />
-          <img
-            src="/tribal.png"
-            alt=""
+          <div
             aria-hidden="true"
             style={{
               position: 'absolute',
               inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'fill',
+              WebkitMaskImage: 'url(/tribal.png)',
+              maskImage: 'url(/tribal.png)',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskSize: '100% 100%',
+              maskSize: '100% 100%',
               transform: 'translateX(-1.2px)',
-              filter: 'brightness(1.25) saturate(1.9) hue-rotate(190deg)',
-              mixBlendMode: 'screen',
-              opacity: 0.4,
+              background: 'conic-gradient(from 210deg at 50% 45%, #ffffff 0deg, #66f2ff 70deg, #a56bff 135deg, #ff58c5 220deg, #f7fcff 300deg, #ffffff 360deg)',
+              mixBlendMode: 'color-dodge',
+              opacity: 0.52,
+              filter: 'blur(0.25px) saturate(1.25)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              WebkitMaskImage: 'url(/tribal.png)',
+              maskImage: 'url(/tribal.png)',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskSize: '100% 100%',
+              maskSize: '100% 100%',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0) 30%, rgba(0,0,0,0.18) 100%)',
+              mixBlendMode: 'soft-light',
+              opacity: 0.55,
             }}
           />
         </div>
