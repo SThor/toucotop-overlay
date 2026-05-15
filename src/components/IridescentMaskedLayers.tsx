@@ -1,4 +1,5 @@
 import type { CSSProperties, FC } from 'react';
+import '../styles/Y2KTheme.css';
 
 interface Props {
   maskSrc: string;
