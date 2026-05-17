@@ -387,7 +387,10 @@ try {
   // even while no overlay is currently connected.
   for (const username of listAuthenticatedUsers()) {
     activateRelay(username).catch((error) => {
-      console.error(`❌ Failed to activate chat relay for ${username}:`, error);
+      console.error(
+        `⚠️ Failed to activate chat relay for ${username}; server continues without preloaded history for this channel. Check Twitch connectivity and stored auth tokens.`,
+        error,
+      );
     });
   }
 

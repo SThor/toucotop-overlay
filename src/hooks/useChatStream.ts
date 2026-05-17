@@ -6,6 +6,24 @@ const MAX_MESSAGES = 200;
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
+function isHistoryMessage(item: unknown): item is TwitchChatMessage & { timestamp: string } {
+  if (!item || typeof item !== 'object') return false;
+  const value = item as Record<string, unknown>;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.username === 'string' &&
+    typeof value.displayName === 'string' &&
+    typeof value.message === 'string' &&
+    typeof value.timestamp === 'string' &&
+    Array.isArray(value.badges) &&
+    value.badges.every((badge) => typeof badge === 'string') &&
+    typeof value.isHighlight === 'boolean' &&
+    typeof value.isMod === 'boolean' &&
+    typeof value.isSubscriber === 'boolean' &&
+    typeof value.isVip === 'boolean'
+  );
+}
+
 /**
  * Hook that connects to the server SSE chat stream and returns live messages.
  */
@@ -73,9 +91,7 @@ export function useChatStream() {
           const historyData = await historyResponse.json() as { messages?: unknown };
           const historyItems = Array.isArray(historyData.messages) ? historyData.messages : [];
           const historyMessages = historyItems
-            .filter((item): item is TwitchChatMessage & { timestamp: string } => (
-              !!item && typeof item === 'object' && 'timestamp' in item && typeof item.timestamp === 'string'
-            ))
+            .filter(isHistoryMessage)
             .map((data) => ({
               ...data,
               timestamp: new Date(data.timestamp),
