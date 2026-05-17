@@ -9,6 +9,10 @@
   isolation: isolate;
 }
 
+.alert-overlay.global-alert-layer {
+  z-index: 2000;
+}
+
 .alert-popup {
   display: flex;
   flex-direction: column;
