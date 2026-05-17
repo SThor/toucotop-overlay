@@ -24,6 +24,10 @@ export function useChatStream() {
   const reconnectAttemptsRef = useRef(0);
 
   const clearMessages = useCallback(() => setMessages([]), []);
+  const clampMessages = useCallback(
+    (next: TwitchChatMessage[]) => (next.length > maxMessages ? next.slice(-maxMessages) : next),
+    [maxMessages],
+  );
 
   useEffect(() => {
     if (!token) {
@@ -76,7 +80,7 @@ export function useChatStream() {
               ...data,
               timestamp: new Date(data.timestamp),
             }));
-          setMessages(historyMessages.length > maxMessages ? historyMessages.slice(-maxMessages) : historyMessages);
+          setMessages(clampMessages(historyMessages));
         }
       } catch {
         // Ignore history load errors and continue with real-time stream.
@@ -102,7 +106,7 @@ export function useChatStream() {
           };
           setMessages((prev) => {
             const next = [...prev, msg];
-            return next.length > maxMessages ? next.slice(-maxMessages) : next;
+            return clampMessages(next);
           });
         } catch {
           console.warn('Failed to parse chat message SSE data');
@@ -149,7 +153,7 @@ export function useChatStream() {
       eventSourceRef.current?.close();
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     };
-  }, [token, maxMessages]);
+  }, [token, clampMessages]);
 
   return { messages, isConnected, isConnecting, error, clearMessages };
 }

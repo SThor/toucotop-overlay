@@ -151,7 +151,7 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
 
     relay.history.push(payload);
     if (relay.history.length > MAX_HISTORY_MESSAGES) {
-      relay.history.splice(0, relay.history.length - MAX_HISTORY_MESSAGES);
+      relay.history.shift();
     }
 
     broadcastToChannel(channel, 'message', payload);
@@ -171,7 +171,7 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     console.log(`✅ Chat relay connected for channel: ${channel}`);
   });
 
-  chatClient.onDisconnect((_manually, _reason) => {
+  chatClient.onDisconnect(() => {
     console.log(`❌ Chat relay disconnected for channel: ${channel}`);
   });
 
