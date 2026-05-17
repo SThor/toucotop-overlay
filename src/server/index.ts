@@ -28,6 +28,7 @@ import {
   configureTrustProxy 
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
+import { getUserTokens, listAuthenticatedUsers } from './storage.js';
 import { addSSEClient } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import { ALERT_TYPES } from './shared/alertTypes.js';
@@ -35,6 +36,33 @@ import type { AlertType } from './shared/alertTypes.js';
 import settingsRouter from './settings.js';
 
 const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
+const OVERLAY_ADMIN = process.env.OVERLAY_ADMIN?.trim().toLowerCase() || null;
+const TWITCH_USERNAME_REGEX = /^[a-z0-9_]{3,25}$/;
+
+function canSendTargetedCustomAlerts(username: string): boolean {
+  if (!OVERLAY_ADMIN) return false;
+  return username.toLowerCase() === OVERLAY_ADMIN;
+}
+
+function getDefaultCustomTarget(targets: string[]): string | null {
+  if (targets.length === 0) return null;
+  if (!OVERLAY_ADMIN) return targets[0] ?? null;
+  const firstNonAdmin = targets.find((t) => t !== OVERLAY_ADMIN);
+  return firstNonAdmin ?? null;
+}
+
+function listValidCustomTargets(): string[] {
+  const now = Date.now();
+  return listAuthenticatedUsers()
+    .map((u) => u.toLowerCase())
+    .filter((u) => TWITCH_USERNAME_REGEX.test(u))
+    .filter((u) => {
+      const tokenData = getUserTokens(u);
+      if (!tokenData?.overlayExpiresAt) return false;
+      return new Date(tokenData.overlayExpiresAt).getTime() > now;
+    })
+    .sort((a, b) => a.localeCompare(b));
+}
 
 function isAlertType(value: string): value is AlertType {
   return VALID_ALERT_TYPES.has(value as AlertType);
@@ -296,6 +324,115 @@ try {
       });
 
       res.json({ ok: true, type, channel: userData.username });
+    }
+  );
+
+  /**
+   * Restricted custom alert targets endpoint
+    * Returns whether caller can send targeted custom alerts and, when allowed,
+    * the list of currently valid authenticated target usernames.
+   */
+  app.get('/api/alerts/custom-targets', (req: Request, res: Response) => {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    if (!token) {
+      res.status(400).json({ error: 'token is required' });
+      return;
+    }
+
+    const userData = defaultTokenManager.getUserByOverlayToken(token);
+    if (!userData) {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+
+    const canSend = canSendTargetedCustomAlerts(userData.username);
+    const targets = canSend ? listValidCustomTargets() : [];
+    const defaultTarget = getDefaultCustomTarget(targets);
+
+    res.json({
+      canSendTargetedCustomAlerts: canSend,
+      targets,
+      defaultTarget,
+    });
+  });
+
+  /**
+   * Restricted custom alert endpoint
+    * Only the configured privileged account can push a custom alert into a selected overlay channel.
+   */
+  app.post('/api/alerts/custom',
+    validateJsonBody(['token', 'title']),
+    (req: Request, res: Response) => {
+      const { token, title, message, icon, targetUsername } = req.body as {
+        token: unknown;
+        title: unknown;
+        message?: unknown;
+        icon?: unknown;
+        targetUsername?: unknown;
+      };
+
+      if (typeof token !== 'string' || typeof title !== 'string') {
+        res.status(400).json({ error: 'token and title must be strings' });
+        return;
+      }
+
+      const userData = defaultTokenManager.getUserByOverlayToken(token);
+      if (!userData) {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+
+      if (!canSendTargetedCustomAlerts(userData.username)) {
+        res.status(403).json({ error: 'This endpoint is restricted to the configured privileged user' });
+        return;
+      }
+
+      const customTitle = title.trim();
+      if (!customTitle) {
+        res.status(400).json({ error: 'title must not be empty' });
+        return;
+      }
+      if (customTitle.length > 120) {
+        res.status(400).json({ error: 'title is too long (max 120 chars)' });
+        return;
+      }
+
+      const validTargets = listValidCustomTargets();
+      const defaultTarget = getDefaultCustomTarget(validTargets);
+      const rawTarget = typeof targetUsername === 'string'
+        ? targetUsername.trim().toLowerCase()
+        : (defaultTarget ?? '');
+
+      if (!rawTarget) {
+        res.status(400).json({ error: 'No valid target user available' });
+        return;
+      }
+
+      if (!TWITCH_USERNAME_REGEX.test(rawTarget)) {
+        res.status(400).json({ error: 'targetUsername is invalid' });
+        return;
+      }
+
+      const allowedTargets = new Set(validTargets);
+      if (!allowedTargets.has(rawTarget)) {
+        res.status(400).json({ error: 'targetUsername not found in authenticated users' });
+        return;
+      }
+
+      const customMessage = typeof message === 'string' ? message.trim().slice(0, 200) : '';
+      const customIcon = typeof icon === 'string' ? icon.trim().slice(0, 8) : '📣';
+
+      broadcastAlert(rawTarget, {
+        id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        type: 'custom',
+        timestamp: new Date().toISOString(),
+        userName: userData.displayName || userData.username,
+        customTitle,
+        customIcon: customIcon || '📣',
+        ...(customMessage ? { message: customMessage } : {}),
+      });
+
+      res.json({ ok: true, channel: rawTarget });
     }
   );
 

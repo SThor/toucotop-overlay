@@ -4,6 +4,7 @@ import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
+import GlobalAlertLayer from '../../components/GlobalAlertLayer';
 import '../../styles/BarOverlay.css';
 
 const BarOverlayContent = () => {
@@ -205,6 +206,7 @@ const BarOverlayContent = () => {
             : [node]
         );
       })()}
+      <GlobalAlertLayer />
     </div>
   );
 };

@@ -19,6 +19,18 @@ const EVENTSUB_ALLOWED_HOSTS = (process.env.EVENTSUB_ALLOWED_HOSTS || '')
   .map(h => h.trim().toLowerCase())
   .filter(Boolean);
 
+const DEFAULT_ALERT_EVENTSUB_TYPES = [
+  'channel.follow',
+  'channel.subscribe',
+  'channel.subscription.message',
+  'channel.subscription.gift',
+  'channel.cheer',
+  'channel.raid',
+  'channel.hype_train.begin',
+  'channel.hype_train.progress',
+  'channel.hype_train.end',
+] as const;
+
 interface AppAccessTokenResponse {
   access_token: string;
   expires_in: number;
@@ -275,6 +287,87 @@ async function getAppAccessToken(): Promise<string> {
   return tokenResponse.access_token;
 }
 
+function buildSubscriptionData(
+  eventType: string,
+  userData: UserData,
+  webhookUrl: string,
+  secret: string,
+): EventSubSubscriptionData {
+  const condition = eventType === 'channel.follow'
+    ? {
+        broadcaster_user_id: userData.twitchUserId,
+        moderator_user_id: userData.twitchUserId,
+      }
+    : eventType === 'channel.raid'
+      ? {
+          to_broadcaster_user_id: userData.twitchUserId,
+        }
+      : {
+          broadcaster_user_id: userData.twitchUserId,
+        };
+
+  return {
+    type: eventType,
+    version: eventType === 'channel.follow' ? '2' : '1',
+    condition,
+    transport: {
+      method: 'webhook',
+      callback: webhookUrl,
+      secret,
+    },
+  };
+}
+
+async function createEventSubSubscription(
+  subscriptionData: EventSubSubscriptionData,
+): Promise<{ ok: boolean; status: number; result: unknown }> {
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  if (!clientId) {
+    throw new Error('TWITCH_CLIENT_ID is not configured');
+  }
+
+  const appAccessToken = await getAppAccessToken();
+  const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${appAccessToken}`,
+      'Client-Id': clientId,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(subscriptionData),
+  });
+
+  const result = await response.json();
+
+  // Twitch returns 409 when the same subscription already exists.
+  if (response.status === 409) {
+    return { ok: true, status: response.status, result };
+  }
+
+  return { ok: response.ok, status: response.status, result };
+}
+
+async function ensureDefaultEventSubSubscriptions(req: Request, userData: UserData): Promise<void> {
+  if (!EVENTSUB_SECRET) {
+    throw new Error('EventSub secret is not configured');
+  }
+
+  const webhookUrl = getEventSubWebhookUrl(req);
+  const results = await Promise.all(
+    DEFAULT_ALERT_EVENTSUB_TYPES.map(async (eventType) => {
+      const subscriptionData = buildSubscriptionData(eventType, userData, webhookUrl, EVENTSUB_SECRET);
+      const createResult = await createEventSubSubscription(subscriptionData);
+      return { eventType, ...createResult };
+    }),
+  );
+
+  for (const result of results) {
+    if (!result.ok) {
+      console.warn(`⚠️ EventSub ensure failed for ${result.eventType}: status ${result.status}`);
+    }
+  }
+}
+
 /**
  * Handle EventSub webhook requests
  */
@@ -313,19 +406,24 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
     const broadcasterLogin: string = typeof eventData['broadcaster_user_login'] === 'string'
       ? eventData['broadcaster_user_login']
       : '';
+    const raidTargetLogin: string = typeof eventData['to_broadcaster_user_login'] === 'string'
+      ? eventData['to_broadcaster_user_login']
+      : '';
 
-    if (broadcasterLogin) {
-      const subType = parsedBody.subscription.type;
+    const subType = parsedBody.subscription.type;
+    const targetChannel = subType === 'channel.raid' ? raidTargetLogin : broadcasterLogin;
+
+    if (targetChannel) {
       const actorName = pickDisplayName(eventData['user_name'], eventData['user_login']);
 
       if (subType === 'channel.follow') {
-        updateLastFollower(broadcasterLogin, {
+        updateLastFollower(targetChannel, {
           userId: String(eventData['user_id'] ?? ''),
           userName: String(eventData['user_login'] ?? ''),
           userDisplayName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
           followedAt: String(eventData['followed_at'] ?? new Date().toISOString()),
         });
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `follow_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'follow',
           timestamp: new Date().toISOString(),
@@ -335,7 +433,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
         const gifterLogin = Boolean(eventData['is_gift']) && typeof eventData['gifter_user_login'] === 'string'
           ? eventData['gifter_user_login'] as string
           : undefined;
-        updateLastSubscriber(broadcasterLogin, {
+        updateLastSubscriber(targetChannel, {
           userId: String(eventData['user_id'] ?? ''),
           userName: String(eventData['user_login'] ?? ''),
           userDisplayName: String(eventData['user_name'] ?? eventData['user_login'] ?? ''),
@@ -348,7 +446,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
         // Keep type as 'subscribe' in both cases: the overlay uses isGift + gifterName
         // to distinguish them. 'gift_sub' is reserved for channel.subscription.gift
         // (gift bombs) where userName is the gifter, not the recipient.
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'subscribe',
           timestamp: new Date().toISOString(),
@@ -361,7 +459,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
         const cumMonths = typeof eventData['cumulative_months'] === 'number' ? eventData['cumulative_months'] : undefined;
         const streakMo = typeof eventData['streak_months'] === 'number' ? eventData['streak_months'] : undefined;
         const resubMsg = typeof eventData['message']?.['text'] === 'string' ? eventData['message']['text'] as string : undefined;
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `resub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'resubscribe',
           timestamp: new Date().toISOString(),
@@ -372,7 +470,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           ...(resubMsg !== undefined ? { message: resubMsg } : {}),
         });
       } else if (subType === 'channel.subscription.gift') {
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `giftsub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'gift_sub',
           timestamp: new Date().toISOString(),
@@ -384,7 +482,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
         const cheerBits = typeof eventData['bits'] === 'number' ? eventData['bits'] : undefined;
         const cheerMsg = typeof eventData['message'] === 'string' ? eventData['message'] as string : undefined;
         const cheerActor = Boolean(eventData['is_anonymous']) ? undefined : actorName;
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `cheer_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'cheer',
           timestamp: new Date().toISOString(),
@@ -395,7 +493,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
       } else if (subType === 'channel.raid') {
         const raidViewers = typeof eventData['viewers'] === 'number' ? eventData['viewers'] : undefined;
         const raiderName = pickDisplayName(eventData['from_broadcaster_user_name'], eventData['from_broadcaster_user_login']);
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `raid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'raid',
           timestamp: new Date().toISOString(),
@@ -403,7 +501,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
           ...(raidViewers !== undefined ? { viewerCount: raidViewers } : {}),
         });
       } else if (subType === 'channel.hype_train.begin') {
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `hypetrain_begin_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'hype_train_begin',
           timestamp: new Date().toISOString(),
@@ -413,7 +511,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
       } else if (subType === 'channel.hype_train.progress') {
         const htLevel = typeof eventData['level'] === 'number' ? eventData['level'] : undefined;
         const htProgress = typeof eventData['progress'] === 'number' ? eventData['progress'] : undefined;
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `hypetrain_progress_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'hype_train_progress',
           timestamp: new Date().toISOString(),
@@ -422,7 +520,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
         });
       } else if (subType === 'channel.hype_train.end') {
         const htEndLevel = typeof eventData['level'] === 'number' ? eventData['level'] : undefined;
-        broadcastAlert(broadcasterLogin, {
+        broadcastAlert(targetChannel, {
           id: `hypetrain_end_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'hype_train_end',
           timestamp: new Date().toISOString(),
@@ -472,44 +570,10 @@ async function handleEventSubSubscription(
   }
 
   try {
-    const clientId = process.env.TWITCH_CLIENT_ID;
-    if (!clientId) {
-      return res.status(500).json({ error: 'TWITCH_CLIENT_ID is not configured' });
-    }
-
     const webhookUrl = getEventSubWebhookUrl(req);
-    const appAccessToken = await getAppAccessToken();
-    
-    const subscriptionData: EventSubSubscriptionData = {
-      type: eventType,
-      version: eventType === 'channel.follow' ? '2' : '1',
-      condition: eventType === 'channel.follow'
-        ? {
-            broadcaster_user_id: userData.twitchUserId,
-            moderator_user_id: userData.twitchUserId,
-          }
-        : {
-            broadcaster_user_id: userData.twitchUserId,
-          },
-      transport: {
-        method: 'webhook',
-        callback: webhookUrl,
-        secret: EVENTSUB_SECRET
-      }
-    };
-
-    const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${appAccessToken}`,
-        'Client-Id': clientId,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(subscriptionData)
-    });
-
-    const result = await response.json();
-    return res.status(response.status).json(result);
+    const subscriptionData = buildSubscriptionData(eventType, userData, webhookUrl, EVENTSUB_SECRET);
+    const createResult = await createEventSubSubscription(subscriptionData);
+    return res.status(createResult.status).json(createResult.result);
   } catch (error) {
     console.error('EventSub subscription error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -550,6 +614,7 @@ export {
   handleEventSubWebhook,
   handleEventSubSubscription,
   handleEventSubEventsDeletion,
+  ensureDefaultEventSubSubscriptions,
   defaultEventStore,
   // Export constants for use by main server
   EVENTSUB_SECRET

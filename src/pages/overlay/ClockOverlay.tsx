@@ -3,6 +3,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
+import GlobalAlertLayer from '../../components/GlobalAlertLayer';
 import '../../styles/ClockOverlay.css';
 
 // Destructure the hook for cleaner usage
@@ -116,6 +117,7 @@ const ClockOverlay = () => {
           />
         )}
       </div>
+      <GlobalAlertLayer />
     </div>
   );
 };

@@ -21,14 +21,25 @@ A modern React TypeScript application for Twitch stream overlays with customizab
 cp .env.sample .env
 ```
 
-2. Configure your Twitch API credentials in `.env`:
+2. Configure your environment in `.env`:
    - Go to [Twitch Developer Console](https://dev.twitch.tv/console/apps)
    - Create a new application or use an existing one
-   - Copy your Client ID and Client Secret to the `.env` file:
+   - Copy your values into the `.env` file:
 
 ```env
 VITE_TWITCH_CLIENT_ID=your_client_id_here
 VITE_TWITCH_CLIENT_SECRET=your_client_secret_here
+
+TWITCH_CLIENT_ID=your_client_id_here
+TWITCH_CLIENT_SECRET=your_client_secret_here
+
+EVENTSUB_SECRET=replace_with_a_long_random_secret_at_least_32_chars
+EVENTSUB_CALLBACK_URL=https://your-domain.tld/webhooks/eventsub
+EVENTSUB_PUBLIC_BASE_URL=
+EVENTSUB_ALLOWED_HOSTS=
+
+# Optional: leave empty to disable targeted custom alerts.
+OVERLAY_ADMIN=
 ```
 
 **Note**: Environment variables are required for advanced features like:
