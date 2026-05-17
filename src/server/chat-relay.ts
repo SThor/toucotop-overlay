@@ -210,7 +210,8 @@ export async function activateRelay(channel: string): Promise<void> {
 }
 
 export async function getRelayHistory(channel: string): Promise<ChatMessagePayload[]> {
-  const relay = await getOrCreateRelay(channel);
+  const relay = channelRelays.get(channel);
+  if (!relay) return [];
   return [...relay.history];
 }
 
@@ -252,6 +253,7 @@ export function addSSEClient(channel: string, res: Response): void {
       }
 
       relay.clients.add(client);
+      sendSSE(client, 'history', { messages: [...relay.history] });
       sendSSE(client, 'connected', { channel });
 
       const keepalive = setInterval(() => {

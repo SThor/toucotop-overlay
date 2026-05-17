@@ -78,31 +78,12 @@ export function useChatStream() {
       }, RECONNECT_DELAY_MS);
     }
 
-    async function connect() {
+    function connect() {
       // Clear messages from any previous connection to avoid cross-session leakage
       setMessages([]);
       setIsConnecting(true);
       // Clean up previous connection
       eventSourceRef.current?.close();
-
-      try {
-        const historyResponse = await fetch(`/api/chat/history?token=${encodeURIComponent(token)}`);
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json() as { messages?: unknown };
-          const historyItems = Array.isArray(historyData.messages) ? historyData.messages : [];
-          const historyMessages = historyItems
-            .filter(isHistoryMessage)
-            .map((data) => ({
-              ...data,
-              timestamp: new Date(data.timestamp),
-            }));
-          setMessages(clampMessages(historyMessages));
-        } else {
-          console.warn(`Chat history preload failed with status ${historyResponse.status}`);
-        }
-      } catch {
-        // Ignore history load errors and continue with real-time stream.
-      }
 
       const url = `/api/chat/stream?token=${encodeURIComponent(token)}`;
       const es = new EventSource(url);
@@ -128,6 +109,22 @@ export function useChatStream() {
           });
         } catch {
           console.warn('Failed to parse chat message SSE data');
+        }
+      });
+
+      es.addEventListener('history', (e) => {
+        try {
+          const data = JSON.parse(e.data) as { messages?: unknown };
+          const items = Array.isArray(data.messages) ? data.messages : [];
+          const history = items
+            .filter(isHistoryMessage)
+            .map((message) => ({
+              ...message,
+              timestamp: new Date(message.timestamp),
+            }));
+          setMessages(clampMessages(history));
+        } catch {
+          console.warn('Failed to parse chat history SSE data');
         }
       });
 
@@ -165,7 +162,7 @@ export function useChatStream() {
       });
     }
 
-    void connect();
+    connect();
 
     return () => {
       eventSourceRef.current?.close();

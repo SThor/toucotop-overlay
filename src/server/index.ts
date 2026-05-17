@@ -29,7 +29,7 @@ import {
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
 import { getUserTokens, listAuthenticatedUsers } from './storage.js';
-import { addSSEClient, activateRelay, getRelayHistory } from './chat-relay.js';
+import { addSSEClient, getRelayHistory } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import { ALERT_TYPES } from './shared/alertTypes.js';
 import type { AlertType } from './shared/alertTypes.js';
@@ -518,17 +518,6 @@ try {
       console.log('🛠️ Development mode - CORS and logging enabled');
     }
   });
-
-  // Keep chat relays alive for authenticated users so history keeps accumulating
-  // even while no overlay is currently connected.
-  for (const username of listAuthenticatedUsers()) {
-    activateRelay(username).catch((error) => {
-      console.error(
-        `⚠️ Failed to activate chat relay for ${username}; server continues without preloaded history for this channel. Check Twitch connectivity and stored auth tokens.`,
-        error,
-      );
-    });
-  }
 
 } catch (error) {
   console.error('❌ Server startup failed:', error);

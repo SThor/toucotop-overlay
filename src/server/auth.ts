@@ -221,7 +221,9 @@ router.get('/callback', async (req: Request, res: Response) => {
       twitchUserId: user.id,
       displayName: user.display_name
     });
-    await activateRelay(username);
+    activateRelay(username).catch((relayError) => {
+      console.warn(`⚠️ Could not activate chat relay for ${username}; authentication succeeded and overlay can still connect later.`, relayError);
+    });
 
     // Ensure default alert subscriptions exist so follow/sub/etc alerts work
     // without requiring a manual call from the demo page.
