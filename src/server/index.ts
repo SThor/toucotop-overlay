@@ -29,7 +29,7 @@ import {
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
 import { getUserTokens, listAuthenticatedUsers } from './storage.js';
-import { addSSEClient } from './chat-relay.js';
+import { addSSEClient, getRelayHistory } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import { ALERT_TYPES } from './shared/alertTypes.js';
 import type { AlertType } from './shared/alertTypes.js';
@@ -248,10 +248,28 @@ try {
     (req: Request, res: Response) => {
       const { userData } = req;
       if (!userData) {
-        res.status(401).json({ error: 'User data not found' });
+        res.status(500).json({ error: 'Internal error: authentication data missing' });
         return;
       }
       addSSEClient(userData.username, res);
+    }
+  );
+
+  /**
+   * Chat history endpoint
+   * Returns buffered recent chat messages for initial overlay hydration.
+   */
+  app.get('/api/chat/history',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    async (req: Request, res: Response) => {
+      const { userData } = req;
+      if (!userData) {
+        res.status(401).json({ error: 'User data not found' });
+        return;
+      }
+
+      const messages = await getRelayHistory(userData.username);
+      res.json({ messages });
     }
   );
 
