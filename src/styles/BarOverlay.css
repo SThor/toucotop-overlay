@@ -211,10 +211,8 @@
   color: #fff;
   font-size: 0.75em;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 90px;
+  flex: 0 1 auto;
 }
 
 .bar-recent-label {
