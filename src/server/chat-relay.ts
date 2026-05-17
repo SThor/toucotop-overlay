@@ -48,10 +48,13 @@ interface ChannelRelay {
   chatClient: ChatClient;
   clients: Set<SSEClient>;
   cleanupTimer: ReturnType<typeof setTimeout> | null;
+  history: ChatMessagePayload[];
+  keepAliveWithoutClients: boolean;
 }
 
 const CLEANUP_DELAY_MS = 30_000;
 const KEEPALIVE_INTERVAL_MS = 15_000;
+const MAX_HISTORY_MESSAGES = 100;
 // Only extend the overlay token at most once per hour per channel on keepalive
 const KEEPALIVE_EXTEND_DEBOUNCE_MS = 60 * 60 * 1000;
 const keepaliveExtendLastRun = new Map<string, number>();
@@ -104,6 +107,8 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     chatClient,
     clients: new Set(),
     cleanupTimer: null,
+    history: [],
+    keepAliveWithoutClients: false,
   };
 
   // Store early so broadcasts work even during connect
@@ -144,14 +149,21 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
       emotes: emotes.length > 0 ? emotes : undefined,
     };
 
+    relay.history.push(payload);
+    if (relay.history.length > MAX_HISTORY_MESSAGES) {
+      relay.history.splice(0, relay.history.length - MAX_HISTORY_MESSAGES);
+    }
+
     broadcastToChannel(channel, 'message', payload);
   });
 
   chatClient.onMessageRemove((_chan, messageId) => {
+    relay.history = relay.history.filter((message) => message.id !== messageId);
     broadcastToChannel(channel, 'delete', { messageId });
   });
 
   chatClient.onChatClear(() => {
+    relay.history = [];
     broadcastToChannel(channel, 'clear', {});
   });
 
@@ -177,7 +189,7 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
 
 function scheduleCleanup(channel: string): void {
   const relay = channelRelays.get(channel);
-  if (!relay || relay.clients.size > 0) return;
+  if (!relay || relay.clients.size > 0 || relay.keepAliveWithoutClients) return;
 
   relay.cleanupTimer = setTimeout(() => {
     if (relay.clients.size === 0) {
@@ -186,6 +198,20 @@ function scheduleCleanup(channel: string): void {
       channelRelays.delete(channel);
     }
   }, CLEANUP_DELAY_MS);
+}
+
+export async function activateRelay(channel: string): Promise<void> {
+  const relay = await getOrCreateRelay(channel);
+  relay.keepAliveWithoutClients = true;
+  if (relay.cleanupTimer) {
+    clearTimeout(relay.cleanupTimer);
+    relay.cleanupTimer = null;
+  }
+}
+
+export async function getRelayHistory(channel: string): Promise<ChatMessagePayload[]> {
+  const relay = await getOrCreateRelay(channel);
+  return [...relay.history];
 }
 
 /**

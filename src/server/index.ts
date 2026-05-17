@@ -28,11 +28,12 @@ import {
   configureTrustProxy 
 } from './middleware.js';
 import { defaultTokenManager } from './token-manager.js';
-import { addSSEClient } from './chat-relay.js';
+import { addSSEClient, activateRelay, getRelayHistory } from './chat-relay.js';
 import { addAlertSSEClient, broadcastAlert } from './alert-relay.js';
 import { ALERT_TYPES } from './shared/alertTypes.js';
 import type { AlertType } from './shared/alertTypes.js';
 import settingsRouter from './settings.js';
+import { listAuthenticatedUsers } from './storage.js';
 
 const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
 
@@ -228,6 +229,24 @@ try {
   );
 
   /**
+   * Chat history endpoint
+   * Returns buffered recent chat messages for initial overlay hydration.
+   */
+  app.get('/api/chat/history',
+    validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
+    async (req: Request, res: Response) => {
+      const { userData } = req;
+      if (!userData) {
+        res.status(401).json({ error: 'User data not found' });
+        return;
+      }
+
+      const messages = await getRelayHistory(userData.username);
+      res.json({ messages });
+    }
+  );
+
+  /**
    * Alerts SSE stream endpoint
    * Streams real-time alert events (follow, sub, hype-train, etc.) to overlay clients
    */
@@ -363,6 +382,14 @@ try {
       console.log('🛠️ Development mode - CORS and logging enabled');
     }
   });
+
+  // Keep chat relays alive for authenticated users so history keeps accumulating
+  // even while no overlay is currently connected.
+  for (const username of listAuthenticatedUsers()) {
+    activateRelay(username).catch((error) => {
+      console.error(`❌ Failed to activate chat relay for ${username}:`, error);
+    });
+  }
 
 } catch (error) {
   console.error('❌ Server startup failed:', error);

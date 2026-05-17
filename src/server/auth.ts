@@ -2,6 +2,7 @@ import express, { type Request, type Response, Router } from 'express';
 import { randomUUID } from 'crypto';
 import { exchangeCode, type AccessToken } from '@twurple/auth';
 import { storeUserTokens, getUserByOverlayToken, getUserTokens } from './storage.js';
+import { activateRelay } from './chat-relay.js';
 
 // Extend Express Session interface for OAuth state
 declare module 'express-session' {
@@ -219,6 +220,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       twitchUserId: user.id,
       displayName: user.display_name
     });
+    await activateRelay(username);
 
     console.log(`✅ OAuth completed for ${username}`);
 

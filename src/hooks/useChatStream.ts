@@ -51,15 +51,31 @@ export function useChatStream() {
       }
       reconnectAttemptsRef.current++;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
+      reconnectTimerRef.current = setTimeout(() => {
+        void connect();
+      }, RECONNECT_DELAY_MS);
     }
 
-    function connect() {
+    async function connect() {
       // Clear messages from any previous connection to avoid cross-session leakage
       setMessages([]);
       setIsConnecting(true);
       // Clean up previous connection
       eventSourceRef.current?.close();
+
+      try {
+        const historyResponse = await fetch(`/api/chat/history?token=${encodeURIComponent(token)}`);
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json() as { messages: Array<TwitchChatMessage & { timestamp: string }> };
+          const historyMessages = historyData.messages.map((data) => ({
+            ...data,
+            timestamp: new Date(data.timestamp),
+          }));
+          setMessages(historyMessages.length > maxMessages ? historyMessages.slice(-maxMessages) : historyMessages);
+        }
+      } catch {
+        // Ignore history load errors and continue with real-time stream.
+      }
 
       const url = `/api/chat/stream?token=${encodeURIComponent(token)}`;
       const es = new EventSource(url);
@@ -122,7 +138,7 @@ export function useChatStream() {
       });
     }
 
-    connect();
+    void connect();
 
     return () => {
       eventSourceRef.current?.close();
