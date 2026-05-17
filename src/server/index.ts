@@ -36,9 +36,20 @@ import type { AlertType } from './shared/alertTypes.js';
 import settingsRouter from './settings.js';
 
 const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
-const CUSTOM_ALERT_SENDER = 'silmassan';
-const DEFAULT_CUSTOM_ALERT_TARGET = 'toucotop';
+const OVERLAY_ADMIN = process.env.OVERLAY_ADMIN?.trim().toLowerCase() || null;
 const TWITCH_USERNAME_REGEX = /^[a-z0-9_]{3,25}$/;
+
+function canSendTargetedCustomAlerts(username: string): boolean {
+  if (!OVERLAY_ADMIN) return false;
+  return username.toLowerCase() === OVERLAY_ADMIN;
+}
+
+function getDefaultCustomTarget(targets: string[]): string | null {
+  if (targets.length === 0) return null;
+  if (!OVERLAY_ADMIN) return targets[0] ?? null;
+  const firstNonAdmin = targets.find((t) => t !== OVERLAY_ADMIN);
+  return firstNonAdmin ?? null;
+}
 
 function listValidCustomTargets(): string[] {
   const now = Date.now();
@@ -318,7 +329,8 @@ try {
 
   /**
    * Restricted custom alert targets endpoint
-   * Returns all currently authenticated usernames so silmassan can pick one.
+    * Returns whether caller can send targeted custom alerts and, when allowed,
+    * the list of currently valid authenticated target usernames.
    */
   app.get('/api/alerts/custom-targets', (req: Request, res: Response) => {
     const token = typeof req.query.token === 'string' ? req.query.token : '';
@@ -333,24 +345,20 @@ try {
       return;
     }
 
-    if (userData.username !== CUSTOM_ALERT_SENDER) {
-      res.status(403).json({ error: 'This endpoint is restricted to silmassan' });
-      return;
-    }
-
-    const targets = listValidCustomTargets();
+    const canSend = canSendTargetedCustomAlerts(userData.username);
+    const targets = canSend ? listValidCustomTargets() : [];
+    const defaultTarget = getDefaultCustomTarget(targets);
 
     res.json({
+      canSendTargetedCustomAlerts: canSend,
       targets,
-      defaultTarget: targets.includes(DEFAULT_CUSTOM_ALERT_TARGET)
-        ? DEFAULT_CUSTOM_ALERT_TARGET
-        : (targets[0] ?? null),
+      defaultTarget,
     });
   });
 
   /**
    * Restricted custom alert endpoint
-   * Only the silmassan account can push a custom alert into a selected overlay channel.
+    * Only the configured privileged account can push a custom alert into a selected overlay channel.
    */
   app.post('/api/alerts/custom',
     validateJsonBody(['token', 'title']),
@@ -374,8 +382,8 @@ try {
         return;
       }
 
-      if (userData.username !== CUSTOM_ALERT_SENDER) {
-        res.status(403).json({ error: 'This endpoint is restricted to silmassan' });
+      if (!canSendTargetedCustomAlerts(userData.username)) {
+        res.status(403).json({ error: 'This endpoint is restricted to the configured privileged user' });
         return;
       }
 
@@ -389,15 +397,23 @@ try {
         return;
       }
 
+      const validTargets = listValidCustomTargets();
+      const defaultTarget = getDefaultCustomTarget(validTargets);
       const rawTarget = typeof targetUsername === 'string'
         ? targetUsername.trim().toLowerCase()
-        : DEFAULT_CUSTOM_ALERT_TARGET;
+        : (defaultTarget ?? '');
+
+      if (!rawTarget) {
+        res.status(400).json({ error: 'No valid target user available' });
+        return;
+      }
+
       if (!TWITCH_USERNAME_REGEX.test(rawTarget)) {
         res.status(400).json({ error: 'targetUsername is invalid' });
         return;
       }
 
-      const allowedTargets = new Set(listValidCustomTargets());
+      const allowedTargets = new Set(validTargets);
       if (!allowedTargets.has(rawTarget)) {
         res.status(400).json({ error: 'targetUsername not found in authenticated users' });
         return;

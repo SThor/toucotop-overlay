@@ -46,12 +46,13 @@ export default function AuthSuccessPage() {
   const showSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [testAlertStatus, setTestAlertStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
   const testAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [customAlertTitle, setCustomAlertTitle] = useState('Message from silmassan');
+  const [customAlertTitle, setCustomAlertTitle] = useState('Admin message');
   const [customAlertMessage, setCustomAlertMessage] = useState('');
   const [customAlertIcon, setCustomAlertIcon] = useState('📣');
   const [customAlertTarget, setCustomAlertTarget] = useState<string | null>('toucotop');
   const [customAlertTargets, setCustomAlertTargets] = useState<string[]>([]);
   const [isLoadingCustomTargets, setIsLoadingCustomTargets] = useState(false);
+  const [canSendTargetedCustomAlert, setCanSendTargetedCustomAlert] = useState(false);
   const [customAlertStatus, setCustomAlertStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
   const customAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Clear pending timers on unmount to avoid setState on an unmounted component
@@ -92,12 +93,29 @@ export default function AuthSuccessPage() {
   }, [overlayToken]);
 
   useEffect(() => {
-    if (authInfo?.username !== 'silmassan' || !overlayToken) return;
+    if (!overlayToken) return;
 
     setIsLoadingCustomTargets(true);
     fetch(`/api/alerts/custom-targets?token=${encodeURIComponent(overlayToken)}`)
-      .then((res) => res.json() as Promise<{ targets?: string[]; defaultTarget?: string | null }>)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('custom-targets request failed');
+        }
+        return res.json() as Promise<{
+          canSendTargetedCustomAlerts?: boolean;
+          targets?: string[];
+          defaultTarget?: string | null;
+        }>;
+      })
       .then((data) => {
+        const canSend = data.canSendTargetedCustomAlerts === true;
+        setCanSendTargetedCustomAlert(canSend);
+        if (!canSend) {
+          setCustomAlertTargets([]);
+          setCustomAlertTarget(null);
+          return;
+        }
+
         const targets = (data.targets ?? []).filter((t) => typeof t === 'string' && t.length > 0);
         setCustomAlertTargets(targets);
         if (data.defaultTarget && targets.includes(data.defaultTarget)) {
@@ -109,11 +127,12 @@ export default function AuthSuccessPage() {
         }
       })
       .catch(() => {
+        setCanSendTargetedCustomAlert(false);
         setCustomAlertTargets([]);
         setCustomAlertTarget(null);
       })
       .finally(() => setIsLoadingCustomTargets(false));
-  }, [authInfo?.username, overlayToken]);
+  }, [overlayToken]);
 
   // Helper for CRT sub-settings: sends only the changed CRT fields so session-only
   // URL overrides in the effective `settings` view are never persisted to the server.
@@ -159,7 +178,6 @@ export default function AuthSuccessPage() {
   const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
-  const canSendTargetedCustomAlert = authInfo?.username === 'silmassan';
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
 
   return (
