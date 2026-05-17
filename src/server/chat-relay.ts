@@ -48,10 +48,15 @@ interface ChannelRelay {
   chatClient: ChatClient;
   clients: Set<SSEClient>;
   cleanupTimer: ReturnType<typeof setTimeout> | null;
+  history: ChatMessagePayload[];
+  keepAliveUntil: number;
+  connectPromise: Promise<void> | null;
 }
 
 const CLEANUP_DELAY_MS = 30_000;
 const KEEPALIVE_INTERVAL_MS = 15_000;
+const MAX_HISTORY_MESSAGES = 100;
+const RELAY_WARMUP_KEEPALIVE_MS = 5 * 60 * 1000;
 // Only extend the overlay token at most once per hour per channel on keepalive
 const KEEPALIVE_EXTEND_DEBOUNCE_MS = 60 * 60 * 1000;
 const keepaliveExtendLastRun = new Map<string, number>();
@@ -93,6 +98,9 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
       clearTimeout(existing.cleanupTimer);
       existing.cleanupTimer = null;
     }
+    if (existing.connectPromise) {
+      await existing.connectPromise;
+    }
     return existing;
   }
 
@@ -104,6 +112,9 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     chatClient,
     clients: new Set(),
     cleanupTimer: null,
+    history: [],
+    keepAliveUntil: 0,
+    connectPromise: null,
   };
 
   // Store early so broadcasts work even during connect
@@ -144,14 +155,21 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
       emotes: emotes.length > 0 ? emotes : undefined,
     };
 
+    relay.history.push(payload);
+    if (relay.history.length > MAX_HISTORY_MESSAGES) {
+      relay.history.shift();
+    }
+
     broadcastToChannel(channel, 'message', payload);
   });
 
   chatClient.onMessageRemove((_chan, messageId) => {
+    relay.history = relay.history.filter((message) => message.id !== messageId);
     broadcastToChannel(channel, 'delete', { messageId });
   });
 
   chatClient.onChatClear(() => {
+    relay.history = [];
     broadcastToChannel(channel, 'clear', {});
   });
 
@@ -159,18 +177,24 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     console.log(`✅ Chat relay connected for channel: ${channel}`);
   });
 
-  chatClient.onDisconnect((_manually, _reason) => {
-    console.log(`❌ Chat relay disconnected for channel: ${channel}`);
+  chatClient.onDisconnect((manually, reason) => {
+    console.log(`❌ Chat relay disconnected for channel: ${channel} (manual=${String(manually)}, reason=${reason ?? 'unknown'})`);
   });
 
-  try {
-    await chatClient.connect();
-  } catch (error) {
-    console.error(`❌ Failed to connect chat relay for channel: ${channel}:`, error);
-    chatClient.quit();
-    channelRelays.delete(channel);
-    throw error;
-  }
+  relay.connectPromise = (async () => {
+    try {
+      await chatClient.connect();
+    } catch (error) {
+      console.error(`❌ Failed to connect chat relay for channel: ${channel}:`, error);
+      chatClient.quit();
+      channelRelays.delete(channel);
+      throw error;
+    } finally {
+      relay.connectPromise = null;
+    }
+  })();
+
+  await relay.connectPromise;
 
   return relay;
 }
@@ -179,13 +203,47 @@ function scheduleCleanup(channel: string): void {
   const relay = channelRelays.get(channel);
   if (!relay || relay.clients.size > 0) return;
 
+  if (relay.cleanupTimer) {
+    clearTimeout(relay.cleanupTimer);
+    relay.cleanupTimer = null;
+  }
+
+  const now = Date.now();
+  const warmupRemainingMs = Math.max(0, relay.keepAliveUntil - now);
+  const cleanupDelayMs = Math.max(CLEANUP_DELAY_MS, warmupRemainingMs);
+
   relay.cleanupTimer = setTimeout(() => {
-    if (relay.clients.size === 0) {
-      console.log(`🗑️ Cleaning up chat relay for channel: ${channel}`);
-      relay.chatClient.quit();
-      channelRelays.delete(channel);
+    const latestRelay = channelRelays.get(channel);
+    if (!latestRelay || latestRelay.clients.size > 0) return;
+
+    if (latestRelay.keepAliveUntil > Date.now()) {
+      scheduleCleanup(channel);
+      return;
     }
-  }, CLEANUP_DELAY_MS);
+
+    console.log(`🗑️ Cleaning up chat relay for channel: ${channel}`);
+    latestRelay.chatClient.quit();
+    channelRelays.delete(channel);
+  }, cleanupDelayMs);
+}
+
+export async function activateRelay(channel: string): Promise<void> {
+  const relay = await getOrCreateRelay(channel);
+  relay.keepAliveUntil = Date.now() + RELAY_WARMUP_KEEPALIVE_MS;
+  if (relay.cleanupTimer) {
+    clearTimeout(relay.cleanupTimer);
+    relay.cleanupTimer = null;
+  }
+
+  if (relay.clients.size === 0) {
+    scheduleCleanup(channel);
+  }
+}
+
+export async function getRelayHistory(channel: string): Promise<ChatMessagePayload[]> {
+  const relay = channelRelays.get(channel);
+  if (!relay) return [];
+  return [...relay.history];
 }
 
 /**
@@ -226,6 +284,7 @@ export function addSSEClient(channel: string, res: Response): void {
       }
 
       relay.clients.add(client);
+      sendSSE(client, 'history', { messages: [...relay.history] });
       sendSSE(client, 'connected', { channel });
 
       const keepalive = setInterval(() => {

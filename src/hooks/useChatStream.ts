@@ -6,6 +6,24 @@ const MAX_MESSAGES = 200;
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
+function isHistoryMessage(item: unknown): item is TwitchChatMessage & { timestamp: string } {
+  if (!item || typeof item !== 'object') return false;
+  const value = item as Record<string, unknown>;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.username === 'string' &&
+    typeof value.displayName === 'string' &&
+    typeof value.message === 'string' &&
+    typeof value.timestamp === 'string' &&
+    Array.isArray(value.badges) &&
+    value.badges.every((badge) => typeof badge === 'string') &&
+    typeof value.isHighlight === 'boolean' &&
+    typeof value.isMod === 'boolean' &&
+    typeof value.isSubscriber === 'boolean' &&
+    typeof value.isVip === 'boolean'
+  );
+}
+
 /**
  * Hook that connects to the server SSE chat stream and returns live messages.
  */
@@ -24,6 +42,10 @@ export function useChatStream() {
   const reconnectAttemptsRef = useRef(0);
 
   const clearMessages = useCallback(() => setMessages([]), []);
+  const clampMessages = useCallback(
+    (next: TwitchChatMessage[]) => (next.length > maxMessages ? next.slice(-maxMessages) : next),
+    [maxMessages],
+  );
 
   useEffect(() => {
     if (!token) {
@@ -51,7 +73,9 @@ export function useChatStream() {
       }
       reconnectAttemptsRef.current++;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
+      reconnectTimerRef.current = setTimeout(() => {
+        void connect();
+      }, RECONNECT_DELAY_MS);
     }
 
     function connect() {
@@ -81,10 +105,26 @@ export function useChatStream() {
           };
           setMessages((prev) => {
             const next = [...prev, msg];
-            return next.length > maxMessages ? next.slice(-maxMessages) : next;
+            return clampMessages(next);
           });
         } catch {
           console.warn('Failed to parse chat message SSE data');
+        }
+      });
+
+      es.addEventListener('history', (e) => {
+        try {
+          const data = JSON.parse(e.data) as { messages?: unknown };
+          const items = Array.isArray(data.messages) ? data.messages : [];
+          const history = items
+            .filter(isHistoryMessage)
+            .map((message) => ({
+              ...message,
+              timestamp: new Date(message.timestamp),
+            }));
+          setMessages(clampMessages(history));
+        } catch {
+          console.warn('Failed to parse chat history SSE data');
         }
       });
 
@@ -128,7 +168,7 @@ export function useChatStream() {
       eventSourceRef.current?.close();
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     };
-  }, [token, maxMessages]);
+  }, [token, clampMessages]);
 
   return { messages, isConnected, isConnecting, error, clearMessages };
 }

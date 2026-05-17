@@ -2,6 +2,7 @@ import express, { type Request, type Response, Router } from 'express';
 import { randomUUID } from 'crypto';
 import { exchangeCode, type AccessToken } from '@twurple/auth';
 import { storeUserTokens, getUserByOverlayToken, getUserTokens } from './storage.js';
+import { activateRelay } from './chat-relay.js';
 import { ensureDefaultEventSubSubscriptions } from './eventsub-handler.js';
 
 // Extend Express Session interface for OAuth state
@@ -219,6 +220,9 @@ router.get('/callback', async (req: Request, res: Response) => {
       expiresAt: expiresAt.toISOString(),
       twitchUserId: user.id,
       displayName: user.display_name
+    });
+    activateRelay(username).catch((relayError) => {
+      console.warn(`⚠️ Could not activate chat relay for ${username}; authentication succeeded and overlay can still connect later.`, relayError);
     });
 
     // Ensure default alert subscriptions exist so follow/sub/etc alerts work
