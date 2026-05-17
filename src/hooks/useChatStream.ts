@@ -66,11 +66,16 @@ export function useChatStream() {
       try {
         const historyResponse = await fetch(`/api/chat/history?token=${encodeURIComponent(token)}`);
         if (historyResponse.ok) {
-          const historyData = await historyResponse.json() as { messages: Array<TwitchChatMessage & { timestamp: string }> };
-          const historyMessages = historyData.messages.map((data) => ({
-            ...data,
-            timestamp: new Date(data.timestamp),
-          }));
+          const historyData = await historyResponse.json() as { messages?: unknown };
+          const historyItems = Array.isArray(historyData.messages) ? historyData.messages : [];
+          const historyMessages = historyItems
+            .filter((item): item is TwitchChatMessage & { timestamp: string } => (
+              !!item && typeof item === 'object' && 'timestamp' in item && typeof item.timestamp === 'string'
+            ))
+            .map((data) => ({
+              ...data,
+              timestamp: new Date(data.timestamp),
+            }));
           setMessages(historyMessages.length > maxMessages ? historyMessages.slice(-maxMessages) : historyMessages);
         }
       } catch {

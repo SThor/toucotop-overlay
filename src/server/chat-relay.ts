@@ -192,7 +192,7 @@ function scheduleCleanup(channel: string): void {
   if (!relay || relay.clients.size > 0 || relay.keepAliveWithoutClients) return;
 
   relay.cleanupTimer = setTimeout(() => {
-    if (relay.clients.size === 0) {
+    if (relay.clients.size === 0 && !relay.keepAliveWithoutClients) {
       console.log(`🗑️ Cleaning up chat relay for channel: ${channel}`);
       relay.chatClient.quit();
       channelRelays.delete(channel);
