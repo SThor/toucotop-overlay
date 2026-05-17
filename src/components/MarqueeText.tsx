@@ -16,12 +16,14 @@ const MarqueeText = ({ text, className }: MarqueeTextProps) => {
   const [overflow, setOverflow] = useState(0);
   const [textWidth, setTextWidth] = useState(0);
 
-  useEffect(() => {
-    const outer = outerRef.current;
-    const inner = innerRef.current;
-    if (!outer || !inner) return;
+  const shouldScroll = overflow > 0;
 
+  useEffect(() => {
     const measure = () => {
+      const outer = outerRef.current;
+      const inner = innerRef.current;
+      if (!outer || !inner) return;
+
       const width = inner.scrollWidth;
       const diff = width - outer.clientWidth;
       setTextWidth(width);
@@ -29,17 +31,22 @@ const MarqueeText = ({ text, className }: MarqueeTextProps) => {
     };
 
     measure();
+
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(measure);
       ro.observe(outer);
       ro.observe(inner);
       return () => ro.disconnect();
     }
+
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [text]);
+  }, [text, shouldScroll]);
 
-  const shouldScroll = overflow > 0;
   const gap = 40;
   const scrollDistance = textWidth + gap;
   const duration = shouldScroll ? Math.max(8, scrollDistance / 28) : 0; // ~28px/s, min 8s
