@@ -171,8 +171,8 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     console.log(`✅ Chat relay connected for channel: ${channel}`);
   });
 
-  chatClient.onDisconnect(() => {
-    console.log(`❌ Chat relay disconnected for channel: ${channel}`);
+  chatClient.onDisconnect((manually, reason) => {
+    console.log(`❌ Chat relay disconnected for channel: ${channel} (manual=${String(manually)}, reason=${reason ?? 'unknown'})`);
   });
 
   try {

@@ -221,7 +221,7 @@ try {
     (req: Request, res: Response) => {
       const { userData } = req;
       if (!userData) {
-        res.status(401).json({ error: 'User data not found' });
+        res.status(500).json({ error: 'Internal error: authentication data missing' });
         return;
       }
       addSSEClient(userData.username, res);

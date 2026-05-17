@@ -97,6 +97,8 @@ export function useChatStream() {
               timestamp: new Date(data.timestamp),
             }));
           setMessages(clampMessages(historyMessages));
+        } else {
+          console.warn(`Chat history preload failed with status ${historyResponse.status}`);
         }
       } catch {
         // Ignore history load errors and continue with real-time stream.
