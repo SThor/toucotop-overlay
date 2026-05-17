@@ -2,6 +2,7 @@ import express, { type Request, type Response, Router } from 'express';
 import { randomUUID } from 'crypto';
 import { exchangeCode, type AccessToken } from '@twurple/auth';
 import { storeUserTokens, getUserByOverlayToken, getUserTokens } from './storage.js';
+import { ensureDefaultEventSubSubscriptions } from './eventsub-handler.js';
 
 // Extend Express Session interface for OAuth state
 declare module 'express-session' {
@@ -219,6 +220,17 @@ router.get('/callback', async (req: Request, res: Response) => {
       twitchUserId: user.id,
       displayName: user.display_name
     });
+
+    // Ensure default alert subscriptions exist so follow/sub/etc alerts work
+    // without requiring a manual call from the demo page.
+    const storedUser = getUserTokens(username);
+    if (storedUser) {
+      try {
+        await ensureDefaultEventSubSubscriptions(req, storedUser);
+      } catch (subscriptionError) {
+        console.warn(`⚠️ Could not auto-provision EventSub subscriptions for ${username}:`, subscriptionError);
+      }
+    }
 
     console.log(`✅ OAuth completed for ${username}`);
 

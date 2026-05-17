@@ -37,7 +37,7 @@ import settingsRouter from './settings.js';
 
 const VALID_ALERT_TYPES: ReadonlySet<AlertType> = new Set(ALERT_TYPES);
 const CUSTOM_ALERT_SENDER = 'silmassan';
-const DEFAULT_CUSTOM_ALERT_TARGET = 'toucotop_';
+const DEFAULT_CUSTOM_ALERT_TARGET = 'toucotop';
 const TWITCH_USERNAME_REGEX = /^[a-z0-9_]{3,25}$/;
 
 function listValidCustomTargets(): string[] {

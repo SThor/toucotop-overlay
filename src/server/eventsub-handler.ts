@@ -19,6 +19,18 @@ const EVENTSUB_ALLOWED_HOSTS = (process.env.EVENTSUB_ALLOWED_HOSTS || '')
   .map(h => h.trim().toLowerCase())
   .filter(Boolean);
 
+const DEFAULT_ALERT_EVENTSUB_TYPES = [
+  'channel.follow',
+  'channel.subscribe',
+  'channel.subscription.message',
+  'channel.subscription.gift',
+  'channel.cheer',
+  'channel.raid',
+  'channel.hype_train.begin',
+  'channel.hype_train.progress',
+  'channel.hype_train.end',
+] as const;
+
 interface AppAccessTokenResponse {
   access_token: string;
   expires_in: number;
@@ -275,6 +287,81 @@ async function getAppAccessToken(): Promise<string> {
   return tokenResponse.access_token;
 }
 
+function buildSubscriptionData(
+  eventType: string,
+  userData: UserData,
+  webhookUrl: string,
+  secret: string,
+): EventSubSubscriptionData {
+  return {
+    type: eventType,
+    version: eventType === 'channel.follow' ? '2' : '1',
+    condition: eventType === 'channel.follow'
+      ? {
+          broadcaster_user_id: userData.twitchUserId,
+          moderator_user_id: userData.twitchUserId,
+        }
+      : {
+          broadcaster_user_id: userData.twitchUserId,
+        },
+    transport: {
+      method: 'webhook',
+      callback: webhookUrl,
+      secret,
+    },
+  };
+}
+
+async function createEventSubSubscription(
+  subscriptionData: EventSubSubscriptionData,
+): Promise<{ ok: boolean; status: number; result: unknown }> {
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  if (!clientId) {
+    throw new Error('TWITCH_CLIENT_ID is not configured');
+  }
+
+  const appAccessToken = await getAppAccessToken();
+  const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${appAccessToken}`,
+      'Client-Id': clientId,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(subscriptionData),
+  });
+
+  const result = await response.json();
+
+  // Twitch returns 409 when the same subscription already exists.
+  if (response.status === 409) {
+    return { ok: true, status: response.status, result };
+  }
+
+  return { ok: response.ok, status: response.status, result };
+}
+
+async function ensureDefaultEventSubSubscriptions(req: Request, userData: UserData): Promise<void> {
+  if (!EVENTSUB_SECRET) {
+    throw new Error('EventSub secret is not configured');
+  }
+
+  const webhookUrl = getEventSubWebhookUrl(req);
+  const results = await Promise.all(
+    DEFAULT_ALERT_EVENTSUB_TYPES.map(async (eventType) => {
+      const subscriptionData = buildSubscriptionData(eventType, userData, webhookUrl, EVENTSUB_SECRET);
+      const createResult = await createEventSubSubscription(subscriptionData);
+      return { eventType, ...createResult };
+    }),
+  );
+
+  for (const result of results) {
+    if (!result.ok) {
+      console.warn(`⚠️ EventSub ensure failed for ${result.eventType}: status ${result.status}`);
+    }
+  }
+}
+
 /**
  * Handle EventSub webhook requests
  */
@@ -472,44 +559,10 @@ async function handleEventSubSubscription(
   }
 
   try {
-    const clientId = process.env.TWITCH_CLIENT_ID;
-    if (!clientId) {
-      return res.status(500).json({ error: 'TWITCH_CLIENT_ID is not configured' });
-    }
-
     const webhookUrl = getEventSubWebhookUrl(req);
-    const appAccessToken = await getAppAccessToken();
-    
-    const subscriptionData: EventSubSubscriptionData = {
-      type: eventType,
-      version: eventType === 'channel.follow' ? '2' : '1',
-      condition: eventType === 'channel.follow'
-        ? {
-            broadcaster_user_id: userData.twitchUserId,
-            moderator_user_id: userData.twitchUserId,
-          }
-        : {
-            broadcaster_user_id: userData.twitchUserId,
-          },
-      transport: {
-        method: 'webhook',
-        callback: webhookUrl,
-        secret: EVENTSUB_SECRET
-      }
-    };
-
-    const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${appAccessToken}`,
-        'Client-Id': clientId,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(subscriptionData)
-    });
-
-    const result = await response.json();
-    return res.status(response.status).json(result);
+    const subscriptionData = buildSubscriptionData(eventType, userData, webhookUrl, EVENTSUB_SECRET);
+    const createResult = await createEventSubSubscription(subscriptionData);
+    return res.status(createResult.status).json(createResult.result);
   } catch (error) {
     console.error('EventSub subscription error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -550,6 +603,7 @@ export {
   handleEventSubWebhook,
   handleEventSubSubscription,
   handleEventSubEventsDeletion,
+  ensureDefaultEventSubSubscriptions,
   defaultEventStore,
   // Export constants for use by main server
   EVENTSUB_SECRET
