@@ -140,9 +140,9 @@ const BarOverlayContent = () => {
       { key: 'clock', enabled: settings.barSections.clock, minWidth: 114, dropRank: 3 },
       { key: 'duration', enabled: settings.barSections.duration, minWidth: 132, dropRank: 4 },
       { key: 'title', enabled: settings.barSections.title, minWidth: 148, dropRank: 0, keep: true },
-      { key: 'viewers', enabled: settings.barSections.stats, minWidth: 92, dropRank: 2 },
-      { key: 'followers', enabled: settings.barSections.stats, minWidth: 92, dropRank: 5 },
-      { key: 'subscribers', enabled: settings.barSections.stats, minWidth: 102, dropRank: 6 },
+      { key: 'viewers', enabled: settings.barSections.viewers, minWidth: 92, dropRank: 2 },
+      { key: 'followers', enabled: settings.barSections.followers, minWidth: 92, dropRank: 5 },
+      { key: 'subscribers', enabled: settings.barSections.subscribers, minWidth: 102, dropRank: 6 },
       { key: 'recentFollower', enabled: settings.barSections.recentFollower && !!twitch.lastFollower, minWidth: 144, dropRank: 1 },
       { key: 'recentSub', enabled: settings.barSections.recentSub && !!twitch.lastSubscriber, minWidth: 144, dropRank: 7 },
     ];
@@ -179,7 +179,9 @@ const BarOverlayContent = () => {
     settings.barSections.clock,
     settings.barSections.duration,
     settings.barSections.title,
-    settings.barSections.stats,
+    settings.barSections.viewers,
+    settings.barSections.followers,
+    settings.barSections.subscribers,
     settings.barSections.recentFollower,
     settings.barSections.recentSub,
     twitch.lastFollower,
@@ -238,7 +240,7 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.stats && visibleItems.has('viewers')) sections.push(
+        if (sec.viewers && visibleItems.has('viewers')) sections.push(
           <div key="viewers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">👥</div>
@@ -252,7 +254,7 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.stats && visibleItems.has('followers')) sections.push(
+        if (sec.followers && visibleItems.has('followers')) sections.push(
           <div key="followers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">❤️</div>
@@ -264,7 +266,7 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.stats && visibleItems.has('subscribers')) sections.push(
+        if (sec.subscribers && visibleItems.has('subscribers')) sections.push(
           <div key="subscribers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">⭐</div>

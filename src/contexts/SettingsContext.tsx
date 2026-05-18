@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { defaultOverlaySettings, type OverlaySettings } from '../server/shared/overlaySettings';
+import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings } from '../server/shared/overlaySettings';
 
 // Full settings including auth token (kept for backwards compat with consumers)
 export interface Settings extends OverlaySettings {
@@ -159,8 +159,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         ...(cached.perOverlayFontSize ?? {}),
       },
       barSections: {
-        ...defaultOverlaySettings.barSections,
-        ...(cached.barSections ?? {}),
+        ...normalizeBarSections(cached.barSections),
       },
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
@@ -245,7 +244,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           const merged: OverlaySettings = {
             ...defaultOverlaySettings,
             ...fetched,
-            barSections: { ...defaultOverlaySettings.barSections, ...(fetched.barSections ?? {}) },
+            barSections: normalizeBarSections(fetched.barSections),
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,
               ...(fetched.themeSettings ?? {}),

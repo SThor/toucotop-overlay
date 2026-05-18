@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // in the Dockerfile so the path always matches the Docker volume mount point.
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
@@ -99,6 +99,7 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlaySettings: {
       ...defaultOverlaySettings,
       ...(existingData?.overlaySettings ?? {}),
+      barSections: normalizeBarSections(existingData?.overlaySettings?.barSections),
       perOverlayOpacity: {
         ...defaultOverlaySettings.perOverlayOpacity,
         ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
@@ -250,6 +251,7 @@ export function updateUserSettings(username: string, settings: Partial<OverlaySe
       ...defaultOverlaySettings,
       ...base,
       ...settings,
+      barSections: normalizeBarSections(settings.barSections ?? base.barSections),
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {

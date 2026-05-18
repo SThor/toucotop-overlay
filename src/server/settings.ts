@@ -9,6 +9,7 @@
 
 import express, { type Request, type Response, Router } from 'express';
 import { getUserTokens, updateUserSettings, defaultOverlaySettings, type OverlaySettings } from './storage.js';
+import { normalizeBarSections } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
 
@@ -25,7 +26,7 @@ router.get('/', (req: Request, res: Response) => {
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
-    barSections: { ...defaultOverlaySettings.barSections, ...(raw.barSections ?? {}) },
+    barSections: normalizeBarSections(raw.barSections),
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -116,7 +117,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
       errors.push('barSections must be an object');
     } else {
       const sections: Partial<OverlaySettings['barSections']> = {};
-      for (const key of ['clock', 'duration', 'title', 'stats', 'recentFollower', 'recentSub'] as const) {
+      for (const key of ['clock', 'duration', 'title', 'stats', 'viewers', 'followers', 'subscribers', 'recentFollower', 'recentSub'] as const) {
         if (key in v) {
           const val = (v as unknown as Record<string, unknown>)[key];
           if (typeof val !== 'boolean') {
@@ -126,7 +127,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
           }
         }
       }
-      if (errors.length === 0) patch.barSections = { ...defaultOverlaySettings.barSections, ...sections };
+      if (errors.length === 0) patch.barSections = normalizeBarSections(sections);
     }
   }
 

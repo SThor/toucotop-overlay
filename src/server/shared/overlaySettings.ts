@@ -12,9 +12,46 @@ export interface BarSections {
   clock: boolean;
   duration: boolean;
   title: boolean;
+  /** Legacy aggregate toggle kept for backward compatibility with older saved settings. */
   stats: boolean;
+  viewers: boolean;
+  followers: boolean;
+  subscribers: boolean;
   recentFollower: boolean;
   recentSub: boolean;
+}
+
+const DEFAULT_BAR_SECTIONS: BarSections = {
+  clock: true,
+  duration: true,
+  title: true,
+  stats: true,
+  viewers: true,
+  followers: true,
+  subscribers: true,
+  recentFollower: true,
+  recentSub: true,
+};
+
+export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSections {
+  const src = raw ?? {};
+  const legacyStats = typeof src.stats === 'boolean' ? src.stats : undefined;
+
+  const viewers = typeof src.viewers === 'boolean' ? src.viewers : (legacyStats ?? DEFAULT_BAR_SECTIONS.viewers);
+  const followers = typeof src.followers === 'boolean' ? src.followers : (legacyStats ?? DEFAULT_BAR_SECTIONS.followers);
+  const subscribers = typeof src.subscribers === 'boolean' ? src.subscribers : (legacyStats ?? DEFAULT_BAR_SECTIONS.subscribers);
+
+  return {
+    clock: typeof src.clock === 'boolean' ? src.clock : DEFAULT_BAR_SECTIONS.clock,
+    duration: typeof src.duration === 'boolean' ? src.duration : DEFAULT_BAR_SECTIONS.duration,
+    title: typeof src.title === 'boolean' ? src.title : DEFAULT_BAR_SECTIONS.title,
+    stats: typeof src.stats === 'boolean' ? src.stats : (viewers || followers || subscribers),
+    viewers,
+    followers,
+    subscribers,
+    recentFollower: typeof src.recentFollower === 'boolean' ? src.recentFollower : DEFAULT_BAR_SECTIONS.recentFollower,
+    recentSub: typeof src.recentSub === 'boolean' ? src.recentSub : DEFAULT_BAR_SECTIONS.recentSub,
+  };
 }
 
 export interface OverlaySettings {
@@ -53,14 +90,7 @@ export const defaultOverlaySettings: OverlaySettings = {
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
   barFloating: true,
-  barSections: {
-    clock: true,
-    duration: true,
-    title: true,
-    stats: true,
-    recentFollower: true,
-    recentSub: true,
-  },
+  barSections: { ...DEFAULT_BAR_SECTIONS },
   theme: 'crt',
   themeSettings: {
     crt: {
