@@ -286,7 +286,10 @@ const BarOverlayContent = () => {
                 <div className="bar-recent-icon" aria-hidden="true">❤️</div>
                 <div className="bar-recent-content">
                   <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
-                  <div className="bar-recent-label">Last Follow {formatRelativeTime(twitch.lastFollower.followDate)}</div>
+                  <MarqueeText
+                    className="bar-recent-label"
+                    text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`}
+                  />
                 </div>
               </div>
             )}
@@ -295,10 +298,10 @@ const BarOverlayContent = () => {
                 <div className="bar-recent-icon" aria-hidden="true">⭐</div>
                 <div className="bar-recent-content">
                   <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
-                  <div className="bar-recent-label">
-                    Last Sub{twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}
-                    {twitch.lastSubscriber.isGift && ' (Gift)'}
-                  </div>
+                  <MarqueeText
+                    className="bar-recent-label"
+                    text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
+                  />
                 </div>
               </div>
             )}

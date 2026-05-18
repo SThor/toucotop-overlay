@@ -237,6 +237,9 @@
   font-size: 0.6em;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  width: 100%;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 /* CRT Effects specific to bar overlay */
