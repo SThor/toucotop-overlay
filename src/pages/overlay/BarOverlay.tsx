@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
@@ -11,7 +11,9 @@ const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [overlayWidth, setOverlayWidth] = useState(0);
   const [newFollowerAnimation, setNewFollowerAnimation] = useState(false);
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
   const [prevFollower, setPrevFollower] = useState<string | null>(null);
@@ -30,6 +32,28 @@ const BarOverlayContent = () => {
   useEffect(() => {
     document.body.classList.add('overlay-mode');
     return () => document.body.classList.remove('overlay-mode');
+  }, []);
+
+  // Track rendered width so lower-priority items can be hidden as space shrinks.
+  useEffect(() => {
+    const measure = () => {
+      const nextWidth = overlayRef.current?.clientWidth ?? 0;
+      setOverlayWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+    };
+
+    measure();
+
+    const node = overlayRef.current;
+    if (!node) return;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(measure);
+      ro.observe(node);
+      return () => ro.disconnect();
+    }
+
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, []);
 
   // TwitchContext handles connection automatically - no manual connection needed
@@ -101,10 +125,62 @@ const BarOverlayContent = () => {
     return `${days}d ago`;
   };
 
+  const visibleItems = useMemo(() => {
+    type ItemKey = 'clock' | 'duration' | 'title' | 'stats' | 'recentFollower' | 'recentSub';
+
+    const config: Array<{ key: ItemKey; enabled: boolean; minWidth: number; dropRank: number; keep?: boolean }> = [
+      { key: 'clock', enabled: settings.barSections.clock, minWidth: 114, dropRank: 3 },
+      { key: 'duration', enabled: settings.barSections.duration, minWidth: 132, dropRank: 4 },
+      { key: 'title', enabled: settings.barSections.title, minWidth: 220, dropRank: 0, keep: true },
+      { key: 'stats', enabled: settings.barSections.stats, minWidth: 232, dropRank: 2 },
+      { key: 'recentFollower', enabled: settings.barSections.recentFollower && !!twitch.lastFollower, minWidth: 214, dropRank: 1 },
+      { key: 'recentSub', enabled: settings.barSections.recentSub && !!twitch.lastSubscriber, minWidth: 214, dropRank: 5 },
+    ];
+
+    const active = config.filter((item) => item.enabled);
+    if (active.length === 0) return new Set<ItemKey>();
+
+    // On first render before measurement, keep all enabled sections.
+    if (overlayWidth <= 0) return new Set<ItemKey>(active.map((item) => item.key));
+
+    // Reserve a little room for dividers and section gaps.
+    const dividerBudget = Math.max(0, active.length - 1) * 16;
+    const available = Math.max(0, overlayWidth - 24);
+    let total = active.reduce((sum, item) => sum + item.minWidth, 0) + dividerBudget;
+    const keep = new Set<ItemKey>(active.map((item) => item.key));
+
+    const droppable = [...active]
+      .filter((item) => !item.keep)
+      .sort((a, b) => b.dropRank - a.dropRank);
+
+    for (const item of droppable) {
+      if (total <= available) break;
+      if (!keep.has(item.key)) continue;
+      keep.delete(item.key);
+      total -= item.minWidth + 16;
+    }
+
+    // Always keep at least one item visible.
+    if (keep.size === 0 && active[0]) keep.add(active[0].key);
+
+    return keep;
+  }, [
+    overlayWidth,
+    settings.barSections.clock,
+    settings.barSections.duration,
+    settings.barSections.title,
+    settings.barSections.stats,
+    settings.barSections.recentFollower,
+    settings.barSections.recentSub,
+    twitch.lastFollower,
+    twitch.lastSubscriber,
+  ]);
+
   if (isLoadingSettings) return null;
 
   return (
     <div
+      ref={overlayRef}
       className={`bar-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${!settings.barFloating ? ' full-width' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
@@ -121,8 +197,8 @@ const BarOverlayContent = () => {
         const sec = settings.barSections;
         const sections: React.ReactNode[] = [];
 
-        if (sec.clock) sections.push(
-          <div key="clock" className="bar-section">
+        if (sec.clock && visibleItems.has('clock')) sections.push(
+          <div key="clock" className="bar-section bar-section-clock">
             <div className="bar-stat-content">
               <div className="bar-time-value">{formatTime(currentTime)}</div>
               <div className="bar-time-label">Current Time</div>
@@ -130,8 +206,8 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.duration) sections.push(
-          <div key="duration" className="bar-section">
+        if (sec.duration && visibleItems.has('duration')) sections.push(
+          <div key="duration" className="bar-section bar-section-duration">
             <div className="bar-stat-content">
               <div className="bar-time-value">{formatStreamDuration()}</div>
               <div className="bar-time-label">Stream Duration</div>
@@ -139,7 +215,7 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.title) sections.push(
+        if (sec.title && visibleItems.has('title')) sections.push(
           <div key="title" className="bar-section bar-stream-section">
             <MarqueeText
               className="bar-stream-title"
@@ -152,7 +228,7 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.stats) sections.push(
+        if (sec.stats && visibleItems.has('stats')) sections.push(
           <div key="stats" className="bar-section bar-stats-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">👥</div>
@@ -173,10 +249,12 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        const hasRecent = sec.recentFollower || sec.recentSub;
+        const showRecentFollower = sec.recentFollower && !!twitch.lastFollower && visibleItems.has('recentFollower');
+        const showRecentSub = sec.recentSub && !!twitch.lastSubscriber && visibleItems.has('recentSub');
+        const hasRecent = showRecentFollower || showRecentSub;
         if (hasRecent) sections.push(
           <div key="recent" className="bar-section bar-recent-section">
-            {sec.recentFollower && twitch.lastFollower && (
+            {showRecentFollower && twitch.lastFollower && (
               <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
                 <div className="bar-recent-icon" aria-hidden="true">❤️</div>
                 <div className="bar-recent-content">
@@ -185,7 +263,7 @@ const BarOverlayContent = () => {
                 </div>
               </div>
             )}
-            {sec.recentSub && twitch.lastSubscriber && (
+            {showRecentSub && twitch.lastSubscriber && (
               <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
                 <div className="bar-recent-icon" aria-hidden="true">⭐</div>
                 <div className="bar-recent-content">
