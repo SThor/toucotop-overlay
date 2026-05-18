@@ -100,7 +100,7 @@
   opacity: 0.6;
 }
 
-.bar-stats-section {
+.bar-stat-section {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -156,7 +156,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  flex: 1 1 220px;
+  flex: 1 1 148px;
   min-width: 0;
   max-width: none;
 }
@@ -180,9 +180,9 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  flex: 0 1 360px;
+  flex: 0 1 240px;
   min-width: 0;
-  max-width: 360px;
+  max-width: 240px;
 }
 
 .bar-recent-item {
@@ -393,13 +393,13 @@
     padding: 0.4rem 0.5rem;
   }
 
-  .bar-stats-section {
+  .bar-stat-section {
     gap: 0.5rem;
   }
 
   .bar-recent-section {
     gap: 0.45rem;
-    max-width: 260px;
+    max-width: 160px;
   }
 
   .bar-recent-item {
@@ -411,6 +411,6 @@
   }
 
   .bar-stream-section {
-    flex: 1 1 160px;
+    flex: 1 1 110px;
   }
 }

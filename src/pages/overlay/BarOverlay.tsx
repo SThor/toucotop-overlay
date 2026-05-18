@@ -126,15 +126,25 @@ const BarOverlayContent = () => {
   };
 
   const visibleItems = useMemo(() => {
-    type ItemKey = 'clock' | 'duration' | 'title' | 'stats' | 'recentFollower' | 'recentSub';
+    type ItemKey =
+      | 'clock'
+      | 'duration'
+      | 'title'
+      | 'viewers'
+      | 'followers'
+      | 'subscribers'
+      | 'recentFollower'
+      | 'recentSub';
 
     const config: Array<{ key: ItemKey; enabled: boolean; minWidth: number; dropRank: number; keep?: boolean }> = [
       { key: 'clock', enabled: settings.barSections.clock, minWidth: 114, dropRank: 3 },
       { key: 'duration', enabled: settings.barSections.duration, minWidth: 132, dropRank: 4 },
-      { key: 'title', enabled: settings.barSections.title, minWidth: 220, dropRank: 0, keep: true },
-      { key: 'stats', enabled: settings.barSections.stats, minWidth: 232, dropRank: 2 },
-      { key: 'recentFollower', enabled: settings.barSections.recentFollower && !!twitch.lastFollower, minWidth: 214, dropRank: 1 },
-      { key: 'recentSub', enabled: settings.barSections.recentSub && !!twitch.lastSubscriber, minWidth: 214, dropRank: 5 },
+      { key: 'title', enabled: settings.barSections.title, minWidth: 148, dropRank: 0, keep: true },
+      { key: 'viewers', enabled: settings.barSections.stats, minWidth: 92, dropRank: 2 },
+      { key: 'followers', enabled: settings.barSections.stats, minWidth: 92, dropRank: 5 },
+      { key: 'subscribers', enabled: settings.barSections.stats, minWidth: 102, dropRank: 6 },
+      { key: 'recentFollower', enabled: settings.barSections.recentFollower && !!twitch.lastFollower, minWidth: 144, dropRank: 1 },
+      { key: 'recentSub', enabled: settings.barSections.recentSub && !!twitch.lastSubscriber, minWidth: 144, dropRank: 7 },
     ];
 
     const active = config.filter((item) => item.enabled);
@@ -228,8 +238,8 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.stats && visibleItems.has('stats')) sections.push(
-          <div key="stats" className="bar-section bar-stats-section">
+        if (sec.stats && visibleItems.has('viewers')) sections.push(
+          <div key="viewers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">👥</div>
               <div className="bar-stat-content">
@@ -239,11 +249,28 @@ const BarOverlayContent = () => {
                 <div className="bar-stat-label">Viewers</div>
               </div>
             </div>
+          </div>
+        );
+
+        if (sec.stats && visibleItems.has('followers')) sections.push(
+          <div key="followers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">❤️</div>
               <div className="bar-stat-content">
                 <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
                 <div className="bar-stat-label">Followers</div>
+              </div>
+            </div>
+          </div>
+        );
+
+        if (sec.stats && visibleItems.has('subscribers')) sections.push(
+          <div key="subscribers" className="bar-section bar-stat-section">
+            <div className="bar-stat-item">
+              <div className="bar-stat-icon" aria-hidden="true">⭐</div>
+              <div className="bar-stat-content">
+                <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
+                <div className="bar-stat-label">Subscribers</div>
               </div>
             </div>
           </div>

@@ -392,7 +392,7 @@ export default function AuthSuccessPage() {
                       ['clock', 'Current Time'],
                       ['duration', 'Stream Duration'],
                       ['title', 'Stream Title / Category'],
-                      ['stats', 'Viewers & Followers'],
+                      ['stats', 'Stream Stats (Viewers / Followers / Subscribers)'],
                       ['recentFollower', 'Last Follower'],
                       ['recentSub', 'Last Subscriber'],
                     ] as const
