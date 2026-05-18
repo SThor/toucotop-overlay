@@ -119,6 +119,8 @@
 .bar-overlay.crt-active .bar-stat-item {
   background: transparent;
   border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .bar-overlay.crt-active .bar-stat-item:hover {
