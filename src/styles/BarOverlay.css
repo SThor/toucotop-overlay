@@ -117,14 +117,14 @@
 }
 
 .bar-overlay.crt-active .bar-stat-item {
-  background: rgba(var(--MainRGBA), 0.1);
-  border: 1px solid rgba(var(--MainRGBA), 0.3);
+  background: transparent;
+  border: none;
 }
 
 .bar-overlay.crt-active .bar-stat-item:hover {
-  background: rgba(var(--MainRGBA), 0.2);
-  border-color: var(--Main);
-  transform: translateY(-1px);
+  background: transparent;
+  border: none;
+  transform: none;
 }
 
 .bar-stat-icon {
