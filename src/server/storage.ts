@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // in the Dockerfile so the path always matches the Docker volume mount point.
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, normalizeBarSections, type BarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
@@ -256,18 +256,7 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
       const patchBarSections = settings.barSections;
       if (!patchBarSections) return baseBarSections;
 
-      const nextBarSections: Partial<BarSections> = {
-        ...baseBarSections,
-        ...patchBarSections,
-      };
-
-      if ('stats' in patchBarSections) {
-        if (!('viewers' in patchBarSections)) nextBarSections.viewers = patchBarSections.stats;
-        if (!('followers' in patchBarSections)) nextBarSections.followers = patchBarSections.stats;
-        if (!('subscribers' in patchBarSections)) nextBarSections.subscribers = patchBarSections.stats;
-      }
-
-      return normalizeBarSections(nextBarSections);
+      return normalizeBarSections({ ...baseBarSections, ...patchBarSections });
     })();
 
     const merged: OverlaySettings = {
