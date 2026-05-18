@@ -170,6 +170,8 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1 1 260px;
+  min-width: 0;
 }
 
 .bar-recent-item {
@@ -177,7 +179,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 1rem;
-  min-width: 120px;
+  min-width: 0;
+  max-width: clamp(180px, 24vw, 320px);
+  flex: 1 1 220px;
   transition: all 0.3s ease;
 }
 
@@ -205,14 +209,16 @@
   flex-direction: column;
   gap: 0.05rem;
   flex: 1;
+  min-width: 0;
 }
 
 .bar-recent-name {
   color: #fff;
   font-size: 0.75em;
   font-weight: 600;
-  max-width: 90px;
-  flex: 0 1 auto;
+  max-width: 100%;
+  width: 100%;
+  flex: 1 1 auto;
 }
 
 .bar-recent-label {
@@ -282,7 +288,7 @@
 .bar-overlay.crt-active .bar-stat-label { color: rgba(var(--LightRGBA), 0.7); }
 .bar-overlay.crt-active .bar-stream-title { color: var(--Light); }
 .bar-overlay.crt-active .bar-stream-category { color: rgba(var(--LightRGBA), 0.7); }
-.bar-overlay.crt-active .bar-recent-item { background: rgba(var(--LightRGBA), 0.05); border: 1px solid rgba(var(--MainRGBA), 0.2); border-radius: 6px; }
+.bar-overlay.crt-active .bar-recent-item { background: transparent; border: 1px solid rgba(var(--MainRGBA), 0.22); border-radius: 6px; }
 .bar-overlay.crt-active .bar-recent-item.new-update { animation: pulseGlow 2s ease-in-out; border-color: var(--Main); background: rgba(var(--MainRGBA), 0.15); }
 .bar-overlay.crt-active .bar-recent-name { color: var(--Light); }
 .bar-overlay.crt-active .bar-recent-label { color: rgba(var(--LightRGBA), 0.6); }
@@ -386,11 +392,12 @@
   }
 
   .bar-recent-item {
-    min-width: 100px;
+    max-width: none;
+    flex: 1 1 140px;
   }
 
   .bar-recent-name {
-    max-width: 70px;
+    max-width: 100%;
   }
 
   .bar-stream-section {
