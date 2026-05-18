@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  min-width: 600px;
+  width: max-content;
   max-width: 95vw;
   z-index: 1000;
   height: 60px;
@@ -158,8 +158,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  flex: 0 0 auto;
+  min-width: 148px;
+  max-width: 320px;
+}
+
+.bar-overlay.full-width .bar-stream-section {
   flex: 1 1 148px;
-  min-width: 0;
   max-width: none;
 }
 
