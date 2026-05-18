@@ -39,24 +39,34 @@ const BarOverlayContent = () => {
     if (isLoadingSettings) return;
 
     const measure = () => {
-      const nextWidth = overlayRef.current?.clientWidth ?? 0;
+      // In floating mode the bar shrinks to fit its content, so measuring the
+      // bar's own clientWidth creates a feedback loop (bar shrinks → less budget
+      // → more items hidden → bar shrinks further). Instead use the viewport
+      // width capped at 95 % as the available budget so items are shown/hidden
+      // based on the maximum space the bar could ever occupy.
+      const nextWidth = settings.barFloating
+        ? window.innerWidth * 0.95
+        : (overlayRef.current?.clientWidth ?? 0);
       setOverlayWidth((prev) => (prev === nextWidth ? prev : nextWidth));
     };
 
     measure();
 
-    const node = overlayRef.current;
-    if (!node) return;
-
-    if (typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(measure);
-      ro.observe(node);
-      return () => ro.disconnect();
+    // Full-width mode: observe the bar element (it fills 100 vw so the bar's
+    // clientWidth is the right budget and changes on window resize).
+    // Floating mode: just listen on window resize so the 95 vw budget updates.
+    if (!settings.barFloating) {
+      const node = overlayRef.current;
+      if (node && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(measure);
+        ro.observe(node);
+        return () => ro.disconnect();
+      }
     }
 
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [isLoadingSettings]);
+  }, [isLoadingSettings, settings.barFloating]);
 
   // TwitchContext handles connection automatically - no manual connection needed
 
@@ -178,6 +188,7 @@ const BarOverlayContent = () => {
     return keep;
   }, [
     overlayWidth,
+    settings.barFloating,
     settings.barSections.clock,
     settings.barSections.duration,
     settings.barSections.title,
