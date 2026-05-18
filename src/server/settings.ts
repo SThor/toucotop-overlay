@@ -12,6 +12,9 @@ import { getUserTokens, updateUserSettings, defaultOverlaySettings, type Overlay
 import { normalizeBarSections } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+  barSections?: Partial<OverlaySettings['barSections']>;
+};
 
 /**
  * GET /api/settings
@@ -48,13 +51,13 @@ router.get('/', (req: Request, res: Response) => {
  * Validates and merges the provided partial settings into the stored settings.
  */
 router.patch('/', express.json(), (req: Request, res: Response) => {
-  const body = req.body as Partial<OverlaySettings>;
+  const body = req.body as OverlaySettingsPatch;
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     res.status(400).json({ error: 'Request body must be a JSON object' });
     return;
   }
 
-  const patch: Partial<OverlaySettings> = {};
+  const patch: OverlaySettingsPatch = {};
   const errors: string[] = [];
 
   if ('overlayOpacity' in body) {
@@ -127,7 +130,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
           }
         }
       }
-      if (errors.length === 0) patch.barSections = normalizeBarSections(sections);
+      if (errors.length === 0) patch.barSections = sections;
     }
   }
 

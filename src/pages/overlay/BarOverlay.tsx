@@ -36,6 +36,8 @@ const BarOverlayContent = () => {
 
   // Track rendered width so lower-priority items can be hidden as space shrinks.
   useEffect(() => {
+    if (isLoadingSettings) return;
+
     const measure = () => {
       const nextWidth = overlayRef.current?.clientWidth ?? 0;
       setOverlayWidth((prev) => (prev === nextWidth ? prev : nextWidth));
@@ -54,7 +56,7 @@ const BarOverlayContent = () => {
 
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, []);
+  }, [isLoadingSettings]);
 
   // TwitchContext handles connection automatically - no manual connection needed
 

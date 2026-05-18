@@ -13,9 +13,13 @@ const __dirname = path.dirname(__filename);
 // in the Dockerfile so the path always matches the Docker volume mount point.
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, normalizeBarSections, type BarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
+
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+  barSections?: Partial<OverlaySettings['barSections']>;
+};
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
 // All auth-critical fields are required; housekeeping fields (username, timestamps, settings) are
@@ -240,18 +244,37 @@ function mergePerOverlay(
  * Update overlay settings for a user identified by username.
  * Returns the fully-merged persisted settings on success, or null on failure.
  */
-export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): OverlaySettings | null {
+export function updateUserSettings(username: string, settings: OverlaySettingsPatch): OverlaySettings | null {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
   if (!fs.existsSync(tokenFile)) return null;
 
   try {
     const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
     const base = data.overlaySettings ?? defaultOverlaySettings;
+    const mergedBarSections = (() => {
+      const baseBarSections = normalizeBarSections(base.barSections);
+      const patchBarSections = settings.barSections;
+      if (!patchBarSections) return baseBarSections;
+
+      const nextBarSections: Partial<BarSections> = {
+        ...baseBarSections,
+        ...patchBarSections,
+      };
+
+      if ('stats' in patchBarSections) {
+        if (!('viewers' in patchBarSections)) nextBarSections.viewers = patchBarSections.stats;
+        if (!('followers' in patchBarSections)) nextBarSections.followers = patchBarSections.stats;
+        if (!('subscribers' in patchBarSections)) nextBarSections.subscribers = patchBarSections.stats;
+      }
+
+      return normalizeBarSections(nextBarSections);
+    })();
+
     const merged: OverlaySettings = {
       ...defaultOverlaySettings,
       ...base,
       ...settings,
-      barSections: normalizeBarSections(settings.barSections ?? base.barSections),
+      barSections: mergedBarSections,
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {
