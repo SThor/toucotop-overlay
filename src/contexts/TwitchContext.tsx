@@ -77,6 +77,7 @@ interface TwitchContextType {
   lastFollower: TwitchFollower | null;
   lastSubscriber: TwitchSubscriber | null;
   followerCount: number;
+  subscriberCount: number;
   clearMessages: () => void;
   getEmoteByName: (name: string) => CachedEmote | undefined;
 }
@@ -148,6 +149,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const [lastFollower, setLastFollower] = useState<TwitchFollower | null>(null);
   const [lastSubscriber, setLastSubscriber] = useState<TwitchSubscriber | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
+  const [subscriberCount, setSubscriberCount] = useState(0);
 
   const [cachedEmotes, setCachedEmotes] = useState<Map<string, CachedEmote>>(new Map());
   const emotesLoadedRef = useRef<string>('');
@@ -205,6 +207,8 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const fetchSubscribers = useCallback(async () => {
     const data = await fetchApi<{ data: TwitchSubscriberData[]; total: number }>('subscribers');
     if (!data) return;
+
+    setSubscriberCount(data.total ?? 0);
 
     if (data.data.length > 0) {
       const s = data.data[0];
@@ -328,6 +332,7 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     lastFollower,
     lastSubscriber,
     followerCount,
+    subscriberCount,
     clearMessages,
     getEmoteByName,
   };

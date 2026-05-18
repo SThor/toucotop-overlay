@@ -13,9 +13,13 @@ const __dirname = path.dirname(__filename);
 // in the Dockerfile so the path always matches the Docker volume mount point.
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
+import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
+
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+  barSections?: Partial<OverlaySettings['barSections']>;
+};
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
 // All auth-critical fields are required; housekeeping fields (username, timestamps, settings) are
@@ -99,6 +103,7 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
     overlaySettings: {
       ...defaultOverlaySettings,
       ...(existingData?.overlaySettings ?? {}),
+      barSections: normalizeBarSections(existingData?.overlaySettings?.barSections),
       perOverlayOpacity: {
         ...defaultOverlaySettings.perOverlayOpacity,
         ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
@@ -239,17 +244,26 @@ function mergePerOverlay(
  * Update overlay settings for a user identified by username.
  * Returns the fully-merged persisted settings on success, or null on failure.
  */
-export function updateUserSettings(username: string, settings: Partial<OverlaySettings>): OverlaySettings | null {
+export function updateUserSettings(username: string, settings: OverlaySettingsPatch): OverlaySettings | null {
   const tokenFile = path.join(TOKENS_DIR, `${username}.json`);
   if (!fs.existsSync(tokenFile)) return null;
 
   try {
     const data: StoredUserData = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
     const base = data.overlaySettings ?? defaultOverlaySettings;
+    const mergedBarSections = (() => {
+      const baseBarSections = normalizeBarSections(base.barSections);
+      const patchBarSections = settings.barSections;
+      if (!patchBarSections) return baseBarSections;
+
+      return normalizeBarSections({ ...baseBarSections, ...patchBarSections });
+    })();
+
     const merged: OverlaySettings = {
       ...defaultOverlaySettings,
       ...base,
       ...settings,
+      barSections: mergedBarSections,
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {

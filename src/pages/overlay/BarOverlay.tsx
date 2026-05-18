@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { TwitchProvider } from '../../contexts/TwitchContext';
 import ThemeBackground from '../../components/ThemeBackground';
@@ -11,7 +11,9 @@ const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [overlayWidth, setOverlayWidth] = useState(0);
   const [newFollowerAnimation, setNewFollowerAnimation] = useState(false);
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
   const [prevFollower, setPrevFollower] = useState<string | null>(null);
@@ -31,6 +33,40 @@ const BarOverlayContent = () => {
     document.body.classList.add('overlay-mode');
     return () => document.body.classList.remove('overlay-mode');
   }, []);
+
+  // Track rendered width so lower-priority items can be hidden as space shrinks.
+  useEffect(() => {
+    if (isLoadingSettings) return;
+
+    const measure = () => {
+      // In floating mode the bar shrinks to fit its content, so measuring the
+      // bar's own clientWidth creates a feedback loop (bar shrinks → less budget
+      // → more items hidden → bar shrinks further). Instead use the viewport
+      // width capped at 95 % as the available budget so items are shown/hidden
+      // based on the maximum space the bar could ever occupy.
+      const nextWidth = settings.barFloating
+        ? window.innerWidth * 0.95
+        : (overlayRef.current?.clientWidth ?? 0);
+      setOverlayWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+    };
+
+    measure();
+
+    // Full-width mode: observe the bar element (it fills 100 vw so the bar's
+    // clientWidth is the right budget and changes on window resize).
+    // Floating mode: just listen on window resize so the 95 vw budget updates.
+    if (!settings.barFloating) {
+      const node = overlayRef.current;
+      if (node && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(measure);
+        ro.observe(node);
+        return () => ro.disconnect();
+      }
+    }
+
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [isLoadingSettings, settings.barFloating]);
 
   // TwitchContext handles connection automatically - no manual connection needed
 
@@ -101,10 +137,75 @@ const BarOverlayContent = () => {
     return `${days}d ago`;
   };
 
+  const visibleItems = useMemo(() => {
+    type ItemKey =
+      | 'clock'
+      | 'duration'
+      | 'title'
+      | 'viewers'
+      | 'followers'
+      | 'subscribers'
+      | 'recentFollower'
+      | 'recentSub';
+
+    const config: Array<{ key: ItemKey; enabled: boolean; minWidth: number; dropRank: number; keep?: boolean }> = [
+      { key: 'clock', enabled: settings.barSections.clock, minWidth: 114, dropRank: 3 },
+      { key: 'duration', enabled: settings.barSections.duration, minWidth: 132, dropRank: 4 },
+      { key: 'title', enabled: settings.barSections.title, minWidth: 148, dropRank: 0, keep: true },
+      { key: 'viewers', enabled: settings.barSections.viewers, minWidth: 92, dropRank: 2 },
+      { key: 'followers', enabled: settings.barSections.followers, minWidth: 92, dropRank: 5 },
+      { key: 'subscribers', enabled: settings.barSections.subscribers, minWidth: 102, dropRank: 6 },
+      { key: 'recentFollower', enabled: settings.barSections.recentFollower && !!twitch.lastFollower, minWidth: 144, dropRank: 1 },
+      { key: 'recentSub', enabled: settings.barSections.recentSub && !!twitch.lastSubscriber, minWidth: 144, dropRank: 7 },
+    ];
+
+    const active = config.filter((item) => item.enabled);
+    if (active.length === 0) return new Set<ItemKey>();
+
+    // On first render before measurement, keep all enabled sections.
+    if (overlayWidth <= 0) return new Set<ItemKey>(active.map((item) => item.key));
+
+    // Reserve a little room for dividers and section gaps.
+    const dividerBudget = Math.max(0, active.length - 1) * 16;
+    const available = Math.max(0, overlayWidth - 24);
+    let total = active.reduce((sum, item) => sum + item.minWidth, 0) + dividerBudget;
+    const keep = new Set<ItemKey>(active.map((item) => item.key));
+
+    const droppable = [...active]
+      .filter((item) => !item.keep)
+      .sort((a, b) => b.dropRank - a.dropRank);
+
+    for (const item of droppable) {
+      if (total <= available) break;
+      if (!keep.has(item.key)) continue;
+      keep.delete(item.key);
+      total -= item.minWidth + 16;
+    }
+
+    // Always keep at least one item visible.
+    if (keep.size === 0 && active[0]) keep.add(active[0].key);
+
+    return keep;
+  }, [
+    overlayWidth,
+    settings.barFloating,
+    settings.barSections.clock,
+    settings.barSections.duration,
+    settings.barSections.title,
+    settings.barSections.viewers,
+    settings.barSections.followers,
+    settings.barSections.subscribers,
+    settings.barSections.recentFollower,
+    settings.barSections.recentSub,
+    twitch.lastFollower,
+    twitch.lastSubscriber,
+  ]);
+
   if (isLoadingSettings) return null;
 
   return (
     <div
+      ref={overlayRef}
       className={`bar-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${!settings.barFloating ? ' full-width' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={{ opacity: settings.perOverlayOpacity?.bar ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.bar ?? settings.fontSize}rem` }}
     >
@@ -121,8 +222,8 @@ const BarOverlayContent = () => {
         const sec = settings.barSections;
         const sections: React.ReactNode[] = [];
 
-        if (sec.clock) sections.push(
-          <div key="clock" className="bar-section">
+        if (sec.clock && visibleItems.has('clock')) sections.push(
+          <div key="clock" className="bar-section bar-section-clock">
             <div className="bar-stat-content">
               <div className="bar-time-value">{formatTime(currentTime)}</div>
               <div className="bar-time-label">Current Time</div>
@@ -130,8 +231,8 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.duration) sections.push(
-          <div key="duration" className="bar-section">
+        if (sec.duration && visibleItems.has('duration')) sections.push(
+          <div key="duration" className="bar-section bar-section-duration">
             <div className="bar-stat-content">
               <div className="bar-time-value">{formatStreamDuration()}</div>
               <div className="bar-time-label">Stream Duration</div>
@@ -139,7 +240,7 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.title) sections.push(
+        if (sec.title && visibleItems.has('title')) sections.push(
           <div key="title" className="bar-section bar-stream-section">
             <MarqueeText
               className="bar-stream-title"
@@ -152,8 +253,8 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        if (sec.stats) sections.push(
-          <div key="stats" className="bar-section bar-stats-section">
+        if (sec.viewers && visibleItems.has('viewers')) sections.push(
+          <div key="viewers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">👥</div>
               <div className="bar-stat-content">
@@ -163,6 +264,11 @@ const BarOverlayContent = () => {
                 <div className="bar-stat-label">Viewers</div>
               </div>
             </div>
+          </div>
+        );
+
+        if (sec.followers && visibleItems.has('followers')) sections.push(
+          <div key="followers" className="bar-section bar-stat-section">
             <div className="bar-stat-item">
               <div className="bar-stat-icon" aria-hidden="true">❤️</div>
               <div className="bar-stat-content">
@@ -173,27 +279,44 @@ const BarOverlayContent = () => {
           </div>
         );
 
-        const hasRecent = sec.recentFollower || sec.recentSub;
+        if (sec.subscribers && visibleItems.has('subscribers')) sections.push(
+          <div key="subscribers" className="bar-section bar-stat-section">
+            <div className="bar-stat-item">
+              <div className="bar-stat-icon" aria-hidden="true">⭐</div>
+              <div className="bar-stat-content">
+                <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
+                <div className="bar-stat-label">Subscribers</div>
+              </div>
+            </div>
+          </div>
+        );
+
+        const showRecentFollower = sec.recentFollower && !!twitch.lastFollower && visibleItems.has('recentFollower');
+        const showRecentSub = sec.recentSub && !!twitch.lastSubscriber && visibleItems.has('recentSub');
+        const hasRecent = showRecentFollower || showRecentSub;
         if (hasRecent) sections.push(
           <div key="recent" className="bar-section bar-recent-section">
-            {sec.recentFollower && twitch.lastFollower && (
+            {showRecentFollower && twitch.lastFollower && (
               <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
                 <div className="bar-recent-icon" aria-hidden="true">❤️</div>
                 <div className="bar-recent-content">
                   <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
-                  <div className="bar-recent-label">Last Follow {formatRelativeTime(twitch.lastFollower.followDate)}</div>
+                  <MarqueeText
+                    className="bar-recent-label"
+                    text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`}
+                  />
                 </div>
               </div>
             )}
-            {sec.recentSub && twitch.lastSubscriber && (
+            {showRecentSub && twitch.lastSubscriber && (
               <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
                 <div className="bar-recent-icon" aria-hidden="true">⭐</div>
                 <div className="bar-recent-content">
                   <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
-                  <div className="bar-recent-label">
-                    Last Sub{twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}
-                    {twitch.lastSubscriber.isGift && ' (Gift)'}
-                  </div>
+                  <MarqueeText
+                    className="bar-recent-label"
+                    text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
+                  />
                 </div>
               </div>
             )}

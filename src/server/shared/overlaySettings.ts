@@ -12,9 +12,36 @@ export interface BarSections {
   clock: boolean;
   duration: boolean;
   title: boolean;
-  stats: boolean;
+  viewers: boolean;
+  followers: boolean;
+  subscribers: boolean;
   recentFollower: boolean;
   recentSub: boolean;
+}
+
+const DEFAULT_BAR_SECTIONS: BarSections = {
+  clock: true,
+  duration: true,
+  title: true,
+  viewers: true,
+  followers: true,
+  subscribers: true,
+  recentFollower: true,
+  recentSub: true,
+};
+
+export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSections {
+  const src = raw ?? {};
+  return {
+    clock: typeof src.clock === 'boolean' ? src.clock : DEFAULT_BAR_SECTIONS.clock,
+    duration: typeof src.duration === 'boolean' ? src.duration : DEFAULT_BAR_SECTIONS.duration,
+    title: typeof src.title === 'boolean' ? src.title : DEFAULT_BAR_SECTIONS.title,
+    viewers: typeof src.viewers === 'boolean' ? src.viewers : DEFAULT_BAR_SECTIONS.viewers,
+    followers: typeof src.followers === 'boolean' ? src.followers : DEFAULT_BAR_SECTIONS.followers,
+    subscribers: typeof src.subscribers === 'boolean' ? src.subscribers : DEFAULT_BAR_SECTIONS.subscribers,
+    recentFollower: typeof src.recentFollower === 'boolean' ? src.recentFollower : DEFAULT_BAR_SECTIONS.recentFollower,
+    recentSub: typeof src.recentSub === 'boolean' ? src.recentSub : DEFAULT_BAR_SECTIONS.recentSub,
+  };
 }
 
 export interface OverlaySettings {
@@ -53,14 +80,7 @@ export const defaultOverlaySettings: OverlaySettings = {
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
   barFloating: true,
-  barSections: {
-    clock: true,
-    duration: true,
-    title: true,
-    stats: true,
-    recentFollower: true,
-    recentSub: true,
-  },
+  barSections: { ...DEFAULT_BAR_SECTIONS },
   theme: 'crt',
   themeSettings: {
     crt: {
