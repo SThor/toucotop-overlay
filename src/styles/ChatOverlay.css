@@ -61,6 +61,7 @@
 }
 
 .chat-overlay.crt-active .chat-header h3 {
+  margin: 1rem 0;
   color: var(--Main);
   text-shadow: 0 0 10px rgba(var(--MainRGBA), 0.5);
 }
@@ -70,6 +71,12 @@
   height: 1px;
   background: rgba(255,255,255,0.15);
   border-radius: 1px;
+}
+
+/* Y2K: flip divider vertically in feed-from-bottom */
+.chat-y2k-divider--flipped {
+  transform: scaleY(-1);
+  transform-origin: center;
 }
 
 .chat-overlay.crt-active .chat-divider {
@@ -141,7 +148,9 @@
    feed-from-top:    newest at top (column-reverse), oldest overflow bottom → fade bottom edge. */
 .chat-messages.feed-from-bottom {
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  padding-bottom: 0;
   -webkit-mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
   mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
 }
@@ -182,6 +191,11 @@
 
 .chat-overlay.y2k-active .chat-header {
   margin-top: 10vh;
+}
+
+.chat-overlay.y2k-active.feed-from-bottom .chat-header {
+  margin-top: 0;
+  margin-bottom: 10vh;
 }
 
 .chat-overlay.y2k-active .chat-messages {
