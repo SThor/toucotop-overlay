@@ -61,6 +61,7 @@
 }
 
 .chat-overlay.crt-active .chat-header h3 {
+  margin: 1rem 0;
   color: var(--Main);
   text-shadow: 0 0 10px rgba(var(--MainRGBA), 0.5);
 }
