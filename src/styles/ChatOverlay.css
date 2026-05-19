@@ -85,6 +85,15 @@
   background: linear-gradient(90deg, transparent, var(--Main), transparent);
 }
 
+.chat-overlay.crt-active.feed-from-bottom .chat-header {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.chat-overlay.crt-active.feed-from-bottom .chat-header h3 {
+  margin: 1rem 0 0 0;
+}
+
 .connection-status {
   font-size: 0.8em;
   font-weight: normal;
