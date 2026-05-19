@@ -29,8 +29,8 @@ const ChatOverlay = () => {
 
   const header = (
     <div className="chat-header">
-      {isY2KTheme && isFeedFromTop && (
-        <div className="chat-y2k-divider chat-y2k-divider--top">
+      {isY2KTheme && !isFeedFromTop && (
+        <div className="chat-y2k-divider chat-y2k-divider--flipped">
           <Y2KDivider staticMode={reducedEffects} />
         </div>
       )}
@@ -41,7 +41,7 @@ const ChatOverlay = () => {
         {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
       </h3>
       {isY2KTheme ? (
-        !isFeedFromTop && (
+        isFeedFromTop && (
           <div className="chat-y2k-divider">
             <Y2KDivider staticMode={reducedEffects} />
           </div>

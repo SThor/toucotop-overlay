@@ -76,7 +76,7 @@
   width: 100%;
 }
 
-.chat-y2k-divider--top {
+.chat-y2k-divider--flipped {
   transform: scaleY(-1);
   transform-origin: center;
 }
