@@ -29,10 +29,13 @@ const ChatOverlay = () => {
 
   const header = (
     <div className="chat-header">
-      {isY2KTheme && !isFeedFromTop && (
-        <div className="chat-y2k-divider chat-y2k-divider--flipped">
+      {/* Divider always first, CSS controls order/flip */}
+      {isY2KTheme ? (
+        <div className="chat-divider chat-y2k-divider">
           <Y2KDivider staticMode={reducedEffects} />
         </div>
+      ) : (
+        <div className="chat-divider"></div>
       )}
       <h3>
         <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
@@ -40,15 +43,6 @@ const ChatOverlay = () => {
         {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
         {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
       </h3>
-      {isY2KTheme ? (
-        isFeedFromTop && (
-          <div className="chat-y2k-divider">
-            <Y2KDivider staticMode={reducedEffects} />
-          </div>
-        )
-      ) : (
-        <div className="chat-divider"></div>
-      )}
     </div>
   );
 

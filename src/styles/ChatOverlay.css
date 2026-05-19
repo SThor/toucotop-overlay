@@ -72,13 +72,31 @@
   border-radius: 1px;
 }
 
-.chat-y2k-divider {
+
+.chat-divider {
   width: 100%;
 }
 
-.chat-y2k-divider--flipped {
+/* Default: divider above title */
+.chat-header {
+  display: flex;
+  flex-direction: column;
+}
+
+/* For feed-from-bottom, flip order so divider is above title for all themes */
+.feed-from-bottom .chat-header {
+  flex-direction: column-reverse;
+}
+
+/* Y2K: flip divider vertically in feed-from-bottom */
+.feed-from-bottom .chat-y2k-divider {
   transform: scaleY(-1);
   transform-origin: center;
+}
+
+/* CRT: add spacing when divider is above title */
+.chat-overlay.crt-active.feed-from-bottom .chat-header h3 {
+  margin: 1rem 0 0 0;
 }
 
 .chat-overlay.crt-active .chat-divider {
