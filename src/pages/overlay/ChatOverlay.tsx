@@ -27,22 +27,29 @@ const ChatOverlay = () => {
 
   if (isLoadingSettings) return null;
 
+  // Determine divider placement and type
+  let divider: React.ReactNode = null;
+  if (isY2KTheme) {
+    divider = (
+      <div className={`chat-y2k-divider${!isFeedFromTop ? ' chat-y2k-divider--flipped' : ''}`}>
+        <Y2KDivider staticMode={reducedEffects} />
+      </div>
+    );
+  } else if (settings.theme === 'crt' || settings.theme === 'default') {
+    divider = <div className="chat-divider"></div>;
+  }
+
+  // For CRT and Y2K, divider is always above title. For default, above in bottom-feed, below in top-feed.
   const header = (
     <div className="chat-header">
-      {/* Divider always first, CSS controls order/flip */}
-      {isY2KTheme ? (
-        <div className="chat-divider chat-y2k-divider">
-          <Y2KDivider staticMode={reducedEffects} />
-        </div>
-      ) : (
-        <div className="chat-divider"></div>
-      )}
+      {(!isFeedFromTop || settings.theme === 'crt' || isY2KTheme) && divider}
       <h3>
         <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
         {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
         {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
         {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
       </h3>
+      {isFeedFromTop && settings.theme === 'default' && divider}
     </div>
   );
 

@@ -77,25 +77,15 @@
   width: 100%;
 }
 
-/* Default: divider above title */
-.chat-header {
-  display: flex;
-  flex-direction: column;
-}
-
-/* For feed-from-bottom, flip order so divider is above title for all themes */
-.feed-from-bottom .chat-header {
-  flex-direction: column-reverse;
-}
-
 /* Y2K: flip divider vertically in feed-from-bottom */
-.feed-from-bottom .chat-y2k-divider {
+.chat-y2k-divider--flipped {
   transform: scaleY(-1);
   transform-origin: center;
 }
 
 /* CRT: add spacing when divider is above title */
-.chat-overlay.crt-active.feed-from-bottom .chat-header h3 {
+.chat-overlay.crt-active.feed-from-bottom .chat-header h3,
+.chat-overlay.crt-active.feed-from-top .chat-header h3 {
   margin: 1rem 0 0 0;
 }
 
