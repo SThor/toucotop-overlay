@@ -13,6 +13,7 @@ const ChatOverlay = () => {
   const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const isFeedFromTop = settings.chatFeedDirection === 'top';
+  const isY2KTheme = settings.theme === 'y2k';
 
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -28,13 +29,26 @@ const ChatOverlay = () => {
 
   const header = (
     <div className="chat-header">
+      {isY2KTheme && isFeedFromTop && (
+        <div className="chat-y2k-divider chat-y2k-divider--top">
+          <Y2KDivider staticMode={reducedEffects} />
+        </div>
+      )}
       <h3>
         <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
         {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
         {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
         {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
       </h3>
-      {settings.theme === 'y2k' ? <Y2KDivider staticMode={reducedEffects} /> : <div className="chat-divider"></div>}
+      {isY2KTheme ? (
+        !isFeedFromTop && (
+          <div className="chat-y2k-divider">
+            <Y2KDivider staticMode={reducedEffects} />
+          </div>
+        )
+      ) : (
+        <div className="chat-divider"></div>
+      )}
     </div>
   );
 

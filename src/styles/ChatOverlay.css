@@ -13,14 +13,6 @@
   isolation: isolate;
 }
 
-.chat-overlay.feed-from-bottom .chat-messages {
-  order: 1;
-}
-
-.chat-overlay.feed-from-bottom .chat-header {
-  order: 2;
-}
-
 .chat-overlay.preview-mode {
   position: static;
   width: 350px;
@@ -78,6 +70,15 @@
   height: 1px;
   background: rgba(255,255,255,0.15);
   border-radius: 1px;
+}
+
+.chat-y2k-divider {
+  width: 100%;
+}
+
+.chat-y2k-divider--top {
+  transform: scaleY(-1);
+  transform-origin: center;
 }
 
 .chat-overlay.crt-active .chat-divider {
