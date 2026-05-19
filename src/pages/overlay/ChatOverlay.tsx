@@ -38,15 +38,19 @@ const ChatOverlay = () => {
     divider = <div className="chat-divider"></div>;
   }
 
+  // Y2K bottom-feed: divider above title (ornament closest to content); all other cases: divider below title
+  const dividerAboveTitle = settings.theme === 'y2k' && !isFeedFromTop;
+
   const headerBlock = (
     <div className="chat-header">
+      {dividerAboveTitle && divider}
       <h3>
         <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
         {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
         {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
         {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
       </h3>
-      {divider}
+      {!dividerAboveTitle && divider}
     </div>
   );
 
