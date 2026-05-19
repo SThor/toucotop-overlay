@@ -13,6 +13,14 @@
   isolation: isolate;
 }
 
+.chat-overlay.feed-from-bottom .chat-messages {
+  order: 1;
+}
+
+.chat-overlay.feed-from-bottom .chat-header {
+  order: 2;
+}
+
 .chat-overlay.preview-mode {
   position: static;
   width: 350px;
@@ -141,7 +149,9 @@
    feed-from-top:    newest at top (column-reverse), oldest overflow bottom → fade bottom edge. */
 .chat-messages.feed-from-bottom {
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  padding-bottom: 0;
   -webkit-mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
   mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
 }
@@ -182,6 +192,11 @@
 
 .chat-overlay.y2k-active .chat-header {
   margin-top: 10vh;
+}
+
+.chat-overlay.y2k-active.feed-from-bottom .chat-header {
+  margin-top: 0;
+  margin-bottom: 10vh;
 }
 
 .chat-overlay.y2k-active .chat-messages {

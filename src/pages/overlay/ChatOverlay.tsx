@@ -12,6 +12,7 @@ const ChatOverlay = () => {
   const { settings, isLoadingSettings } = useSettings();
   const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
+  const isFeedFromTop = settings.chatFeedDirection === 'top';
 
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -25,23 +26,27 @@ const ChatOverlay = () => {
 
   if (isLoadingSettings) return null;
 
+  const header = (
+    <div className="chat-header">
+      <h3>
+        <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
+        {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
+        {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
+        {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
+      </h3>
+      {settings.theme === 'y2k' ? <Y2KDivider staticMode={reducedEffects} /> : <div className="chat-divider"></div>}
+    </div>
+  );
+
   return (
     <div
-      className={`chat-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
+      className={`chat-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}${isFeedFromTop ? ' feed-from-top' : ' feed-from-bottom'}`}
       style={{ opacity: settings.perOverlayOpacity?.chat ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.chat ?? settings.fontSize}rem` }}
     >
       <ThemeBackground panelMode />
-      <div className="chat-header">
-        <h3>
-          <span className="chat-icon" aria-hidden="true">💬</span> Stream Chat
-          {isConnecting && <span className="connection-status connecting"> (Connecting...)</span>}
-          {error && <span className="connection-status error" title={error}> (Connection Error)</span>}
-          {isConnected && settings.theme === 'crt' && <span className="connection-status connected"> (Live)</span>}
-        </h3>
-        {settings.theme === 'y2k' ? <Y2KDivider staticMode={reducedEffects} /> : <div className="chat-divider"></div>}
-      </div>
+      {isFeedFromTop && header}
       
-      <div ref={messagesRef} className={`chat-messages ${settings.chatFeedDirection === 'top' ? 'feed-from-top' : 'feed-from-bottom'}`}>
+      <div ref={messagesRef} className={`chat-messages ${isFeedFromTop ? 'feed-from-top' : 'feed-from-bottom'}`}>
         <AnimatePresence mode="popLayout">
           {messages.map((msg) => (
             <motion.div
@@ -88,6 +93,7 @@ const ChatOverlay = () => {
           ))}
         </AnimatePresence>
       </div>
+      {!isFeedFromTop && header}
       <GlobalAlertLayer />
     </div>
   );
