@@ -13,7 +13,6 @@ const ChatOverlay = () => {
   const { messages, isConnected, isConnecting, error } = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const isFeedFromTop = settings.chatFeedDirection === 'top';
-  const isY2KTheme = settings.theme === 'y2k';
 
   const messagesRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +28,7 @@ const ChatOverlay = () => {
 
   // Divider always separates title and chat content
   let divider: React.ReactNode = null;
-  if (isY2KTheme) {
+  if (settings.theme === 'y2k') {
     divider = (
       <div className={`chat-y2k-divider${!isFeedFromTop ? ' chat-y2k-divider--flipped' : ''}`}>
         <Y2KDivider staticMode={reducedEffects} />
