@@ -72,34 +72,14 @@
   border-radius: 1px;
 }
 
-
-.chat-divider {
-  width: 100%;
-}
-
 /* Y2K: flip divider vertically in feed-from-bottom */
 .chat-y2k-divider--flipped {
   transform: scaleY(-1);
   transform-origin: center;
 }
 
-/* CRT: add spacing when divider is above title */
-.chat-overlay.crt-active.feed-from-bottom .chat-header h3,
-.chat-overlay.crt-active.feed-from-top .chat-header h3 {
-  margin: 1rem 0 0 0;
-}
-
 .chat-overlay.crt-active .chat-divider {
   background: linear-gradient(90deg, transparent, var(--Main), transparent);
-}
-
-.chat-overlay.crt-active.feed-from-bottom .chat-header {
-  display: flex;
-  flex-direction: column-reverse;
-}
-
-.chat-overlay.crt-active.feed-from-bottom .chat-header h3 {
-  margin: 1rem 0 0 0;
 }
 
 .connection-status {
