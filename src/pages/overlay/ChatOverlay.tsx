@@ -38,8 +38,9 @@ const ChatOverlay = () => {
     divider = <div className="chat-divider"></div>;
   }
 
-  // Y2K bottom-feed: divider above title (ornament closest to content); all other cases: divider below title
-  const dividerAboveTitle = settings.theme === 'y2k' && !isFeedFromTop;
+  // Keep divider between content and title for all themes:
+  // top-feed: title -> divider -> content, bottom-feed: content -> divider -> title.
+  const dividerAboveTitle = !isFeedFromTop;
 
   const headerBlock = (
     <div className="chat-header">
