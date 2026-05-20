@@ -61,6 +61,22 @@
   transform: translateX(-50%);
 }
 
+.border-overlay__star--top-center-left {
+  top: calc(1.2rem - 13px);
+  left: calc(50% - 42px);
+  width: 26px;
+  height: 26px;
+  transform: translateX(-50%);
+}
+
+.border-overlay__star--top-center-right {
+  top: calc(1.2rem - 13px);
+  left: calc(50% + 42px);
+  width: 26px;
+  height: 26px;
+  transform: translateX(-50%);
+}
+
 .border-overlay:not(.y2k-active) .border-overlay__star {
   display: none;
 }
@@ -90,5 +106,19 @@
   .border-overlay__star--bottom-right {
     bottom: calc(var(--border-bottom-offset, 80px) - 20px);
     right: calc(0.85rem - 20px);
+  }
+
+  .border-overlay__star--top-center {
+    top: calc(0.85rem - 24px);
+  }
+
+  .border-overlay__star--top-center-left {
+    top: calc(0.85rem - 13px);
+    left: calc(50% - 36px);
+  }
+
+  .border-overlay__star--top-center-right {
+    top: calc(0.85rem - 13px);
+    left: calc(50% + 36px);
   }
 }

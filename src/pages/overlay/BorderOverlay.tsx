@@ -95,7 +95,9 @@ const BorderOverlay = () => {
           <BorderStarCanvas className="border-overlay__star border-overlay__star--top-right" />
           <BorderStarCanvas className="border-overlay__star border-overlay__star--bottom-left" />
           <BorderStarCanvas className="border-overlay__star border-overlay__star--bottom-right" />
+          <BorderStarCanvas className="border-overlay__star border-overlay__star--top-center-left" size={26} />
           <BorderStarCanvas className="border-overlay__star border-overlay__star--top-center" size={48} />
+          <BorderStarCanvas className="border-overlay__star border-overlay__star--top-center-right" size={26} />
         </>
       )}
 
