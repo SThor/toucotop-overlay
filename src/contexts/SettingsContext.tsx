@@ -101,6 +101,15 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
       },
     } as OverlaySettings['themeSettings'];
   }
+  if (p.has('showBarOrnaments')) {
+    o.themeSettings = {
+      ...(o.themeSettings ?? {}),
+      y2k: {
+        ...(o.themeSettings?.y2k ?? {}),
+        showBarOrnaments: p.get('showBarOrnaments') !== 'false',
+      },
+    } as OverlaySettings['themeSettings'];
+  }
   if (p.has('hideBackground')) o.hideBackground = p.get('hideBackground') !== 'false';
   if (p.has('hideContent')) o.hideContent = p.get('hideContent') !== 'false';
 

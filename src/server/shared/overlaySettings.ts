@@ -62,6 +62,7 @@ export interface OverlaySettings {
     };
     y2k: {
       reducedEffects: boolean;
+      showBarOrnaments: boolean;
     };
   };
   pauseTitle: string;
@@ -90,6 +91,7 @@ export const defaultOverlaySettings: OverlaySettings = {
     },
     y2k: {
       reducedEffects: false,
+      showBarOrnaments: true,
     },
   },
   pauseTitle: 'En pause',

@@ -252,6 +252,13 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
               y2kPatch.reducedEffects = y.reducedEffects;
             }
           }
+          if ('showBarOrnaments' in y) {
+            if (typeof y.showBarOrnaments !== 'boolean') {
+              errors.push('themeSettings.y2k.showBarOrnaments must be a boolean');
+            } else {
+              y2kPatch.showBarOrnaments = y.showBarOrnaments;
+            }
+          }
           if (Object.keys(y2kPatch).length > 0) themePatch.y2k = y2kPatch;
         }
       }
