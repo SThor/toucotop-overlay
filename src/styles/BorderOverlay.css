@@ -36,9 +36,6 @@
 
 .border-overlay.y2k-active .border-overlay__frame {
   border-color: rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 0 16px rgba(188, 204, 255, 0.22),
-    0 0 3px rgba(255, 255, 255, 0.8) inset;
 }
 
 .border-overlay__star {

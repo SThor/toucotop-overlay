@@ -116,14 +116,7 @@ const BorderOverlay = () => {
           preserveAspectRatio="none"
           viewBox="0 0 1000 1000"
         >
-          <rect
-            x="10"
-            y="10"
-            width="980"
-            height="980"
-            rx="0"
-            ry="0"
-          />
+          <rect x="0" y="0" width="1000" height="1000" />
         </svg>
       ) : (
         <div className="border-overlay__frame" />
