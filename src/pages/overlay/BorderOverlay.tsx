@@ -77,7 +77,7 @@ const BorderOverlay = () => {
 
   if (isLoadingSettings) return null;
 
-  const bottomOffset = settings.barFloating ? 80 : 60;
+  const bottomOffset = settings.barFloating ? 90 : 70;
   const overlayStyle = {
     opacity: settings.overlayOpacity,
     fontSize: `${settings.fontSize}rem`,

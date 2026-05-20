@@ -12,7 +12,7 @@
   top: 1.2rem;
   left: 1.2rem;
   right: 1.2rem;
-  bottom: var(--border-bottom-offset, 80px);
+  bottom: var(--border-bottom-offset, 90px);
   border-radius: 1px;
   opacity: 0;
 }
@@ -44,12 +44,12 @@
 }
 
 .border-overlay__star--bottom-left {
-  bottom: calc(var(--border-bottom-offset, 80px) - 22px);
+  bottom: calc(var(--border-bottom-offset, 90px) - 22px);
   left: calc(1.2rem - 22px);
 }
 
 .border-overlay__star--bottom-right {
-  bottom: calc(var(--border-bottom-offset, 80px) - 22px);
+  bottom: calc(var(--border-bottom-offset, 90px) - 22px);
   right: calc(1.2rem - 22px);
 }
 
@@ -99,12 +99,12 @@
   }
 
   .border-overlay__star--bottom-left {
-    bottom: calc(var(--border-bottom-offset, 80px) - 20px);
+    bottom: calc(var(--border-bottom-offset, 90px) - 20px);
     left: calc(0.85rem - 20px);
   }
 
   .border-overlay__star--bottom-right {
-    bottom: calc(var(--border-bottom-offset, 80px) - 20px);
+    bottom: calc(var(--border-bottom-offset, 90px) - 20px);
     right: calc(0.85rem - 20px);
   }
 
