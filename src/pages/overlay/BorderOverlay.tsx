@@ -74,25 +74,6 @@ function BorderStarCanvas({ className, size = 44 }: BorderStarCanvasProps) {
 
 const BorderOverlay = () => {
   const { settings, isLoadingSettings } = useSettings();
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const root = overlayRef.current;
-    if (!root || settings.theme !== 'y2k') return;
-
-    let frame = 0;
-    const apply = (now: number) => {
-      const t = now / 1000;
-      root.style.setProperty('--border-drift-a', `${Math.sin(t * 0.17) * 0.45}px`);
-      root.style.setProperty('--border-drift-b', `${Math.sin(t * 0.23 + 1.3) * 0.35}px`);
-      root.style.setProperty('--border-drift-c', `${Math.sin(t * 0.13 + 2.1) * 0.25}px`);
-      root.style.setProperty('--border-drift-d', `${Math.sin(t * 0.19 + 0.7) * 0.2}px`);
-      frame = window.requestAnimationFrame(apply);
-    };
-
-    frame = window.requestAnimationFrame(apply);
-    return () => window.cancelAnimationFrame(frame);
-  }, [settings.theme]);
 
   if (isLoadingSettings) return null;
 
@@ -105,12 +86,9 @@ const BorderOverlay = () => {
 
   return (
     <div
-      ref={overlayRef}
       className={`border-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={overlayStyle}
     >
-      <div className="border-overlay__frame" />
-
       {settings.theme === 'y2k' && (
         <>
           <BorderStarCanvas className="border-overlay__star border-overlay__star--top-left" />
