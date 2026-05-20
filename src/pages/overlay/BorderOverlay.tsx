@@ -8,6 +8,23 @@ interface BorderStarCanvasProps {
   size?: number;
 }
 
+type NormalizedPoint = { x: number; y: number };
+
+const STAR_POINTS = {
+  top: { x: 0.50, y: 0.12 },
+  pairTR: { x: 0.55, y: 0.45 },
+  right: { x: 0.88, y: 0.50 },
+  pairBR: { x: 0.55, y: 0.55 },
+  bottom: { x: 0.50, y: 0.88 },
+  pairBL: { x: 0.45, y: 0.55 },
+  left: { x: 0.12, y: 0.50 },
+  pairTL: { x: 0.45, y: 0.45 },
+} as const;
+
+function toPoint(size: number, point: NormalizedPoint) {
+  return { x: point.x * size, y: point.y * size };
+}
+
 function BorderStarCanvas({ className, size = 44 }: BorderStarCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -28,27 +45,22 @@ function BorderStarCanvas({ className, size = 44 }: BorderStarCanvasProps) {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, size, size);
 
-    const center = size / 2;
-    const top = size * 0.04;
-    const right = size * 0.96;
-    const bottom = size * 0.98;
-    const left = size * 0.06;
-    const upperShoulder = size * 0.30;
-    const lowerShoulder = size * 0.70;
-    const upperInner = size * 0.19;
-    const lowerInner = size * 0.81;
+    const top = toPoint(size, STAR_POINTS.top);
+    const pairTR = toPoint(size, STAR_POINTS.pairTR);
+    const right = toPoint(size, STAR_POINTS.right);
+    const pairBR = toPoint(size, STAR_POINTS.pairBR);
+    const bottom = toPoint(size, STAR_POINTS.bottom);
+    const pairBL = toPoint(size, STAR_POINTS.pairBL);
+    const left = toPoint(size, STAR_POINTS.left);
+    const pairTL = toPoint(size, STAR_POINTS.pairTL);
 
-    // Four-point star with sharper inner corners and a slight asymmetry so it
-    // feels hand-cut rather than mechanically mirrored.
+    // Four cubic Beziers, one for each arm, with sharp anchor tips.
     ctx.beginPath();
-    ctx.moveTo(center, top);
-    ctx.lineTo(center + size * 0.11, upperShoulder);
-    ctx.lineTo(right, center);
-    ctx.lineTo(center + size * 0.15, lowerShoulder);
-    ctx.lineTo(center, bottom);
-    ctx.lineTo(center - size * 0.14, lowerInner);
-    ctx.lineTo(left, center - size * 0.02);
-    ctx.lineTo(center - size * 0.12, upperInner);
+    ctx.moveTo(top.x, top.y);
+    ctx.bezierCurveTo(pairTR.x, pairTR.y, pairTR.x, pairTR.y, right.x, right.y);
+    ctx.bezierCurveTo(pairBR.x, pairBR.y, pairBR.x, pairBR.y, bottom.x, bottom.y);
+    ctx.bezierCurveTo(pairBL.x, pairBL.y, pairBL.x, pairBL.y, left.x, left.y);
+    ctx.bezierCurveTo(pairTL.x, pairTL.y, pairTL.x, pairTL.y, top.x, top.y);
     ctx.closePath();
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
