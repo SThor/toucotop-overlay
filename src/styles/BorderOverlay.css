@@ -16,26 +16,11 @@
   border-radius: 1px;
 }
 
-.border-overlay__frame--y2k {
-  border: none;
-  overflow: visible;
-  filter: drop-shadow(0 0 7px rgba(214, 225, 255, 0.32));
-}
-
-.border-overlay__frame--y2k rect {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.9);
-  stroke-width: 2.2;
-  vector-effect: non-scaling-stroke;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 14 6 8 4 21 8 13 5 8 4 13 6 21 8 34 11 21 8 13 5 8 4 13 6 21 8 8 4 14 6;
-  stroke-dashoffset: 0;
-  animation: border-dash-drift 26s linear infinite;
-}
-
 .border-overlay.y2k-active .border-overlay__frame {
   border-color: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 16px rgba(188, 204, 255, 0.22),
+    0 0 3px rgba(255, 255, 255, 0.8) inset;
 }
 
 .border-overlay__star {
@@ -107,14 +92,5 @@
   .border-overlay__star--bottom-right {
     bottom: calc(var(--border-bottom-offset, 80px) - 20px);
     right: calc(0.85rem - 20px);
-  }
-}
-
-@keyframes border-dash-drift {
-  from {
-    stroke-dashoffset: 0;
-  }
-  to {
-    stroke-dashoffset: -120;
   }
 }

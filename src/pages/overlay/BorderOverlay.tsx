@@ -109,18 +109,7 @@ const BorderOverlay = () => {
       className={`border-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
       style={overlayStyle}
     >
-      {settings.theme === 'y2k' ? (
-        <svg
-          className="border-overlay__frame border-overlay__frame--y2k"
-          aria-hidden="true"
-          preserveAspectRatio="none"
-          viewBox="0 0 1000 1000"
-        >
-          <rect x="0" y="0" width="1000" height="1000" />
-        </svg>
-      ) : (
-        <div className="border-overlay__frame" />
-      )}
+      <div className="border-overlay__frame" />
 
       {settings.theme === 'y2k' && (
         <>
