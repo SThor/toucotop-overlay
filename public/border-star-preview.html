@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Border Star Preview</title>
+    <style>
+      :root {
+        --bg-a: #090914;
+        --bg-b: #151a33;
+        --panel: rgba(10, 12, 28, 0.72);
+        --panel-border: rgba(255, 255, 255, 0.12);
+        --glow: rgba(196, 214, 255, 0.55);
+        --star: rgba(255, 255, 255, 0.96);
+        --guide: rgba(164, 196, 255, 0.45);
+        --anchor: #ffffff;
+        --handle: #c8d8ff;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.12), transparent 28%),
+          radial-gradient(circle at 50% 46%, rgba(180, 190, 255, 0.16), transparent 50%),
+          linear-gradient(135deg, var(--bg-a), var(--bg-b));
+        color: white;
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      .shell {
+        display: grid;
+        gap: 0.9rem;
+        justify-items: center;
+        padding: 1rem;
+      }
+
+      .panel {
+        position: relative;
+        width: min(84vw, 860px);
+        aspect-ratio: 1 / 1;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 18px;
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+      }
+
+      svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .label-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.76);
+      }
+
+      .pill {
+        padding: 0.35rem 0.7rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .path {
+        fill: url(#starFill);
+        stroke: rgba(255, 255, 255, 0.92);
+        stroke-width: 1.2;
+        filter: drop-shadow(0 0 16px var(--glow));
+      }
+
+      .guide {
+        stroke: var(--guide);
+        stroke-width: 1.2;
+        stroke-dasharray: 6 6;
+        fill: none;
+      }
+
+      .square-guide {
+        stroke: rgba(255, 255, 255, 0.16);
+        stroke-width: 1.2;
+        fill: none;
+      }
+
+      .center-guide {
+        stroke: rgba(158, 252, 255, 0.28);
+        stroke-width: 1;
+        stroke-dasharray: 2 8;
+        fill: none;
+      }
+
+      .anchor {
+        fill: var(--anchor);
+        stroke: rgba(255, 255, 255, 0.75);
+        stroke-width: 2;
+        cursor: grab;
+      }
+
+      .handle {
+        fill: var(--handle);
+        stroke: rgba(255, 255, 255, 0.55);
+        stroke-width: 1.5;
+        cursor: grab;
+      }
+
+      .anchor:active,
+      .handle:active {
+        cursor: grabbing;
+      }
+
+      .node-label {
+        font-size: 12px;
+        fill: rgba(255, 255, 255, 0.68);
+        pointer-events: none;
+        letter-spacing: 0.08em;
+      }
+
+      .hint {
+        position: absolute;
+        left: 1rem;
+        top: 1rem;
+        max-width: 22rem;
+        padding: 0.75rem 0.9rem;
+        border-radius: 14px;
+        background: rgba(6, 8, 18, 0.66);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+        line-height: 1.45;
+        backdrop-filter: blur(10px);
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+        color: white;
+        border-radius: 999px;
+        padding: 0.55rem 0.85rem;
+        font: inherit;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: rgba(255, 255, 255, 0.11);
+      }
+
+      pre {
+        width: min(84vw, 860px);
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding: 0.75rem 1rem;
+        border-radius: 14px;
+        background: rgba(7, 8, 16, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="panel">
+        <div class="hint">
+          The star uses 4 cubic Beziers. Each arm has one shared control pair, and the four pair nodes are stacked into a square around the center.
+        </div>
+        <svg id="editor" viewBox="0 0 600 600" role="img" aria-label="Editable border star preview">
+          <defs>
+            <radialGradient id="starFill" cx="50%" cy="48%" r="66%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98" />
+              <stop offset="65%" stop-color="#eef4ff" stop-opacity="0.96" />
+              <stop offset="100%" stop-color="#c8d8ff" stop-opacity="0.94" />
+            </radialGradient>
+          </defs>
+          <rect class="square-guide" x="270" y="270" width="60" height="60" rx="2"></rect>
+          <path id="star-path" class="path"></path>
+          <circle class="center-guide" cx="300" cy="300" r="58"></circle>
+          <circle class="center-guide" cx="300" cy="300" r="118"></circle>
+          <g id="guides"></g>
+          <g id="handles"></g>
+        </svg>
+      </div>
+
+      <div class="toolbar">
+        <button id="reset" type="button">Reset</button>
+        <button id="copy" type="button">Copy path</button>
+      </div>
+
+      <div class="label-row">
+        <span class="pill">Drag the four square nodes</span>
+        <span class="pill">Each node controls one cubic segment pair</span>
+        <span class="pill">Path uses 4 cubic Beziers</span>
+      </div>
+
+      <pre id="output"></pre>
+    </div>
+
+    <script>
+      const svg = document.getElementById('editor');
+      const starPath = document.getElementById('star-path');
+      const guides = document.getElementById('guides');
+      const handles = document.getElementById('handles');
+      const output = document.getElementById('output');
+      const resetButton = document.getElementById('reset');
+      const copyButton = document.getElementById('copy');
+
+      const defaults = {
+        top: { x: 300, y: 72 },
+        pairTR: { x: 330, y: 270 },
+        right: { x: 528, y: 300 },
+        pairBR: { x: 330, y: 330 },
+        bottom: { x: 300, y: 528 },
+        pairBL: { x: 270, y: 330 },
+        left: { x: 72, y: 300 },
+        pairTL: { x: 270, y: 270 },
+      };
+
+      const state = JSON.parse(JSON.stringify(defaults));
+      let activeKey = null;
+
+      const segments = [
+        ['top', 'pairTR', 'pairTR', 'right'],
+        ['right', 'pairBR', 'pairBR', 'bottom'],
+        ['bottom', 'pairBL', 'pairBL', 'left'],
+        ['left', 'pairTL', 'pairTL', 'top'],
+      ];
+
+      const labelMap = {
+        top: 'T',
+        pairTR: 'TR / RI',
+        right: 'R',
+        pairBR: 'RD / BR',
+        bottom: 'B',
+        pairBL: 'BL / LI',
+        left: 'L',
+        pairTL: 'TL / LU',
+      };
+
+      function pathD() {
+        const p = state;
+        return `M ${p.top.x} ${p.top.y} C ${p.pairTR.x} ${p.pairTR.y} ${p.pairTR.x} ${p.pairTR.y} ${p.right.x} ${p.right.y} C ${p.pairBR.x} ${p.pairBR.y} ${p.pairBR.x} ${p.pairBR.y} ${p.bottom.x} ${p.bottom.y} C ${p.pairBL.x} ${p.pairBL.y} ${p.pairBL.x} ${p.pairBL.y} ${p.left.x} ${p.left.y} C ${p.pairTL.x} ${p.pairTL.y} ${p.pairTL.x} ${p.pairTL.y} ${p.top.x} ${p.top.y} Z`;
+      }
+
+      function pointToStr(point) {
+        return `${point.x.toFixed(1)}, ${point.y.toFixed(1)}`;
+      }
+
+      function render() {
+        starPath.setAttribute('d', pathD());
+
+        const guideLines = [];
+        for (const [start, cp1, cp2, end] of segments) {
+          guideLines.push(`<line class="guide" x1="${state[start].x}" y1="${state[start].y}" x2="${state[cp1].x}" y2="${state[cp1].y}" />`);
+          guideLines.push(`<line class="guide" x1="${state[end].x}" y1="${state[end].y}" x2="${state[cp2].x}" y2="${state[cp2].y}" />`);
+        }
+        guides.innerHTML = guideLines.join('');
+
+        handles.innerHTML = Object.entries(state).map(([key, point]) => {
+          const isTip = key === 'top' || key === 'right' || key === 'bottom' || key === 'left';
+          const radius = isTip ? 8 : 10;
+          const cls = isTip ? 'anchor' : 'handle';
+          const labelOffsetX = isTip ? 12 : 12;
+          const labelOffsetY = isTip ? -10 : -10;
+          return `
+            <g>
+              <circle class="${cls}" data-key="${key}" cx="${point.x}" cy="${point.y}" r="${radius}" />
+              <text class="node-label" x="${point.x + labelOffsetX}" y="${point.y + labelOffsetY}">${labelMap[key]}</text>
+            </g>
+          `;
+        }).join('');
+
+        output.textContent = pathD() + '\n\n' + Object.entries(state).map(([key, point]) => `${key}: ${pointToStr(point)}`).join('\n');
+      }
+
+      function setPoint(key, x, y) {
+        state[key].x = Math.max(0, Math.min(600, x));
+        state[key].y = Math.max(0, Math.min(600, y));
+        render();
+      }
+
+      function getSvgPoint(event) {
+        const pt = svg.createSVGPoint();
+        pt.x = event.clientX;
+        pt.y = event.clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+      }
+
+      svg.addEventListener('pointerdown', (event) => {
+        const target = event.target;
+        if (!(target instanceof SVGCircleElement)) return;
+        const key = target.dataset.key;
+        if (!key) return;
+        activeKey = key;
+        target.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      });
+
+      svg.addEventListener('pointermove', (event) => {
+        if (!activeKey) return;
+        const point = getSvgPoint(event);
+        setPoint(activeKey, point.x, point.y);
+      });
+
+      svg.addEventListener('pointerup', () => {
+        activeKey = null;
+      });
+
+      svg.addEventListener('pointercancel', () => {
+        activeKey = null;
+      });
+
+      resetButton.addEventListener('click', () => {
+        Object.assign(state.top, defaults.top);
+        Object.assign(state.pairTR, defaults.pairTR);
+        Object.assign(state.right, defaults.right);
+        Object.assign(state.pairBR, defaults.pairBR);
+        Object.assign(state.bottom, defaults.bottom);
+        Object.assign(state.pairBL, defaults.pairBL);
+        Object.assign(state.left, defaults.left);
+        Object.assign(state.pairTL, defaults.pairTL);
+        render();
+      });
+
+      copyButton.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(pathD());
+          copyButton.textContent = 'Copied';
+          setTimeout(() => (copyButton.textContent = 'Copy path'), 900);
+        } catch {
+          copyButton.textContent = 'Copy failed';
+          setTimeout(() => (copyButton.textContent = 'Copy path'), 900);
+        }
+      });
+
+      render();
+    </script>
+  </body>
+</html>

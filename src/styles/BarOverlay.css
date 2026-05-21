@@ -159,13 +159,6 @@
   flex-direction: column;
   gap: 0.1rem;
   flex: 0 0 auto;
-  min-width: 148px;
-  max-width: 320px;
-}
-
-.bar-overlay.full-width .bar-stream-section {
-  flex: 1 1 148px;
-  max-width: none;
 }
 
 .bar-stream-title {
@@ -187,14 +180,8 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  flex: 0 1 240px;
+  flex: 0 0 auto;
   min-width: 0;
-  max-width: 240px;
-}
-
-.bar-overlay.full-width .bar-recent-section {
-  flex: 1 1 360px;
-  max-width: 360px;
 }
 
 .bar-recent-item {
