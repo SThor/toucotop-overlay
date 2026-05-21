@@ -11,6 +11,7 @@ import express, { type Request, type Response, Router } from 'express';
 import { getUserTokens, updateUserSettings, defaultOverlaySettings, type OverlaySettings } from './storage.js';
 import {
   BAR_SECTION_KEYS,
+  normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
   normalizeBarSectionWidthTokens,
@@ -18,10 +19,11 @@ import {
 } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionWidthTokens'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
   barSectionOrder?: OverlaySettings['barSectionOrder'];
   barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
+  barSectionMinWidth?: Partial<OverlaySettings['barSectionMinWidth']>;
   barSectionWidthTokens?: Partial<OverlaySettings['barSectionWidthTokens']>;
 };
 
@@ -41,6 +43,7 @@ router.get('/', (req: Request, res: Response) => {
     barSections: normalizeBarSections(raw.barSections),
     barSectionOrder: normalizeBarSectionOrder(raw.barSectionOrder),
     barSectionPriority: normalizeBarSectionPriority(raw.barSectionPriority),
+    barSectionMinWidth: normalizeBarSectionMinWidth(raw.barSectionMinWidth),
     barSectionWidthTokens: normalizeBarSectionWidthTokens(raw.barSectionWidthTokens),
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
@@ -189,6 +192,26 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         }
       }
       if (errors.length === 0) patch.barSectionPriority = priorityPatch;
+    }
+  }
+
+  if ('barSectionMinWidth' in body) {
+    const v = body.barSectionMinWidth;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSectionMinWidth must be an object');
+    } else {
+      const minWidthPatch: Partial<OverlaySettings['barSectionMinWidth']> = {};
+      for (const key of BAR_SECTION_KEYS) {
+        if (key in v) {
+          const rawValue = (v as Record<string, unknown>)[key];
+          if (typeof rawValue !== 'number' || !Number.isFinite(rawValue)) {
+            errors.push(`barSectionMinWidth.${key} must be a number`);
+          } else {
+            minWidthPatch[key] = Math.min(480, Math.max(72, Math.round(rawValue)));
+          }
+        }
+      }
+      if (errors.length === 0) patch.barSectionMinWidth = minWidthPatch;
     }
   }
 

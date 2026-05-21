@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon, NumberInput,
 } from '@mantine/core';
 import {
   DndContext,
@@ -767,6 +767,41 @@ export default function AuthSuccessPage() {
                         </SortableContext>
                       </DndContext>
                     )}
+                  </div>
+
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Minimum Width (px)</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Per-block base width in the real bar overlay before width tokens are applied.
+                    </Text>
+                    <Stack gap="xs" className="bar-priority-list">
+                      {enabledBarSections.map((key) => {
+                        const meta = BAR_SECTION_META[key];
+                        return (
+                          <div key={`min-${key}`} className="bar-priority-item">
+                            <Text size="sm" className="bar-priority-label">{meta.icon} {meta.shortLabel}</Text>
+                            <NumberInput
+                              min={72}
+                              max={480}
+                              step={4}
+                              size="xs"
+                              value={persistedSettings.barSectionMinWidth[key]}
+                              onChange={(value) => {
+                                if (typeof value !== 'number' || !Number.isFinite(value)) return;
+                                save({
+                                  barSectionMinWidth: {
+                                    ...persistedSettings.barSectionMinWidth,
+                                    [key]: Math.min(480, Math.max(72, Math.round(value))),
+                                  },
+                                });
+                              }}
+                              styles={{ input: { width: 84 } }}
+                              aria-label={`${meta.label} min width`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </Stack>
                   </div>
                 </Stack>
               </div>

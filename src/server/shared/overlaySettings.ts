@@ -24,6 +24,7 @@ export interface PerOverlayNumber {
 export type BarSections = Record<BarSectionKey, boolean>;
 export type BarSectionOrder = BarSectionKey[];
 export type BarSectionPriority = Record<BarSectionKey, number>;
+export type BarSectionMinWidth = Record<BarSectionKey, number>;
 export type BarWidthTokenType = 'stretch' | 'boost';
 export type BarSectionWidthTokens = Record<BarSectionKey, BarWidthTokenType | null>;
 
@@ -50,6 +51,17 @@ const DEFAULT_BAR_SECTION_PRIORITY: BarSectionPriority = {
   followers: 6,
   subscribers: 7,
   recentSub: 8,
+};
+
+const DEFAULT_BAR_SECTION_MIN_WIDTH: BarSectionMinWidth = {
+  clock: 114,
+  duration: 132,
+  title: 148,
+  viewers: 92,
+  followers: 92,
+  subscribers: 102,
+  recentFollower: 144,
+  recentSub: 144,
 };
 
 const DEFAULT_BAR_SECTION_WIDTH_TOKENS: BarSectionWidthTokens = {
@@ -103,6 +115,20 @@ export function normalizeBarSectionPriority(raw?: Partial<Record<BarSectionKey, 
   return normalized;
 }
 
+export function normalizeBarSectionMinWidth(raw?: Partial<Record<BarSectionKey, number>> | null): BarSectionMinWidth {
+  const src = raw ?? {};
+  const normalized: BarSectionMinWidth = { ...DEFAULT_BAR_SECTION_MIN_WIDTH };
+
+  for (const key of BAR_SECTION_KEYS) {
+    const value = src[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      normalized[key] = Math.min(480, Math.max(72, Math.round(value)));
+    }
+  }
+
+  return normalized;
+}
+
 export function normalizeBarSectionWidthTokens(raw?: Partial<Record<BarSectionKey, unknown>> | null): BarSectionWidthTokens {
   const src = raw ?? {};
   const normalized: BarSectionWidthTokens = { ...DEFAULT_BAR_SECTION_WIDTH_TOKENS };
@@ -147,6 +173,7 @@ export interface OverlaySettings {
   barSections: BarSections;
   barSectionOrder: BarSectionOrder;
   barSectionPriority: BarSectionPriority;
+  barSectionMinWidth: BarSectionMinWidth;
   barSectionWidthTokens: BarSectionWidthTokens;
   theme: OverlayTheme;
   themeSettings: {
@@ -179,6 +206,7 @@ export const defaultOverlaySettings: OverlaySettings = {
   barSections: { ...DEFAULT_BAR_SECTIONS },
   barSectionOrder: [...DEFAULT_BAR_SECTION_ORDER],
   barSectionPriority: { ...DEFAULT_BAR_SECTION_PRIORITY },
+  barSectionMinWidth: { ...DEFAULT_BAR_SECTION_MIN_WIDTH },
   barSectionWidthTokens: { ...DEFAULT_BAR_SECTION_WIDTH_TOKENS },
   theme: 'crt',
   themeSettings: {

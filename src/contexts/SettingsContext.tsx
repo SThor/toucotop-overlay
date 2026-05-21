@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 import {
   defaultOverlaySettings,
+  normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
   normalizeBarSectionWidthTokens,
@@ -179,6 +180,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       },
       barSectionOrder: normalizeBarSectionOrder(cached.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(cached.barSectionPriority),
+      barSectionMinWidth: normalizeBarSectionMinWidth(cached.barSectionMinWidth),
       barSectionWidthTokens: normalizeBarSectionWidthTokens(cached.barSectionWidthTokens),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
@@ -266,6 +268,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             barSections: normalizeBarSections(fetched.barSections),
             barSectionOrder: normalizeBarSectionOrder(fetched.barSectionOrder),
             barSectionPriority: normalizeBarSectionPriority(fetched.barSectionPriority),
+            barSectionMinWidth: normalizeBarSectionMinWidth(fetched.barSectionMinWidth),
             barSectionWidthTokens: normalizeBarSectionWidthTokens(fetched.barSectionWidthTokens),
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,
