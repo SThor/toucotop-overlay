@@ -304,6 +304,12 @@
   gap: 4px;
 }
 
+.bar-stack-slot {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
 .bar-stack-card {
   display: flex;
   flex-direction: column;

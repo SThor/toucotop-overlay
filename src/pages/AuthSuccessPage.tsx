@@ -131,6 +131,7 @@ function TokenPill({ tokenType, sourceStackId, id, removable, onRemove }: { toke
 function StackSideDropZone({ id, side, active }: { id: string; side: 'left' | 'right'; active: boolean }) {
   const { setNodeRef, isOver } = useDroppable({
     id,
+    disabled: !active,
     data: {
       dropType: 'stackSide',
       side,
@@ -143,6 +144,7 @@ function StackSideDropZone({ id, side, active }: { id: string; side: 'left' | 'r
 function StackInsertZone({ id, active }: { id: string; active: boolean }) {
   const { setNodeRef, isOver } = useDroppable({
     id,
+    disabled: !active,
     data: { dropType: 'blockInsert' },
   });
 
@@ -193,7 +195,7 @@ interface SortableBarStackProps {
   token: BarWidthTokenType | null;
   showTokenDropZone: boolean;
   showBlockInsertZones: boolean;
-  showStackSideZones: boolean;
+  activeDraggedBlockKey: BarSectionKey | null;
   onRemoveBlock: (key: BarSectionKey) => void;
   onRemoveToken: (stackId: string) => void;
 }
@@ -203,7 +205,7 @@ function SortableBarStack({
   token,
   showTokenDropZone,
   showBlockInsertZones,
-  showStackSideZones,
+  activeDraggedBlockKey,
   onRemoveBlock,
   onRemoveToken,
 }: SortableBarStackProps) {
@@ -214,6 +216,7 @@ function SortableBarStack({
 
   const { setNodeRef: setDropZoneRef, isOver: isTokenOver } = useDroppable({
     id: `token-zone-stack-${stack.id}`,
+    disabled: !showTokenDropZone,
     data: {
       dropType: 'tokenStack',
       stackId: stack.id,
@@ -226,34 +229,33 @@ function SortableBarStack({
   };
 
   return (
-    <div className="bar-stack-shell">
-      <StackSideDropZone id={`stack-left-${stack.id}`} side="left" active={showStackSideZones} />
-      <div
-        ref={setNodeRef}
-        style={style}
-        className={`bar-stack-card${isDragging ? ' is-dragging' : ''}`}
-      >
-        <div className="bar-chip-top-row bar-stack-header" {...attributes} {...listeners}>
-          <span className="bar-stack-title">Stack</span>
-          <span className="bar-priority-item-rank" aria-hidden="true">☰</span>
-        </div>
-
-        <div className="bar-stack-block-list">
-          {stack.sections.map((sectionKey, index) => (
-            <div key={`${stack.id}-${sectionKey}`} className="bar-stack-block-entry">
-              <StackInsertZone id={`insert-${stack.id}-${sectionKey}-before`} active={showBlockInsertZones} />
-              <DraggableStackBlock sectionKey={sectionKey} stackId={stack.id} onRemove={onRemoveBlock} />
-              {index === stack.sections.length - 1 && <StackInsertZone id={`insert-${stack.id}-${sectionKey}-after`} active={showBlockInsertZones} />}
-            </div>
-          ))}
-        </div>
-
-        <div ref={setDropZoneRef} className={`bar-token-zone${showTokenDropZone ? ' is-active' : ''}${isTokenOver ? ' is-over' : ''}`}>
-          {token && <TokenPill id={`token-${stack.id}`} tokenType={token} sourceStackId={stack.id} removable onRemove={() => onRemoveToken(stack.id)} />}
-          {!token && <span className="bar-token-zone-placeholder">Drop token</span>}
-        </div>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bar-stack-card${isDragging ? ' is-dragging' : ''}`}
+    >
+      <div className="bar-chip-top-row bar-stack-header" {...attributes} {...listeners}>
+        <span className="bar-stack-title">Stack</span>
+        <span className="bar-priority-item-rank" aria-hidden="true">☰</span>
       </div>
-      <StackSideDropZone id={`stack-right-${stack.id}`} side="right" active={showStackSideZones} />
+
+      <div className="bar-stack-block-list">
+        {stack.sections.map((sectionKey, index) => {
+          const showInsertAround = showBlockInsertZones && activeDraggedBlockKey !== sectionKey;
+          return (
+            <div key={`${stack.id}-${sectionKey}`} className="bar-stack-block-entry">
+              {showInsertAround && <StackInsertZone id={`insert-${stack.id}-${sectionKey}-before`} active={showBlockInsertZones} />}
+              <DraggableStackBlock sectionKey={sectionKey} stackId={stack.id} onRemove={onRemoveBlock} />
+              {showInsertAround && index === stack.sections.length - 1 && <StackInsertZone id={`insert-${stack.id}-${sectionKey}-after`} active={showBlockInsertZones} />}
+            </div>
+          );
+        })}
+      </div>
+
+      <div ref={setDropZoneRef} className={`bar-token-zone${showTokenDropZone ? ' is-active' : ''}${isTokenOver ? ' is-over' : ''}`}>
+        {token && <TokenPill id={`token-${stack.id}`} tokenType={token} sourceStackId={stack.id} removable onRemove={() => onRemoveToken(stack.id)} />}
+        {!token && <span className="bar-token-zone-placeholder">Drop token</span>}
+      </div>
     </div>
   );
 }
@@ -493,6 +495,7 @@ export default function AuthSuccessPage() {
   const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
   const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
   const [activeBarDragKind, setActiveBarDragKind] = useState<'barBlock' | 'barStack' | 'widthToken' | null>(null);
+  const [activeDraggedBlockKey, setActiveDraggedBlockKey] = useState<BarSectionKey | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
@@ -853,32 +856,49 @@ export default function AuthSuccessPage() {
                           if (dragKind === 'barBlock' || dragKind === 'barStack' || dragKind === 'widthToken') {
                             setActiveBarDragKind(dragKind);
                           }
+                          const draggedSection = event.active.data.current?.sectionKey;
+                          setActiveDraggedBlockKey(isBarSectionKey(draggedSection) ? draggedSection : null);
                           const tokenType = event.active.data.current?.tokenType;
                           if (isBarWidthTokenType(tokenType)) setActiveWidthToken(tokenType);
                         }}
                         onDragCancel={() => {
                           setActiveWidthToken(null);
                           setActiveBarDragKind(null);
+                          setActiveDraggedBlockKey(null);
                         }}
                         onDragEnd={(event) => {
                           handleBarOrderDragEnd(event);
                           setActiveWidthToken(null);
                           setActiveBarDragKind(null);
+                          setActiveDraggedBlockKey(null);
                         }}
                       >
                         <SortableContext items={activeBarStacks.map((stack) => stack.id)} strategy={horizontalListSortingStrategy}>
                           <div className="bar-order-lane">
-                            {activeBarStacks.map((stack) => (
-                              <SortableBarStack
-                                key={stack.id}
-                                stack={stack}
-                                token={stack.widthToken ?? null}
-                                showTokenDropZone={activeBarDragKind === 'widthToken'}
-                                showBlockInsertZones={activeBarDragKind === 'barBlock'}
-                                showStackSideZones={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
-                                onRemoveBlock={removeBarSection}
-                                onRemoveToken={removeBarSectionToken}
-                              />
+                            {activeBarStacks.map((stack, index) => (
+                              <div key={stack.id} className="bar-stack-slot">
+                                {index === 0 && (
+                                  <StackSideDropZone
+                                    id={`stack-left-${stack.id}`}
+                                    side="left"
+                                    active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
+                                  />
+                                )}
+                                <SortableBarStack
+                                  stack={stack}
+                                  token={stack.widthToken ?? null}
+                                  showTokenDropZone={activeBarDragKind === 'widthToken'}
+                                  showBlockInsertZones={activeBarDragKind === 'barBlock'}
+                                  activeDraggedBlockKey={activeDraggedBlockKey}
+                                  onRemoveBlock={removeBarSection}
+                                  onRemoveToken={removeBarSectionToken}
+                                />
+                                <StackSideDropZone
+                                  id={`stack-right-${stack.id}`}
+                                  side="right"
+                                  active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
+                                />
+                              </div>
                             ))}
                           </div>
                         </SortableContext>
