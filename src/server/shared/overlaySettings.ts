@@ -25,12 +25,7 @@ export type BarSections = Record<BarSectionKey, boolean>;
 export type BarSectionOrder = BarSectionKey[];
 export type BarSectionPriority = Record<BarSectionKey, number>;
 export type BarWidthTokenType = 'stretch' | 'boost';
-export type BarSectionWidthTokens = Record<BarSectionKey, { stretch: number; boost: number }>;
-
-export const BAR_WIDTH_TOKEN_LIMITS: Record<BarWidthTokenType, number> = {
-  stretch: 2,
-  boost: 2,
-};
+export type BarSectionWidthTokens = Record<BarSectionKey, BarWidthTokenType | null>;
 
 const DEFAULT_BAR_SECTIONS: BarSections = {
   clock: true,
@@ -58,14 +53,14 @@ const DEFAULT_BAR_SECTION_PRIORITY: BarSectionPriority = {
 };
 
 const DEFAULT_BAR_SECTION_WIDTH_TOKENS: BarSectionWidthTokens = {
-  clock: { stretch: 0, boost: 0 },
-  duration: { stretch: 0, boost: 0 },
-  title: { stretch: 2, boost: 0 },
-  viewers: { stretch: 0, boost: 0 },
-  followers: { stretch: 0, boost: 0 },
-  subscribers: { stretch: 0, boost: 0 },
-  recentFollower: { stretch: 0, boost: 1 },
-  recentSub: { stretch: 0, boost: 1 },
+  clock: null,
+  duration: null,
+  title: 'stretch',
+  viewers: null,
+  followers: null,
+  subscribers: null,
+  recentFollower: 'boost',
+  recentSub: 'boost',
 };
 
 export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSections {
@@ -108,19 +103,34 @@ export function normalizeBarSectionPriority(raw?: Partial<Record<BarSectionKey, 
   return normalized;
 }
 
-export function normalizeBarSectionWidthTokens(raw?: Partial<Record<BarSectionKey, Partial<Record<BarWidthTokenType, number>>>> | null): BarSectionWidthTokens {
+export function normalizeBarSectionWidthTokens(raw?: Partial<Record<BarSectionKey, unknown>> | null): BarSectionWidthTokens {
   const src = raw ?? {};
   const normalized: BarSectionWidthTokens = { ...DEFAULT_BAR_SECTION_WIDTH_TOKENS };
 
   for (const key of BAR_SECTION_KEYS) {
     const current = src[key];
-    if (!current || typeof current !== 'object') continue;
-    const stretch = current.stretch;
-    const boost = current.boost;
-    normalized[key] = {
-      stretch: typeof stretch === 'number' && Number.isFinite(stretch) ? Math.min(8, Math.max(0, Math.round(stretch))) : DEFAULT_BAR_SECTION_WIDTH_TOKENS[key].stretch,
-      boost: typeof boost === 'number' && Number.isFinite(boost) ? Math.min(8, Math.max(0, Math.round(boost))) : DEFAULT_BAR_SECTION_WIDTH_TOKENS[key].boost,
-    };
+    if (current === null || current === undefined) {
+      normalized[key] = null;
+      continue;
+    }
+    if (current === 'stretch' || current === 'boost') {
+      normalized[key] = current;
+      continue;
+    }
+
+    // Backward compatibility: migrate old count format { stretch, boost }.
+    if (typeof current === 'object' && !Array.isArray(current)) {
+      const record = current as Partial<Record<BarWidthTokenType, unknown>>;
+      const stretchCount = typeof record.stretch === 'number' ? record.stretch : 0;
+      const boostCount = typeof record.boost === 'number' ? record.boost : 0;
+      if (stretchCount > 0) {
+        normalized[key] = 'stretch';
+      } else if (boostCount > 0) {
+        normalized[key] = 'boost';
+      } else {
+        normalized[key] = null;
+      }
+    }
   }
 
   return normalized;

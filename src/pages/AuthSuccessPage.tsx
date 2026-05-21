@@ -5,6 +5,7 @@ import {
 } from '@mantine/core';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
   useDraggable,
@@ -25,7 +26,6 @@ import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
 import {
   BAR_SECTION_KEYS,
-  BAR_WIDTH_TOKEN_LIMITS,
   type BarSectionKey,
   type BarWidthTokenType,
   defaultOverlaySettings,
@@ -53,7 +53,7 @@ function isBarWidthTokenType(value: unknown): value is BarWidthTokenType {
 
 interface SortableBarOrderItemProps {
   sectionKey: BarSectionKey;
-  tokens: { stretch: number; boost: number };
+  token: BarWidthTokenType | null;
   onRemove: (key: BarSectionKey) => void;
 }
 
@@ -67,7 +67,7 @@ function TokenPill({ tokenType, sourceSection, id }: { tokenType: BarWidthTokenT
     },
   });
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: sourceSection === 'pool' ? undefined : CSS.Transform.toString(transform),
   };
   const label = tokenType === 'stretch' ? 'Stretch' : 'Boost';
 
@@ -85,7 +85,7 @@ function TokenPill({ tokenType, sourceSection, id }: { tokenType: BarWidthTokenT
   );
 }
 
-function SortableBarOrderItem({ sectionKey, tokens, onRemove }: SortableBarOrderItemProps) {
+function SortableBarOrderItem({ sectionKey, token, onRemove }: SortableBarOrderItemProps) {
   const meta = BAR_SECTION_META[sectionKey];
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sectionKey,
@@ -107,7 +107,7 @@ function SortableBarOrderItem({ sectionKey, tokens, onRemove }: SortableBarOrder
     <div
       ref={setNodeRef}
       style={style}
-      className={`bar-order-chip ${sectionKey === 'title' ? 'bar-order-chip-title' : ''}${isDragging ? ' is-dragging' : ''}`}
+      className={`bar-order-chip${token === 'stretch' ? ' bar-order-chip-stretch' : ''}${isDragging ? ' is-dragging' : ''}`}
       {...attributes}
       {...listeners}
     >
@@ -130,19 +130,14 @@ function SortableBarOrderItem({ sectionKey, tokens, onRemove }: SortableBarOrder
       </div>
       <span className="bar-order-chip-label">{meta.shortLabel}</span>
       <div ref={setDropZoneRef} className={`bar-token-zone${isOver ? ' is-over' : ''}`}>
-        {Array.from({ length: tokens.stretch }).map((_, i) => (
-          <TokenPill key={`stretch-${sectionKey}-${i}`} id={`stretch-${sectionKey}-${i}`} tokenType="stretch" sourceSection={sectionKey} />
-        ))}
-        {Array.from({ length: tokens.boost }).map((_, i) => (
-          <TokenPill key={`boost-${sectionKey}-${i}`} id={`boost-${sectionKey}-${i}`} tokenType="boost" sourceSection={sectionKey} />
-        ))}
-        {tokens.stretch + tokens.boost === 0 && <span className="bar-token-zone-placeholder">Drop token</span>}
+        {token && <TokenPill id={`token-${sectionKey}`} tokenType={token} sourceSection={sectionKey} />}
+        {!token && <span className="bar-token-zone-placeholder">Drop token</span>}
       </div>
     </div>
   );
 }
 
-function TokenPoolZone({ stretchAvailable, boostAvailable }: { stretchAvailable: number; boostAvailable: number }) {
+function TokenPoolZone() {
   const { setNodeRef, isOver } = useDroppable({
     id: 'token-pool',
     data: { dropType: 'tokenPool' },
@@ -152,12 +147,8 @@ function TokenPoolZone({ stretchAvailable, boostAvailable }: { stretchAvailable:
     <div ref={setNodeRef} className={`bar-token-pool${isOver ? ' is-over' : ''}`}>
       <Text size="xs" c="dimmed">Width tokens</Text>
       <div className="bar-token-pool-items">
-        {Array.from({ length: stretchAvailable }).map((_, i) => (
-          <TokenPill key={`pool-stretch-${i}`} id={`pool-stretch-${i}`} tokenType="stretch" sourceSection="pool" />
-        ))}
-        {Array.from({ length: boostAvailable }).map((_, i) => (
-          <TokenPill key={`pool-boost-${i}`} id={`pool-boost-${i}`} tokenType="boost" sourceSection="pool" />
-        ))}
+        <TokenPill id="pool-stretch" tokenType="stretch" sourceSection="pool" />
+        <TokenPill id="pool-boost" tokenType="boost" sourceSection="pool" />
       </div>
       <Text size="xs" c="dimmed">Drag into a block to assign, or drag back here to remove.</Text>
     </div>
@@ -362,22 +353,11 @@ export default function AuthSuccessPage() {
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
   const enabledBarSections = persistedSettings.barSectionOrder.filter((key) => persistedSettings.barSections[key]);
-  const tokenUsage = BAR_SECTION_KEYS.reduce(
-    (acc, key) => {
-      acc.stretch += persistedSettings.barSectionWidthTokens[key]?.stretch ?? 0;
-      acc.boost += persistedSettings.barSectionWidthTokens[key]?.boost ?? 0;
-      return acc;
-    },
-    { stretch: 0, boost: 0 },
-  );
-  const tokenAvailable = {
-    stretch: Math.max(0, BAR_WIDTH_TOKEN_LIMITS.stretch - tokenUsage.stretch),
-    boost: Math.max(0, BAR_WIDTH_TOKEN_LIMITS.boost - tokenUsage.boost),
-  };
   const priorityOrderedSections = [...enabledBarSections].sort(
     (a, b) => (persistedSettings.barSectionPriority[a] ?? 99) - (persistedSettings.barSectionPriority[b] ?? 99),
   );
   const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
+  const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
@@ -426,27 +406,15 @@ export default function AuthSuccessPage() {
 
     if (sourceSection === 'pool') {
       if (targetSection === 'pool') return;
-      if (tokenAvailable[tokenType] <= 0) return;
-      nextTokens[targetSection] = {
-        ...nextTokens[targetSection],
-        [tokenType]: (nextTokens[targetSection][tokenType] ?? 0) + 1,
-      };
+      nextTokens[targetSection] = tokenType;
       save({ barSectionWidthTokens: nextTokens });
       return;
     }
 
-    if ((nextTokens[sourceSection][tokenType] ?? 0) <= 0) return;
-
-    nextTokens[sourceSection] = {
-      ...nextTokens[sourceSection],
-      [tokenType]: Math.max(0, (nextTokens[sourceSection][tokenType] ?? 0) - 1),
-    };
+    nextTokens[sourceSection] = null;
 
     if (targetSection !== 'pool') {
-      nextTokens[targetSection] = {
-        ...nextTokens[targetSection],
-        [tokenType]: (nextTokens[targetSection][tokenType] ?? 0) + 1,
-      };
+      nextTokens[targetSection] = tokenType;
     }
 
     save({ barSectionWidthTokens: nextTokens });
@@ -460,7 +428,7 @@ export default function AuthSuccessPage() {
       },
       barSectionWidthTokens: {
         ...persistedSettings.barSectionWidthTokens,
-        [key]: { stretch: 0, boost: 0 },
+        [key]: null,
       },
     });
   };
@@ -701,7 +669,15 @@ export default function AuthSuccessPage() {
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
-                        onDragEnd={handleBarOrderDragEnd}
+                        onDragStart={(event) => {
+                          const tokenType = event.active.data.current?.tokenType;
+                          if (isBarWidthTokenType(tokenType)) setActiveWidthToken(tokenType);
+                        }}
+                        onDragCancel={() => setActiveWidthToken(null)}
+                        onDragEnd={(event) => {
+                          handleBarOrderDragEnd(event);
+                          setActiveWidthToken(null);
+                        }}
                       >
                         <SortableContext items={enabledBarSections} strategy={horizontalListSortingStrategy}>
                           <div className="bar-order-lane">
@@ -709,13 +685,16 @@ export default function AuthSuccessPage() {
                               <SortableBarOrderItem
                                 key={key}
                                 sectionKey={key}
-                                tokens={persistedSettings.barSectionWidthTokens[key]}
+                                token={persistedSettings.barSectionWidthTokens[key]}
                                 onRemove={removeBarSection}
                               />
                             ))}
                           </div>
                         </SortableContext>
-                        <TokenPoolZone stretchAvailable={tokenAvailable.stretch} boostAvailable={tokenAvailable.boost} />
+                        <TokenPoolZone />
+                        <DragOverlay>
+                          {activeWidthToken && <span className={`bar-token-pill bar-token-${activeWidthToken} is-overlay`}>{activeWidthToken === 'stretch' ? '↔' : '＋'}</span>}
+                        </DragOverlay>
                       </DndContext>
                     )}
                   </div>

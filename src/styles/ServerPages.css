@@ -302,8 +302,7 @@
   align-items: stretch;
   gap: 2px;
   min-height: 50px;
-  min-width: 92px;
-  max-width: 132px;
+  width: 108px;
   border: 1px solid var(--sv-border-sub);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
@@ -313,9 +312,10 @@
   touch-action: none;
 }
 
-.bar-order-chip-title {
-  flex: 1 1 180px;
-  max-width: none;
+.bar-order-chip-stretch {
+  flex: 1 1 170px;
+  width: auto;
+  min-width: 170px;
 }
 
 .bar-order-chip.is-dragging {
@@ -366,6 +366,10 @@
   background: rgba(255, 255, 255, 0.12);
   color: var(--sv-text-2);
   cursor: grab;
+}
+
+.bar-token-pill.is-overlay {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
 }
 
 .bar-token-pill.is-dragging {

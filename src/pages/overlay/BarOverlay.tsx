@@ -5,7 +5,7 @@ import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import GlobalAlertLayer from '../../components/GlobalAlertLayer';
-import { type BarSectionKey } from '../../server/shared/overlaySettings';
+import { type BarSectionKey, type BarWidthTokenType } from '../../server/shared/overlaySettings';
 import '../../styles/BarOverlay.css';
 
 const SECTION_BASE_MIN_WIDTH: Record<BarSectionKey, number> = {
@@ -22,17 +22,17 @@ const SECTION_BASE_MIN_WIDTH: Record<BarSectionKey, number> = {
 const BOOST_MIN_WIDTH_PX = 56;
 const STRETCH_MIN_WIDTH_PX = 28;
 
-function getSectionStyle(key: BarSectionKey, fullWidth: boolean, tokens: { stretch: number; boost: number }): React.CSSProperties {
-  const stretch = Math.max(0, tokens.stretch || 0);
-  const boost = Math.max(0, tokens.boost || 0);
-  const boostPx = boost * BOOST_MIN_WIDTH_PX;
-  const stretchMinPx = stretch * STRETCH_MIN_WIDTH_PX;
+function getSectionStyle(key: BarSectionKey, fullWidth: boolean, token: BarWidthTokenType | null): React.CSSProperties {
+  const stretch = token === 'stretch';
+  const boost = token === 'boost';
+  const boostPx = boost ? BOOST_MIN_WIDTH_PX : 0;
+  const stretchMinPx = stretch ? STRETCH_MIN_WIDTH_PX : 0;
 
   if (key === 'title') {
     const basis = 148 + boostPx;
     return {
       minWidth: `${basis + stretchMinPx}px`,
-      flex: fullWidth ? `${1 + stretch} 1 ${basis}px` : `${stretch} 1 ${basis}px`,
+      flex: fullWidth ? `${stretch ? 1 : 0} 1 ${basis}px` : `${stretch ? 1 : 0} 1 ${basis}px`,
       maxWidth: fullWidth ? 'none' : `${320 + boostPx}px`,
     };
   }
@@ -42,7 +42,7 @@ function getSectionStyle(key: BarSectionKey, fullWidth: boolean, tokens: { stret
     const basis = baseBasis + boostPx;
     return {
       minWidth: `${SECTION_BASE_MIN_WIDTH[key] + boostPx + stretchMinPx}px`,
-      flex: fullWidth ? `${1 + stretch} 1 ${basis}px` : `${stretch} 1 ${basis}px`,
+      flex: fullWidth ? `${stretch ? 1 : 0} 1 ${basis}px` : `${stretch ? 1 : 0} 1 ${basis}px`,
       maxWidth: `${basis}px`,
     };
   }
@@ -50,7 +50,7 @@ function getSectionStyle(key: BarSectionKey, fullWidth: boolean, tokens: { stret
   const basis = SECTION_BASE_MIN_WIDTH[key] + boostPx;
   return {
     minWidth: `${basis + stretchMinPx}px`,
-    flex: `${stretch} 0 auto`,
+    flex: `${stretch ? 1 : 0} 0 auto`,
   };
 }
 
@@ -198,8 +198,8 @@ const BarOverlayContent = () => {
     const dividerBudget = Math.max(0, active.length - 1) * 16;
     const available = Math.max(0, overlayWidth - 24);
     let total = active.reduce((sum, key) => {
-      const tokens = settings.barSectionWidthTokens[key] ?? { stretch: 0, boost: 0 };
-      const dynamicMin = SECTION_BASE_MIN_WIDTH[key] + Math.max(0, tokens.boost || 0) * BOOST_MIN_WIDTH_PX + Math.max(0, tokens.stretch || 0) * STRETCH_MIN_WIDTH_PX;
+      const token = settings.barSectionWidthTokens[key] ?? null;
+      const dynamicMin = SECTION_BASE_MIN_WIDTH[key] + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0);
       return sum + dynamicMin;
     }, 0) + dividerBudget;
     const keep = new Set<BarSectionKey>(active);
@@ -215,8 +215,8 @@ const BarOverlayContent = () => {
       if (total <= available) break;
       if (!keep.has(key)) continue;
       keep.delete(key);
-      const tokens = settings.barSectionWidthTokens[key] ?? { stretch: 0, boost: 0 };
-      const dynamicMin = SECTION_BASE_MIN_WIDTH[key] + Math.max(0, tokens.boost || 0) * BOOST_MIN_WIDTH_PX + Math.max(0, tokens.stretch || 0) * STRETCH_MIN_WIDTH_PX;
+      const token = settings.barSectionWidthTokens[key] ?? null;
+      const dynamicMin = SECTION_BASE_MIN_WIDTH[key] + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0);
       total -= dynamicMin + 16;
     }
 
