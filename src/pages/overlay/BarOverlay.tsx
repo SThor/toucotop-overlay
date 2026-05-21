@@ -10,13 +10,12 @@ import '../../styles/BarOverlay.css';
 
 const BOOST_MIN_WIDTH_PX = 56;
 const STRETCH_MIN_WIDTH_PX = 28;
+const STACK_HEADROOM_PX = 14;
 const STACK_ROTATE_MS = 5000;
 
-function getSectionStyle(baseMinWidth: number, token: BarWidthTokenType | null): React.CSSProperties {
+function getSectionStyle(finalMinWidth: number, token: BarWidthTokenType | null): React.CSSProperties {
   const stretch = token === 'stretch';
-  const boost = token === 'boost';
-  const boostPx = boost ? BOOST_MIN_WIDTH_PX : 0;
-  const basis = baseMinWidth + boostPx;
+  const basis = finalMinWidth;
 
   return {
     minWidth: `${basis}px`,
@@ -301,7 +300,7 @@ const BarOverlayContent = () => {
 
         const maxBaseMinWidth = Math.max(...availableSections.map((key) => settings.barSectionMinWidth[key] ?? 132));
         const token = stack.widthToken ?? null;
-        const dynamicMin = maxBaseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0);
+        const dynamicMin = maxBaseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0) + STACK_HEADROOM_PX;
         return {
           id: stack.id,
           sections: availableSections,

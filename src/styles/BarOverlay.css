@@ -63,10 +63,12 @@
 }
 
 .bar-stack-viewport {
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   align-items: center;
   min-width: 0;
+  box-sizing: border-box;
+  padding: 0 6px;
 }
 
 .bar-stack-slide {
