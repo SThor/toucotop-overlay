@@ -14,11 +14,14 @@
   right: 1.2rem;
   bottom: var(--border-bottom-offset, 90px);
   border-radius: 1px;
-  opacity: 0;
+}
+
+.border-overlay:not(.y2k-active)::before {
+  border: 1px solid rgba(255, 255, 255, 0.85);
 }
 
 .border-overlay.y2k-active::before {
-  opacity: 1;
+  border: none;
   box-shadow:
     0 0 18px rgba(188, 204, 255, 0.24),
     0 0 10px rgba(255, 255, 255, 0.12),
