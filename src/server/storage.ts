@@ -17,6 +17,7 @@ import {
   defaultOverlaySettings,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
+  normalizeBarSectionWidthTokens,
   normalizeBarSections,
   type OverlaySettings,
   type OverlayTheme,
@@ -25,10 +26,11 @@ import {
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
   barSectionOrder?: OverlaySettings['barSectionOrder'];
   barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
+  barSectionWidthTokens?: Partial<OverlaySettings['barSectionWidthTokens']>;
 };
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
@@ -116,6 +118,7 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
       barSections: normalizeBarSections(existingData?.overlaySettings?.barSections),
       barSectionOrder: normalizeBarSectionOrder(existingData?.overlaySettings?.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(existingData?.overlaySettings?.barSectionPriority),
+      barSectionWidthTokens: normalizeBarSectionWidthTokens(existingData?.overlaySettings?.barSectionWidthTokens),
       perOverlayOpacity: {
         ...defaultOverlaySettings.perOverlayOpacity,
         ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
@@ -280,6 +283,15 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
       if (!patchPriority) return basePriority;
       return normalizeBarSectionPriority({ ...basePriority, ...patchPriority });
     })();
+    const mergedBarSectionWidthTokens = (() => {
+      const baseTokens = normalizeBarSectionWidthTokens(base.barSectionWidthTokens);
+      const patchTokens = settings.barSectionWidthTokens;
+      if (!patchTokens) return baseTokens;
+      return normalizeBarSectionWidthTokens({
+        ...baseTokens,
+        ...patchTokens,
+      });
+    })();
 
     const merged: OverlaySettings = {
       ...defaultOverlaySettings,
@@ -288,6 +300,7 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
       barSections: mergedBarSections,
       barSectionOrder: mergedBarSectionOrder,
       barSectionPriority: mergedBarSectionPriority,
+      barSectionWidthTokens: mergedBarSectionWidthTokens,
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {

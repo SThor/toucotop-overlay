@@ -9,13 +9,20 @@
 
 import express, { type Request, type Response, Router } from 'express';
 import { getUserTokens, updateUserSettings, defaultOverlaySettings, type OverlaySettings } from './storage.js';
-import { BAR_SECTION_KEYS, normalizeBarSectionOrder, normalizeBarSectionPriority, normalizeBarSections } from './shared/overlaySettings.js';
+import {
+  BAR_SECTION_KEYS,
+  normalizeBarSectionOrder,
+  normalizeBarSectionPriority,
+  normalizeBarSectionWidthTokens,
+  normalizeBarSections,
+} from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
   barSectionOrder?: OverlaySettings['barSectionOrder'];
   barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
+  barSectionWidthTokens?: Partial<OverlaySettings['barSectionWidthTokens']>;
 };
 
 /**
@@ -34,6 +41,7 @@ router.get('/', (req: Request, res: Response) => {
     barSections: normalizeBarSections(raw.barSections),
     barSectionOrder: normalizeBarSectionOrder(raw.barSectionOrder),
     barSectionPriority: normalizeBarSectionPriority(raw.barSectionPriority),
+    barSectionWidthTokens: normalizeBarSectionWidthTokens(raw.barSectionWidthTokens),
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -181,6 +189,42 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         }
       }
       if (errors.length === 0) patch.barSectionPriority = priorityPatch;
+    }
+  }
+
+  if ('barSectionWidthTokens' in body) {
+    const v = body.barSectionWidthTokens;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSectionWidthTokens must be an object');
+    } else {
+      const tokenPatch: Partial<OverlaySettings['barSectionWidthTokens']> = {};
+      for (const key of BAR_SECTION_KEYS) {
+        if (!(key in v)) continue;
+        const row = (v as Record<string, unknown>)[key];
+        if (typeof row !== 'object' || row === null || Array.isArray(row)) {
+          errors.push(`barSectionWidthTokens.${key} must be an object`);
+          continue;
+        }
+        const parsed: Partial<OverlaySettings['barSectionWidthTokens'][typeof key]> = {};
+        if ('stretch' in row) {
+          const rawStretch = (row as Record<string, unknown>).stretch;
+          if (typeof rawStretch !== 'number' || !Number.isFinite(rawStretch)) {
+            errors.push(`barSectionWidthTokens.${key}.stretch must be a number`);
+          } else {
+            parsed.stretch = Math.min(8, Math.max(0, Math.round(rawStretch)));
+          }
+        }
+        if ('boost' in row) {
+          const rawBoost = (row as Record<string, unknown>).boost;
+          if (typeof rawBoost !== 'number' || !Number.isFinite(rawBoost)) {
+            errors.push(`barSectionWidthTokens.${key}.boost must be a number`);
+          } else {
+            parsed.boost = Math.min(8, Math.max(0, Math.round(rawBoost)));
+          }
+        }
+        tokenPatch[key] = parsed as OverlaySettings['barSectionWidthTokens'][typeof key];
+      }
+      if (errors.length === 0) patch.barSectionWidthTokens = tokenPatch;
     }
   }
 

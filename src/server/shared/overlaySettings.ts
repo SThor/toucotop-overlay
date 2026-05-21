@@ -24,6 +24,13 @@ export interface PerOverlayNumber {
 export type BarSections = Record<BarSectionKey, boolean>;
 export type BarSectionOrder = BarSectionKey[];
 export type BarSectionPriority = Record<BarSectionKey, number>;
+export type BarWidthTokenType = 'stretch' | 'boost';
+export type BarSectionWidthTokens = Record<BarSectionKey, { stretch: number; boost: number }>;
+
+export const BAR_WIDTH_TOKEN_LIMITS: Record<BarWidthTokenType, number> = {
+  stretch: 2,
+  boost: 2,
+};
 
 const DEFAULT_BAR_SECTIONS: BarSections = {
   clock: true,
@@ -48,6 +55,17 @@ const DEFAULT_BAR_SECTION_PRIORITY: BarSectionPriority = {
   followers: 6,
   subscribers: 7,
   recentSub: 8,
+};
+
+const DEFAULT_BAR_SECTION_WIDTH_TOKENS: BarSectionWidthTokens = {
+  clock: { stretch: 0, boost: 0 },
+  duration: { stretch: 0, boost: 0 },
+  title: { stretch: 2, boost: 0 },
+  viewers: { stretch: 0, boost: 0 },
+  followers: { stretch: 0, boost: 0 },
+  subscribers: { stretch: 0, boost: 0 },
+  recentFollower: { stretch: 0, boost: 1 },
+  recentSub: { stretch: 0, boost: 1 },
 };
 
 export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSections {
@@ -90,6 +108,24 @@ export function normalizeBarSectionPriority(raw?: Partial<Record<BarSectionKey, 
   return normalized;
 }
 
+export function normalizeBarSectionWidthTokens(raw?: Partial<Record<BarSectionKey, Partial<Record<BarWidthTokenType, number>>>> | null): BarSectionWidthTokens {
+  const src = raw ?? {};
+  const normalized: BarSectionWidthTokens = { ...DEFAULT_BAR_SECTION_WIDTH_TOKENS };
+
+  for (const key of BAR_SECTION_KEYS) {
+    const current = src[key];
+    if (!current || typeof current !== 'object') continue;
+    const stretch = current.stretch;
+    const boost = current.boost;
+    normalized[key] = {
+      stretch: typeof stretch === 'number' && Number.isFinite(stretch) ? Math.min(8, Math.max(0, Math.round(stretch))) : DEFAULT_BAR_SECTION_WIDTH_TOKENS[key].stretch,
+      boost: typeof boost === 'number' && Number.isFinite(boost) ? Math.min(8, Math.max(0, Math.round(boost))) : DEFAULT_BAR_SECTION_WIDTH_TOKENS[key].boost,
+    };
+  }
+
+  return normalized;
+}
+
 export interface OverlaySettings {
   overlayOpacity: number;
   perOverlayOpacity: PerOverlayNumber;
@@ -101,6 +137,7 @@ export interface OverlaySettings {
   barSections: BarSections;
   barSectionOrder: BarSectionOrder;
   barSectionPriority: BarSectionPriority;
+  barSectionWidthTokens: BarSectionWidthTokens;
   theme: OverlayTheme;
   themeSettings: {
     crt: {
@@ -132,6 +169,7 @@ export const defaultOverlaySettings: OverlaySettings = {
   barSections: { ...DEFAULT_BAR_SECTIONS },
   barSectionOrder: [...DEFAULT_BAR_SECTION_ORDER],
   barSectionPriority: { ...DEFAULT_BAR_SECTION_PRIORITY },
+  barSectionWidthTokens: { ...DEFAULT_BAR_SECTION_WIDTH_TOKENS },
   theme: 'crt',
   themeSettings: {
     crt: {

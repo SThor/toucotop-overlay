@@ -8,7 +8,7 @@ import GlobalAlertLayer from '../../components/GlobalAlertLayer';
 import { type BarSectionKey } from '../../server/shared/overlaySettings';
 import '../../styles/BarOverlay.css';
 
-const SECTION_MIN_WIDTH: Record<BarSectionKey, number> = {
+const SECTION_BASE_MIN_WIDTH: Record<BarSectionKey, number> = {
   clock: 114,
   duration: 132,
   title: 148,
@@ -18,6 +18,41 @@ const SECTION_MIN_WIDTH: Record<BarSectionKey, number> = {
   recentFollower: 144,
   recentSub: 144,
 };
+
+const BOOST_MIN_WIDTH_PX = 56;
+const STRETCH_MIN_WIDTH_PX = 28;
+
+function getSectionStyle(key: BarSectionKey, fullWidth: boolean, tokens: { stretch: number; boost: number }): React.CSSProperties {
+  const stretch = Math.max(0, tokens.stretch || 0);
+  const boost = Math.max(0, tokens.boost || 0);
+  const boostPx = boost * BOOST_MIN_WIDTH_PX;
+  const stretchMinPx = stretch * STRETCH_MIN_WIDTH_PX;
+
+  if (key === 'title') {
+    const basis = 148 + boostPx;
+    return {
+      minWidth: `${basis + stretchMinPx}px`,
+      flex: fullWidth ? `${1 + stretch} 1 ${basis}px` : `${stretch} 1 ${basis}px`,
+      maxWidth: fullWidth ? 'none' : `${320 + boostPx}px`,
+    };
+  }
+
+  if (key === 'recentFollower' || key === 'recentSub') {
+    const baseBasis = fullWidth ? 360 : 240;
+    const basis = baseBasis + boostPx;
+    return {
+      minWidth: `${SECTION_BASE_MIN_WIDTH[key] + boostPx + stretchMinPx}px`,
+      flex: fullWidth ? `${1 + stretch} 1 ${basis}px` : `${stretch} 1 ${basis}px`,
+      maxWidth: `${basis}px`,
+    };
+  }
+
+  const basis = SECTION_BASE_MIN_WIDTH[key] + boostPx;
+  return {
+    minWidth: `${basis + stretchMinPx}px`,
+    flex: `${stretch} 0 auto`,
+  };
+}
 
 const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
@@ -162,7 +197,11 @@ const BarOverlayContent = () => {
 
     const dividerBudget = Math.max(0, active.length - 1) * 16;
     const available = Math.max(0, overlayWidth - 24);
-    let total = active.reduce((sum, key) => sum + SECTION_MIN_WIDTH[key], 0) + dividerBudget;
+    let total = active.reduce((sum, key) => {
+      const tokens = settings.barSectionWidthTokens[key] ?? { stretch: 0, boost: 0 };
+      const dynamicMin = SECTION_BASE_MIN_WIDTH[key] + Math.max(0, tokens.boost || 0) * BOOST_MIN_WIDTH_PX + Math.max(0, tokens.stretch || 0) * STRETCH_MIN_WIDTH_PX;
+      return sum + dynamicMin;
+    }, 0) + dividerBudget;
     const keep = new Set<BarSectionKey>(active);
 
     const orderIndex = new Map(settings.barSectionOrder.map((key, index) => [key, index]));
@@ -176,7 +215,9 @@ const BarOverlayContent = () => {
       if (total <= available) break;
       if (!keep.has(key)) continue;
       keep.delete(key);
-      total -= SECTION_MIN_WIDTH[key] + 16;
+      const tokens = settings.barSectionWidthTokens[key] ?? { stretch: 0, boost: 0 };
+      const dynamicMin = SECTION_BASE_MIN_WIDTH[key] + Math.max(0, tokens.boost || 0) * BOOST_MIN_WIDTH_PX + Math.max(0, tokens.stretch || 0) * STRETCH_MIN_WIDTH_PX;
+      total -= dynamicMin + 16;
     }
 
     if (keep.size === 0 && active[0]) keep.add(active[0]);
@@ -186,6 +227,7 @@ const BarOverlayContent = () => {
     overlayWidth,
     settings.barSectionOrder,
     settings.barSectionPriority,
+    settings.barSectionWidthTokens,
     settings.barSections,
     twitch.lastFollower,
     twitch.lastSubscriber,
@@ -212,7 +254,7 @@ const BarOverlayContent = () => {
         const sectionNodes: Record<BarSectionKey, React.ReactNode | null> = {
           clock: visibleItems.has('clock')
             ? (
-              <div key="clock" className="bar-section bar-section-clock">
+              <div key="clock" className="bar-section bar-section-clock" style={getSectionStyle('clock', !settings.barFloating, settings.barSectionWidthTokens.clock)}>
                 <div className="bar-stat-content">
                   <div className="bar-time-value">{formatTime(currentTime)}</div>
                   <div className="bar-time-label">Current Time</div>
@@ -222,7 +264,7 @@ const BarOverlayContent = () => {
             : null,
           duration: visibleItems.has('duration')
             ? (
-              <div key="duration" className="bar-section bar-section-duration">
+              <div key="duration" className="bar-section bar-section-duration" style={getSectionStyle('duration', !settings.barFloating, settings.barSectionWidthTokens.duration)}>
                 <div className="bar-stat-content">
                   <div className="bar-time-value">{formatStreamDuration()}</div>
                   <div className="bar-time-label">Stream Duration</div>
@@ -232,7 +274,7 @@ const BarOverlayContent = () => {
             : null,
           title: visibleItems.has('title')
             ? (
-              <div key="title" className="bar-section bar-stream-section">
+              <div key="title" className="bar-section bar-stream-section" style={getSectionStyle('title', !settings.barFloating, settings.barSectionWidthTokens.title)}>
                 <MarqueeText
                   className="bar-stream-title"
                   text={twitch.streamInfo?.title || 'Stream Title'}
@@ -246,7 +288,7 @@ const BarOverlayContent = () => {
             : null,
           viewers: visibleItems.has('viewers')
             ? (
-              <div key="viewers" className="bar-section bar-stat-section">
+              <div key="viewers" className="bar-section bar-stat-section" style={getSectionStyle('viewers', !settings.barFloating, settings.barSectionWidthTokens.viewers)}>
                 <div className="bar-stat-item">
                   <div className="bar-stat-icon" aria-hidden="true">👥</div>
                   <div className="bar-stat-content">
@@ -261,7 +303,7 @@ const BarOverlayContent = () => {
             : null,
           followers: visibleItems.has('followers')
             ? (
-              <div key="followers" className="bar-section bar-stat-section">
+              <div key="followers" className="bar-section bar-stat-section" style={getSectionStyle('followers', !settings.barFloating, settings.barSectionWidthTokens.followers)}>
                 <div className="bar-stat-item">
                   <div className="bar-stat-icon" aria-hidden="true">❤️</div>
                   <div className="bar-stat-content">
@@ -274,7 +316,7 @@ const BarOverlayContent = () => {
             : null,
           subscribers: visibleItems.has('subscribers')
             ? (
-              <div key="subscribers" className="bar-section bar-stat-section">
+              <div key="subscribers" className="bar-section bar-stat-section" style={getSectionStyle('subscribers', !settings.barFloating, settings.barSectionWidthTokens.subscribers)}>
                 <div className="bar-stat-item">
                   <div className="bar-stat-icon" aria-hidden="true">⭐</div>
                   <div className="bar-stat-content">
@@ -287,7 +329,7 @@ const BarOverlayContent = () => {
             : null,
           recentFollower: visibleItems.has('recentFollower') && twitch.lastFollower
             ? (
-              <div key="recentFollower" className="bar-section bar-recent-section">
+              <div key="recentFollower" className="bar-section bar-recent-section" style={getSectionStyle('recentFollower', !settings.barFloating, settings.barSectionWidthTokens.recentFollower)}>
                 <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
                   <div className="bar-recent-icon" aria-hidden="true">❤️</div>
                   <div className="bar-recent-content">
@@ -303,7 +345,7 @@ const BarOverlayContent = () => {
             : null,
           recentSub: visibleItems.has('recentSub') && twitch.lastSubscriber
             ? (
-              <div key="recentSub" className="bar-section bar-recent-section">
+              <div key="recentSub" className="bar-section bar-recent-section" style={getSectionStyle('recentSub', !settings.barFloating, settings.barSectionWidthTokens.recentSub)}>
                 <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
                   <div className="bar-recent-icon" aria-hidden="true">⭐</div>
                   <div className="bar-recent-content">

@@ -5,6 +5,7 @@ import {
   defaultOverlaySettings,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
+  normalizeBarSectionWidthTokens,
   normalizeBarSections,
   type OverlaySettings,
 } from '../server/shared/overlaySettings';
@@ -178,6 +179,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       },
       barSectionOrder: normalizeBarSectionOrder(cached.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(cached.barSectionPriority),
+      barSectionWidthTokens: normalizeBarSectionWidthTokens(cached.barSectionWidthTokens),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
         ...(cached.themeSettings ?? {}),
@@ -264,6 +266,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             barSections: normalizeBarSections(fetched.barSections),
             barSectionOrder: normalizeBarSectionOrder(fetched.barSectionOrder),
             barSectionPriority: normalizeBarSectionPriority(fetched.barSectionPriority),
+            barSectionWidthTokens: normalizeBarSectionWidthTokens(fetched.barSectionWidthTokens),
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,
               ...(fetched.themeSettings ?? {}),
