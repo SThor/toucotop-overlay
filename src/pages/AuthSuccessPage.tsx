@@ -1,8 +1,23 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon, NumberInput, Badge,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon, NumberInput,
 } from '@mantine/core';
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
 import { BAR_SECTION_KEYS, type BarSectionKey, defaultOverlaySettings } from '../server/shared/overlaySettings';
@@ -19,14 +34,48 @@ const BAR_SECTION_META: Record<BarSectionKey, { label: string; icon: string }> =
   recentSub: { label: 'Last Subscriber', icon: '🎁' },
 };
 
-function moveSection(order: BarSectionKey[], dragged: BarSectionKey, target: BarSectionKey): BarSectionKey[] {
-  const from = order.indexOf(dragged);
-  const to = order.indexOf(target);
-  if (from < 0 || to < 0 || from === to) return order;
-  const next = [...order];
-  next.splice(from, 1);
-  next.splice(to, 0, dragged);
-  return next;
+function isBarSectionKey(value: unknown): value is BarSectionKey {
+  return typeof value === 'string' && BAR_SECTION_KEYS.includes(value as BarSectionKey);
+}
+
+interface SortableBarOrderItemProps {
+  sectionKey: BarSectionKey;
+  onRemove: (key: BarSectionKey) => void;
+}
+
+function SortableBarOrderItem({ sectionKey, onRemove }: SortableBarOrderItemProps) {
+  const meta = BAR_SECTION_META[sectionKey];
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sectionKey });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bar-order-chip ${sectionKey === 'title' ? 'bar-order-chip-title' : ''}${isDragging ? ' is-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="bar-order-chip-label">{meta.icon} {meta.label}</span>
+      <ActionIcon
+        variant="subtle"
+        color="red"
+        size="sm"
+        title="Remove block"
+        aria-label={`Remove ${meta.label}`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(sectionKey);
+        }}
+      >
+        ✕
+      </ActionIcon>
+    </div>
+  );
 }
 
 function formatExpiryDate(isoString: string): string {
@@ -200,9 +249,39 @@ export default function AuthSuccessPage() {
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
-  const [draggedBarSection, setDraggedBarSection] = useState<BarSectionKey | null>(null);
   const enabledBarSections = persistedSettings.barSectionOrder.filter((key) => persistedSettings.barSections[key]);
   const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+
+  const handleBarOrderDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    if (active.id === over.id) return;
+    if (!isBarSectionKey(active.id) || !isBarSectionKey(over.id)) return;
+
+    const from = enabledBarSections.indexOf(active.id);
+    const to = enabledBarSections.indexOf(over.id);
+    if (from < 0 || to < 0 || from === to) return;
+
+    const reorderedEnabled = arrayMove(enabledBarSections, from, to);
+    const reorderedSet = new Set(reorderedEnabled);
+    const nextOrder = [
+      ...reorderedEnabled,
+      ...persistedSettings.barSectionOrder.filter((key) => !reorderedSet.has(key)),
+    ];
+    save({ barSectionOrder: nextOrder });
+  };
+
+  const removeBarSection = (key: BarSectionKey) => {
+    save({
+      barSections: {
+        ...persistedSettings.barSections,
+        [key]: false,
+      },
+    });
+  };
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -410,36 +489,42 @@ export default function AuthSuccessPage() {
 
               <div>
                 <Text size="sm" fw={500} mb="xs">Bar Sections</Text>
-                <Text size="xs" c="dimmed" mb="xs">
-                  Drag blocks to change render order. Lower priority numbers are kept visible longer when space runs out.
-                </Text>
-                <Stack gap="xs" className="bar-sections-manager">
-                  {enabledBarSections.length === 0 && (
-                    <Text size="xs" c="dimmed">No blocks enabled. Add one from the list below.</Text>
-                  )}
-                  {enabledBarSections.map((key, index) => {
-                    const meta = BAR_SECTION_META[key];
-                    return (
-                      <div
-                        key={key}
-                        className={`bar-section-item ${draggedBarSection === key ? 'is-dragging' : ''}`}
-                        draggable
-                        onDragStart={() => setDraggedBarSection(key)}
-                        onDragEnd={() => setDraggedBarSection(null)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => {
-                          if (!draggedBarSection || draggedBarSection === key) return;
-                          save({ barSectionOrder: moveSection(persistedSettings.barSectionOrder, draggedBarSection, key) });
-                          setDraggedBarSection(null);
-                        }}
+                <Stack gap="sm" className="bar-sections-manager">
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Bar Order (left to right)</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Drag blocks directly in this lane to match the real bar layout. The title block stretches when there is extra space.
+                    </Text>
+                    {enabledBarSections.length === 0 ? (
+                      <Text size="xs" c="dimmed">No blocks enabled. Add one below.</Text>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleBarOrderDragEnd}
                       >
-                        <Group justify="space-between" wrap="nowrap" gap="sm">
-                          <Group gap="xs" wrap="nowrap">
-                            <Text className="bar-section-grip" aria-hidden="true">⋮⋮</Text>
-                            <Badge variant="light" color="gray">{index + 1}</Badge>
-                            <Text size="sm">{meta.icon} {meta.label}</Text>
-                          </Group>
-                          <Group gap="xs" wrap="nowrap">
+                        <SortableContext items={enabledBarSections} strategy={horizontalListSortingStrategy}>
+                          <div className="bar-order-lane">
+                            {enabledBarSections.map((key) => (
+                              <SortableBarOrderItem key={key} sectionKey={key} onRemove={removeBarSection} />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </div>
+
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Visibility Priority</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      When space is tight, blocks with higher numbers disappear first. Keep your most important blocks at lower numbers.
+                    </Text>
+                    <Stack gap="xs" className="bar-priority-list">
+                      {enabledBarSections.map((key) => {
+                        const meta = BAR_SECTION_META[key];
+                        return (
+                          <div key={key} className="bar-priority-item">
+                            <Text size="sm" className="bar-priority-label">{meta.icon} {meta.label}</Text>
                             <NumberInput
                               aria-label={`${meta.label} priority`}
                               size="xs"
@@ -455,29 +540,13 @@ export default function AuthSuccessPage() {
                                   },
                                 });
                               }}
-                              styles={{ input: { width: 80 } }}
+                              styles={{ input: { width: 84 } }}
                             />
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              onClick={() => {
-                                save({
-                                  barSections: {
-                                    ...persistedSettings.barSections,
-                                    [key]: false,
-                                  },
-                                });
-                              }}
-                              title="Remove block"
-                              aria-label={`Remove ${meta.label}`}
-                            >
-                              ✕
-                            </ActionIcon>
-                          </Group>
-                        </Group>
-                      </div>
-                    );
-                  })}
+                          </div>
+                        );
+                      })}
+                    </Stack>
+                  </div>
 
                   {disabledBarSections.length > 0 && (
                     <div className="bar-section-add-zone">
