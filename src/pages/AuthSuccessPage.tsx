@@ -259,7 +259,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=y2k&amp;reducedEffects=true&amp;hideBackground=true&amp;hideContent=true</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -667,12 +667,20 @@ export default function AuthSuccessPage() {
                 </>
               )}
               {persistedSettings.theme === 'y2k' && (
-                <Switch
-                  label="Reduced effects"
-                  description="Use static ornaments and title treatment instead of animated shader effects for better OBS stability."
-                  checked={y2k.reducedEffects}
-                  onChange={(e) => save({ themeSettings: { y2k: { reducedEffects: e.currentTarget.checked } } as typeof persistedSettings.themeSettings })}
-                />
+                <>
+                  <Switch
+                    label="Reduced effects"
+                    description="Use static ornaments and title treatment instead of animated shader effects for better OBS stability."
+                    checked={y2k.reducedEffects}
+                    onChange={(e) => save({ themeSettings: { y2k: { reducedEffects: e.currentTarget.checked } } as typeof persistedSettings.themeSettings })}
+                  />
+                  <Switch
+                    label="Show bar ornaments"
+                    description="Show decorative Y2K ornaments on the bar overlay. Disable this when using the border overlay instead."
+                    checked={y2k.showBarOrnaments}
+                    onChange={(e) => save({ themeSettings: { y2k: { showBarOrnaments: e.currentTarget.checked } } as typeof persistedSettings.themeSettings })}
+                  />
+                </>
               )}
             </Stack>
           )}

@@ -8,12 +8,13 @@ const NAV_ITEMS = [
   { path: '/chat', label: '💬 Chat' },
   { path: '/clock', label: '🕐 Clock' },
   { path: '/bar', label: '📊 Bar' },
+  { path: '/border', label: '🖼 Border' },
   { path: '/pause', label: '⏸ Pause' },
   { path: '/alerts', label: '🔔 Alerts' },
   { path: '/demo', label: '🧪 Demo' },
 ];
 
-const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause', '/alerts'];
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause', '/alerts', '/border'];
 
 export default function NavMenu() {
   const { settings } = useSettings();

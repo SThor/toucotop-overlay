@@ -11,6 +11,7 @@ const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
+  const showBarOrnaments = settings.themeSettings.y2k.showBarOrnaments;
   const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [overlayWidth, setOverlayWidth] = useState(0);
@@ -211,7 +212,7 @@ const BarOverlayContent = () => {
     >
       <ThemeBackground panelMode />
 
-      {settings.theme === 'y2k' && (
+      {settings.theme === 'y2k' && showBarOrnaments && (
         <>
           <BarY2KOrnament staticMode={reducedEffects} />
           <BarY2KOrnament src="/tribal_center.png" center height={65} yOffset={-72} staticMode={reducedEffects} />
