@@ -308,6 +308,7 @@
   display: flex;
   align-items: stretch;
   gap: 4px;
+  height: 100%;
 }
 
 .bar-stack-card {
@@ -315,6 +316,7 @@
   flex-direction: column;
   gap: 6px;
   width: 170px;
+  height: 100%;
   border: 1px solid var(--sv-border-sub);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
@@ -344,6 +346,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 0 1 auto;
 }
 
 .bar-stack-block-entry {
@@ -453,6 +456,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  margin-top: auto;
   padding: 0;
   border: 1px dashed transparent;
   border-radius: 5px;
