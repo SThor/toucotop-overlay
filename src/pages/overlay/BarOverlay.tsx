@@ -13,6 +13,19 @@ const STRETCH_MIN_WIDTH_PX = 28;
 const STACK_HEADROOM_PX = 14;
 const STACK_ROTATE_MS = 5000;
 
+// Practical content floors so labels and glow effects are not clipped when
+// user-configured min widths are smaller than the rendered content footprint.
+const SECTION_INTRINSIC_MIN_WIDTH: Record<BarSectionKey, number> = {
+  clock: 122,
+  duration: 140,
+  title: 170,
+  viewers: 120,
+  followers: 130,
+  subscribers: 136,
+  recentFollower: 166,
+  recentSub: 160,
+};
+
 function getSectionStyle(finalMinWidth: number, token: BarWidthTokenType | null): React.CSSProperties {
   const stretch = token === 'stretch';
   const basis = finalMinWidth;
@@ -298,7 +311,9 @@ const BarOverlayContent = () => {
         });
         if (availableSections.length === 0) return null;
 
-        const maxBaseMinWidth = Math.max(...availableSections.map((key) => settings.barSectionMinWidth[key] ?? 132));
+        const maxBaseMinWidth = Math.max(
+          ...availableSections.map((key) => Math.max(settings.barSectionMinWidth[key] ?? 132, SECTION_INTRINSIC_MIN_WIDTH[key])),
+        );
         const token = stack.widthToken ?? null;
         const dynamicMin = maxBaseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0) + STACK_HEADROOM_PX;
         return {
