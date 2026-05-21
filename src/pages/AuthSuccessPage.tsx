@@ -54,10 +54,12 @@ function isBarWidthTokenType(value: unknown): value is BarWidthTokenType {
 interface SortableBarOrderItemProps {
   sectionKey: BarSectionKey;
   token: BarWidthTokenType | null;
+  showTokenDropZone: boolean;
   onRemove: (key: BarSectionKey) => void;
+  onRemoveToken: (key: BarSectionKey) => void;
 }
 
-function TokenPill({ tokenType, sourceSection, id }: { tokenType: BarWidthTokenType; sourceSection: BarSectionKey | 'pool'; id: string }) {
+function TokenPill({ tokenType, sourceSection, id, removable, onRemove }: { tokenType: BarWidthTokenType; sourceSection: BarSectionKey | 'pool'; id: string; removable?: boolean; onRemove?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id,
     data: {
@@ -80,12 +82,29 @@ function TokenPill({ tokenType, sourceSection, id }: { tokenType: BarWidthTokenT
       {...listeners}
       title={label}
     >
-      {tokenType === 'stretch' ? '↔' : '＋'}
+      <span className="bar-token-pill-icon" aria-hidden="true">{tokenType === 'stretch' ? '↔' : '＋'}</span>
+      <span className="bar-token-pill-label">{label}</span>
+      {removable && onRemove && (
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          size="xs"
+          title="Remove token"
+          aria-label={`Remove ${label} token`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          ✕
+        </ActionIcon>
+      )}
     </span>
   );
 }
 
-function SortableBarOrderItem({ sectionKey, token, onRemove }: SortableBarOrderItemProps) {
+function SortableBarOrderItem({ sectionKey, token, showTokenDropZone, onRemove, onRemoveToken }: SortableBarOrderItemProps) {
   const meta = BAR_SECTION_META[sectionKey];
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: sectionKey,
@@ -129,8 +148,8 @@ function SortableBarOrderItem({ sectionKey, token, onRemove }: SortableBarOrderI
         </ActionIcon>
       </div>
       <span className="bar-order-chip-label">{meta.shortLabel}</span>
-      <div ref={setDropZoneRef} className={`bar-token-zone${isOver ? ' is-over' : ''}`}>
-        {token && <TokenPill id={`token-${sectionKey}`} tokenType={token} sourceSection={sectionKey} />}
+      <div ref={setDropZoneRef} className={`bar-token-zone${showTokenDropZone ? ' is-active' : ''}${isOver ? ' is-over' : ''}`}>
+        {token && <TokenPill id={`token-${sectionKey}`} tokenType={token} sourceSection={sectionKey} removable onRemove={() => onRemoveToken(sectionKey)} />}
         {!token && <span className="bar-token-zone-placeholder">Drop token</span>}
       </div>
     </div>
@@ -138,19 +157,14 @@ function SortableBarOrderItem({ sectionKey, token, onRemove }: SortableBarOrderI
 }
 
 function TokenPoolZone() {
-  const { setNodeRef, isOver } = useDroppable({
-    id: 'token-pool',
-    data: { dropType: 'tokenPool' },
-  });
-
   return (
-    <div ref={setNodeRef} className={`bar-token-pool${isOver ? ' is-over' : ''}`}>
+    <div className="bar-token-pool">
       <Text size="xs" c="dimmed">Width tokens</Text>
       <div className="bar-token-pool-items">
         <TokenPill id="pool-stretch" tokenType="stretch" sourceSection="pool" />
         <TokenPill id="pool-boost" tokenType="boost" sourceSection="pool" />
       </div>
-      <Text size="xs" c="dimmed">Drag into a block to assign, or drag back here to remove.</Text>
+      <Text size="xs" c="dimmed">Drag into a block to assign. Use the ✕ on an assigned token to remove.</Text>
     </div>
   );
 }
@@ -393,7 +407,6 @@ export default function AuthSuccessPage() {
 
     let targetSection: BarSectionKey | 'pool' | null = null;
     const dropType = over.data.current?.dropType;
-    if (dropType === 'tokenPool') targetSection = 'pool';
     if (dropType === 'tokenSection') {
       const key = over.data.current?.sectionKey;
       if (isBarSectionKey(key)) targetSection = key;
@@ -405,7 +418,6 @@ export default function AuthSuccessPage() {
     const nextTokens = { ...persistedSettings.barSectionWidthTokens };
 
     if (sourceSection === 'pool') {
-      if (targetSection === 'pool') return;
       nextTokens[targetSection] = tokenType;
       save({ barSectionWidthTokens: nextTokens });
       return;
@@ -413,9 +425,7 @@ export default function AuthSuccessPage() {
 
     nextTokens[sourceSection] = null;
 
-    if (targetSection !== 'pool') {
-      nextTokens[targetSection] = tokenType;
-    }
+    nextTokens[targetSection] = tokenType;
 
     save({ barSectionWidthTokens: nextTokens });
   };
@@ -426,6 +436,15 @@ export default function AuthSuccessPage() {
         ...persistedSettings.barSections,
         [key]: false,
       },
+      barSectionWidthTokens: {
+        ...persistedSettings.barSectionWidthTokens,
+        [key]: null,
+      },
+    });
+  };
+
+  const removeBarSectionToken = (key: BarSectionKey) => {
+    save({
       barSectionWidthTokens: {
         ...persistedSettings.barSectionWidthTokens,
         [key]: null,
@@ -686,7 +705,9 @@ export default function AuthSuccessPage() {
                                 key={key}
                                 sectionKey={key}
                                 token={persistedSettings.barSectionWidthTokens[key]}
+                                showTokenDropZone={activeWidthToken !== null}
                                 onRemove={removeBarSection}
+                                onRemoveToken={removeBarSectionToken}
                               />
                             ))}
                           </div>
