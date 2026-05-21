@@ -38,6 +38,84 @@ function getSectionStyle(finalMinWidth: number, token: BarWidthTokenType | null)
   };
 }
 
+interface RotatingStackViewportProps {
+  stackId: string;
+  sections: BarSectionKey[];
+  minWidth: number;
+  token: BarWidthTokenType | null;
+  renderSectionNode: (key: BarSectionKey) => React.ReactNode | null;
+}
+
+function RotatingStackViewport({ stackId, sections, minWidth, token, renderSectionNode }: RotatingStackViewportProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [offsetPct, setOffsetPct] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const sectionCount = sections.length;
+
+  useEffect(() => {
+    setCurrentIndex(0);
+    setOffsetPct(0);
+    setIsAnimating(false);
+  }, [stackId, sections.join('|')]);
+
+  useEffect(() => {
+    if (sectionCount <= 1 || isAnimating) return;
+    const timeout = setTimeout(() => {
+      setIsAnimating(true);
+      setOffsetPct(-100);
+    }, STACK_ROTATE_MS);
+
+    return () => clearTimeout(timeout);
+  }, [sectionCount, currentIndex, isAnimating]);
+
+  const queue = useMemo(() => {
+    if (sectionCount <= 1) return sections.slice(0, 1);
+    return [
+      sections[currentIndex],
+      sections[(currentIndex + 1) % sectionCount],
+      sections[(currentIndex + 2) % sectionCount],
+    ];
+  }, [sectionCount, sections, currentIndex]);
+
+  const handleTransitionEnd = () => {
+    if (!isAnimating || sectionCount <= 1) return;
+    setIsAnimating(false);
+    setCurrentIndex((value) => (value + 1) % sectionCount);
+    setOffsetPct(0);
+  };
+
+  if (sectionCount <= 1) {
+    const singleKey = sections[0];
+    const singleNode = singleKey ? renderSectionNode(singleKey) : null;
+    if (!singleNode) return null;
+    return (
+      <div className="bar-stack-viewport" style={getSectionStyle(minWidth, token)}>
+        {singleNode}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bar-stack-viewport" style={getSectionStyle(minWidth, token)}>
+      <div
+        className={`bar-stack-track${isAnimating ? ' is-animating' : ''}`}
+        style={{ transform: `translateY(${offsetPct}%)` }}
+        onTransitionEnd={handleTransitionEnd}
+      >
+        {queue.map((sectionKey, index) => {
+          const node = renderSectionNode(sectionKey);
+          if (!node) return null;
+          return (
+            <div className="bar-stack-frame" key={`${stackId}-${currentIndex}-${index}-${sectionKey}`}>
+              {node}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
@@ -49,21 +127,12 @@ const BarOverlayContent = () => {
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
   const [prevFollower, setPrevFollower] = useState<string | null>(null);
   const [prevSubscriber, setPrevSubscriber] = useState<string | null>(null);
-  const [rotationTick, setRotationTick] = useState(0);
 
   // Update current time every second
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRotationTick((value) => value + 1);
-    }, STACK_ROTATE_MS);
 
     return () => clearInterval(interval);
   }, []);
@@ -377,15 +446,15 @@ const BarOverlayContent = () => {
         </>
       )}
       {visibleStacks.flatMap((stack, index) => {
-        const activeIndex = rotationTick % stack.sections.length;
-        const key = stack.sections[activeIndex];
-        const sectionNode = renderSectionNode(key);
-        if (!sectionNode) return [];
-
         const stackNode = (
-          <div key={`stack-${stack.id}-${key}`} className="bar-stack-viewport bar-stack-slide" style={getSectionStyle(stack.minWidth, stack.token)}>
-            {sectionNode}
-          </div>
+          <RotatingStackViewport
+            key={`stack-${stack.id}`}
+            stackId={stack.id}
+            sections={stack.sections}
+            minWidth={stack.minWidth}
+            token={stack.token}
+            renderSectionNode={renderSectionNode}
+          />
         );
 
         return index < visibleStacks.length - 1

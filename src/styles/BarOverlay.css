@@ -66,25 +66,27 @@
 }
 
 .bar-stack-viewport {
-  overflow: visible;
+  overflow-x: visible;
+  overflow-y: hidden;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
 }
 
-.bar-stack-slide {
-  animation: stackSlideIn 300ms ease-out;
+.bar-stack-track {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  transform: translateY(0%);
 }
 
-@keyframes stackSlideIn {
-  from {
-    transform: translateY(35%);
-    opacity: 0.55;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.bar-stack-track.is-animating {
+  transition: transform 320ms ease-in-out;
+}
+
+.bar-stack-frame {
+  display: flex;
+  align-items: center;
 }
 
 .bar-section-clock,
