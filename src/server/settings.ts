@@ -11,6 +11,8 @@ import express, { type Request, type Response, Router } from 'express';
 import { getUserTokens, updateUserSettings, defaultOverlaySettings, type OverlaySettings } from './storage.js';
 import {
   BAR_SECTION_KEYS,
+  normalizeBarSectionStacks,
+  normalizeBarStackPriority,
   normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
@@ -19,8 +21,10 @@ import {
 } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionStacks' | 'barStackPriority' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
+  barSectionStacks?: OverlaySettings['barSectionStacks'];
+  barStackPriority?: OverlaySettings['barStackPriority'];
   barSectionOrder?: OverlaySettings['barSectionOrder'];
   barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
   barSectionMinWidth?: Partial<OverlaySettings['barSectionMinWidth']>;
@@ -35,12 +39,19 @@ router.get('/', (req: Request, res: Response) => {
   const username = req.userData!.username;
   const user = getUserTokens(username);
   const raw = user?.overlaySettings ?? defaultOverlaySettings;
+  const normalizedStacks = normalizeBarSectionStacks(raw.barSectionStacks, {
+    barSections: raw.barSections,
+    barSectionOrder: raw.barSectionOrder,
+    barSectionWidthTokens: raw.barSectionWidthTokens,
+  });
   const normalized: OverlaySettings = {
     ...defaultOverlaySettings,
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
     barSections: normalizeBarSections(raw.barSections),
+    barSectionStacks: normalizedStacks,
+    barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
     barSectionOrder: normalizeBarSectionOrder(raw.barSectionOrder),
     barSectionPriority: normalizeBarSectionPriority(raw.barSectionPriority),
     barSectionMinWidth: normalizeBarSectionMinWidth(raw.barSectionMinWidth),
@@ -66,6 +77,15 @@ router.get('/', (req: Request, res: Response) => {
  * Validates and merges the provided partial settings into the stored settings.
  */
 router.patch('/', express.json(), (req: Request, res: Response) => {
+  const username = req.userData!.username;
+  const user = getUserTokens(username);
+  const rawExisting = user?.overlaySettings ?? defaultOverlaySettings;
+  const existingStacks = normalizeBarSectionStacks(rawExisting.barSectionStacks, {
+    barSections: rawExisting.barSections,
+    barSectionOrder: rawExisting.barSectionOrder,
+    barSectionWidthTokens: rawExisting.barSectionWidthTokens,
+  });
+
   const body = req.body as OverlaySettingsPatch;
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     res.status(400).json({ error: 'Request body must be a JSON object' });
@@ -147,6 +167,25 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
       }
       if (errors.length === 0) patch.barSections = sections;
     }
+  }
+
+  if ('barSectionStacks' in body) {
+    const v = body.barSectionStacks;
+    if (!Array.isArray(v)) {
+      errors.push('barSectionStacks must be an array');
+    } else {
+      const normalizedStacks = normalizeBarSectionStacks(v, {
+        barSections: normalizeBarSections(body.barSections),
+        barSectionOrder: body.barSectionOrder,
+        barSectionWidthTokens: body.barSectionWidthTokens,
+      });
+      patch.barSectionStacks = normalizedStacks;
+      patch.barStackPriority = normalizeBarStackPriority(body.barStackPriority, normalizedStacks);
+    }
+  }
+
+  if ('barStackPriority' in body && !('barSectionStacks' in body)) {
+    patch.barStackPriority = normalizeBarStackPriority(body.barStackPriority, existingStacks);
   }
 
   if ('barSectionOrder' in body) {
@@ -402,8 +441,6 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     res.status(400).json({ error: errors.join('; ') });
     return;
   }
-
-  const username = req.userData!.username;
 
   // updateUserSettings reads, deep-merges, writes, and returns the persisted result in one pass
   const persisted = updateUserSettings(username, patch);

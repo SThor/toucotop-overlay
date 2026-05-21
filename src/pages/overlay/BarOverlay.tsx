@@ -10,6 +10,7 @@ import '../../styles/BarOverlay.css';
 
 const BOOST_MIN_WIDTH_PX = 56;
 const STRETCH_MIN_WIDTH_PX = 28;
+const STACK_ROTATE_MS = 5000;
 
 function getSectionStyle(baseMinWidth: number, token: BarWidthTokenType | null): React.CSSProperties {
   const stretch = token === 'stretch';
@@ -35,12 +36,21 @@ const BarOverlayContent = () => {
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
   const [prevFollower, setPrevFollower] = useState<string | null>(null);
   const [prevSubscriber, setPrevSubscriber] = useState<string | null>(null);
+  const [rotationTick, setRotationTick] = useState(0);
 
   // Update current time every second
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRotationTick((value) => value + 1);
+    }, STACK_ROTATE_MS);
 
     return () => clearInterval(interval);
   }, []);
@@ -154,54 +164,187 @@ const BarOverlayContent = () => {
     return `${days}d ago`;
   };
 
-  const visibleItems = useMemo(() => {
-    const ordered = settings.barSectionOrder.filter((key) => settings.barSections[key]);
-    const active = ordered.filter((key) => {
-      if (key === 'recentFollower') return !!twitch.lastFollower;
-      if (key === 'recentSub') return !!twitch.lastSubscriber;
-      return true;
-    });
+  const orderedActiveStacks = useMemo(() => {
+    const seen = new Set<BarSectionKey>();
+    return settings.barSectionStacks
+      .map((stack) => ({
+        ...stack,
+        sections: stack.sections.filter((sectionKey) => {
+          if (!settings.barSections[sectionKey]) return false;
+          if (seen.has(sectionKey)) return false;
+          seen.add(sectionKey);
+          return true;
+        }),
+      }))
+      .filter((stack) => stack.sections.length > 0);
+  }, [settings.barSectionStacks, settings.barSections]);
 
-    if (active.length === 0) return new Set<BarSectionKey>();
-    if (overlayWidth <= 0) return new Set<BarSectionKey>(active);
-
-    const dividerBudget = Math.max(0, active.length - 1) * 16;
-    const available = Math.max(0, overlayWidth - 24);
-    let total = active.reduce((sum, key) => {
-      const token = settings.barSectionWidthTokens[key] ?? null;
-      const baseMinWidth = settings.barSectionMinWidth[key] ?? 132;
-      const dynamicMin = baseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0);
-      return sum + dynamicMin;
-    }, 0) + dividerBudget;
-    const keep = new Set<BarSectionKey>(active);
-
-    const orderIndex = new Map(settings.barSectionOrder.map((key, index) => [key, index]));
-    const droppable = [...active].sort((a, b) => {
-      const priorityDiff = (settings.barSectionPriority[b] ?? 99) - (settings.barSectionPriority[a] ?? 99);
-      if (priorityDiff !== 0) return priorityDiff;
-      return (orderIndex.get(b) ?? 0) - (orderIndex.get(a) ?? 0);
-    });
-
-    for (const key of droppable) {
-      if (total <= available) break;
-      if (!keep.has(key)) continue;
-      keep.delete(key);
-      const token = settings.barSectionWidthTokens[key] ?? null;
-      const baseMinWidth = settings.barSectionMinWidth[key] ?? 132;
-      const dynamicMin = baseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0);
-      total -= dynamicMin + 16;
+  const renderSectionNode = (key: BarSectionKey): React.ReactNode | null => {
+    if (key === 'clock') {
+      return (
+        <div className="bar-section bar-section-clock">
+          <div className="bar-stat-content">
+            <div className="bar-time-value">{formatTime(currentTime)}</div>
+            <div className="bar-time-label">Current Time</div>
+          </div>
+        </div>
+      );
     }
 
-    if (keep.size === 0 && active[0]) keep.add(active[0]);
+    if (key === 'duration') {
+      return (
+        <div className="bar-section bar-section-duration">
+          <div className="bar-stat-content">
+            <div className="bar-time-value">{formatStreamDuration()}</div>
+            <div className="bar-time-label">Stream Duration</div>
+          </div>
+        </div>
+      );
+    }
 
-    return keep;
+    if (key === 'title') {
+      return (
+        <div className="bar-section bar-stream-section">
+          <MarqueeText className="bar-stream-title" text={twitch.streamInfo?.title || 'Stream Title'} />
+          <MarqueeText className="bar-stream-category" text={twitch.streamInfo?.gameName || 'No Category'} />
+        </div>
+      );
+    }
+
+    if (key === 'viewers') {
+      return (
+        <div className="bar-section bar-stat-section">
+          <div className="bar-stat-item">
+            <div className="bar-stat-icon" aria-hidden="true">👥</div>
+            <div className="bar-stat-content">
+              <div className="bar-stat-value">{twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}</div>
+              <div className="bar-stat-label">Viewers</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (key === 'followers') {
+      return (
+        <div className="bar-section bar-stat-section">
+          <div className="bar-stat-item">
+            <div className="bar-stat-icon" aria-hidden="true">❤️</div>
+            <div className="bar-stat-content">
+              <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
+              <div className="bar-stat-label">Followers</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (key === 'subscribers') {
+      return (
+        <div className="bar-section bar-stat-section">
+          <div className="bar-stat-item">
+            <div className="bar-stat-icon" aria-hidden="true">⭐</div>
+            <div className="bar-stat-content">
+              <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
+              <div className="bar-stat-label">Subscribers</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (key === 'recentFollower') {
+      if (!twitch.lastFollower) return null;
+      return (
+        <div className="bar-section bar-recent-section">
+          <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
+            <div className="bar-recent-icon" aria-hidden="true">❤️</div>
+            <div className="bar-recent-content">
+              <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
+              <MarqueeText className="bar-recent-label" text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (key === 'recentSub') {
+      if (!twitch.lastSubscriber) return null;
+      return (
+        <div className="bar-section bar-recent-section">
+          <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
+            <div className="bar-recent-icon" aria-hidden="true">⭐</div>
+            <div className="bar-recent-content">
+              <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
+              <MarqueeText
+                className="bar-recent-label"
+                text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const visibleStacks = useMemo(() => {
+    const stacks = orderedActiveStacks
+      .map((stack) => {
+        const availableSections = stack.sections.filter((key) => {
+          if (key === 'recentFollower') return !!twitch.lastFollower;
+          if (key === 'recentSub') return !!twitch.lastSubscriber;
+          return true;
+        });
+        if (availableSections.length === 0) return null;
+
+        const maxBaseMinWidth = Math.max(...availableSections.map((key) => settings.barSectionMinWidth[key] ?? 132));
+        const token = stack.widthToken ?? null;
+        const dynamicMin = maxBaseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0);
+        return {
+          id: stack.id,
+          sections: availableSections,
+          minWidth: dynamicMin,
+          token,
+        };
+      })
+      .filter((stack): stack is { id: string; sections: BarSectionKey[]; minWidth: number; token: BarWidthTokenType | null } => !!stack);
+
+    if (stacks.length === 0) return [];
+    if (overlayWidth <= 0) return stacks;
+
+    const dividerBudget = Math.max(0, stacks.length - 1) * 16;
+    const available = Math.max(0, overlayWidth - 24);
+    let total = stacks.reduce((sum, stack) => sum + stack.minWidth, 0) + dividerBudget;
+    const keep = new Set(stacks.map((stack) => stack.id));
+
+    const priorityOrder = [
+      ...settings.barStackPriority.filter((id) => keep.has(id)),
+      ...stacks.map((stack) => stack.id).filter((id) => !settings.barStackPriority.includes(id)),
+    ];
+    const priorityIndex = new Map(priorityOrder.map((id, index) => [id, index]));
+    const orderIndex = new Map(stacks.map((stack, index) => [stack.id, index]));
+    const droppable = [...stacks].sort((a, b) => {
+      const priorityDiff = (priorityIndex.get(b.id) ?? 99) - (priorityIndex.get(a.id) ?? 99);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (orderIndex.get(b.id) ?? 0) - (orderIndex.get(a.id) ?? 0);
+    });
+
+    for (const stack of droppable) {
+      if (total <= available) break;
+      if (!keep.has(stack.id)) continue;
+      keep.delete(stack.id);
+      total -= stack.minWidth + 16;
+    }
+
+    if (keep.size === 0 && stacks[0]) keep.add(stacks[0].id);
+    return stacks.filter((stack) => keep.has(stack.id));
   }, [
+    orderedActiveStacks,
     overlayWidth,
-    settings.barSectionOrder,
-    settings.barSectionPriority,
     settings.barSectionMinWidth,
-    settings.barSectionWidthTokens,
-    settings.barSections,
+    settings.barStackPriority,
     twitch.lastFollower,
     twitch.lastSubscriber,
   ]);
@@ -223,128 +366,22 @@ const BarOverlayContent = () => {
           <BarY2KOrnament flip staticMode={reducedEffects} />
         </>
       )}
-      {(() => {
-        const sectionNodes: Record<BarSectionKey, React.ReactNode | null> = {
-          clock: visibleItems.has('clock')
-            ? (
-              <div key="clock" className="bar-section bar-section-clock" style={getSectionStyle(settings.barSectionMinWidth.clock, settings.barSectionWidthTokens.clock)}>
-                <div className="bar-stat-content">
-                  <div className="bar-time-value">{formatTime(currentTime)}</div>
-                  <div className="bar-time-label">Current Time</div>
-                </div>
-              </div>
-            )
-            : null,
-          duration: visibleItems.has('duration')
-            ? (
-              <div key="duration" className="bar-section bar-section-duration" style={getSectionStyle(settings.barSectionMinWidth.duration, settings.barSectionWidthTokens.duration)}>
-                <div className="bar-stat-content">
-                  <div className="bar-time-value">{formatStreamDuration()}</div>
-                  <div className="bar-time-label">Stream Duration</div>
-                </div>
-              </div>
-            )
-            : null,
-          title: visibleItems.has('title')
-            ? (
-              <div key="title" className="bar-section bar-stream-section" style={getSectionStyle(settings.barSectionMinWidth.title, settings.barSectionWidthTokens.title)}>
-                <MarqueeText
-                  className="bar-stream-title"
-                  text={twitch.streamInfo?.title || 'Stream Title'}
-                />
-                <MarqueeText
-                  className="bar-stream-category"
-                  text={twitch.streamInfo?.gameName || 'No Category'}
-                />
-              </div>
-            )
-            : null,
-          viewers: visibleItems.has('viewers')
-            ? (
-              <div key="viewers" className="bar-section bar-stat-section" style={getSectionStyle(settings.barSectionMinWidth.viewers, settings.barSectionWidthTokens.viewers)}>
-                <div className="bar-stat-item">
-                  <div className="bar-stat-icon" aria-hidden="true">👥</div>
-                  <div className="bar-stat-content">
-                    <div className="bar-stat-value">
-                      {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
-                    </div>
-                    <div className="bar-stat-label">Viewers</div>
-                  </div>
-                </div>
-              </div>
-            )
-            : null,
-          followers: visibleItems.has('followers')
-            ? (
-              <div key="followers" className="bar-section bar-stat-section" style={getSectionStyle(settings.barSectionMinWidth.followers, settings.barSectionWidthTokens.followers)}>
-                <div className="bar-stat-item">
-                  <div className="bar-stat-icon" aria-hidden="true">❤️</div>
-                  <div className="bar-stat-content">
-                    <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
-                    <div className="bar-stat-label">Followers</div>
-                  </div>
-                </div>
-              </div>
-            )
-            : null,
-          subscribers: visibleItems.has('subscribers')
-            ? (
-              <div key="subscribers" className="bar-section bar-stat-section" style={getSectionStyle(settings.barSectionMinWidth.subscribers, settings.barSectionWidthTokens.subscribers)}>
-                <div className="bar-stat-item">
-                  <div className="bar-stat-icon" aria-hidden="true">⭐</div>
-                  <div className="bar-stat-content">
-                    <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
-                    <div className="bar-stat-label">Subscribers</div>
-                  </div>
-                </div>
-              </div>
-            )
-            : null,
-          recentFollower: visibleItems.has('recentFollower') && twitch.lastFollower
-            ? (
-              <div key="recentFollower" className="bar-section bar-recent-section" style={getSectionStyle(settings.barSectionMinWidth.recentFollower, settings.barSectionWidthTokens.recentFollower)}>
-                <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
-                  <div className="bar-recent-icon" aria-hidden="true">❤️</div>
-                  <div className="bar-recent-content">
-                    <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
-                    <MarqueeText
-                      className="bar-recent-label"
-                      text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`}
-                    />
-                  </div>
-                </div>
-              </div>
-            )
-            : null,
-          recentSub: visibleItems.has('recentSub') && twitch.lastSubscriber
-            ? (
-              <div key="recentSub" className="bar-section bar-recent-section" style={getSectionStyle(settings.barSectionMinWidth.recentSub, settings.barSectionWidthTokens.recentSub)}>
-                <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
-                  <div className="bar-recent-icon" aria-hidden="true">⭐</div>
-                  <div className="bar-recent-content">
-                    <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
-                    <MarqueeText
-                      className="bar-recent-label"
-                      text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
-                    />
-                  </div>
-                </div>
-              </div>
-            )
-            : null,
-        };
+      {visibleStacks.flatMap((stack, index) => {
+        const activeIndex = rotationTick % stack.sections.length;
+        const key = stack.sections[activeIndex];
+        const sectionNode = renderSectionNode(key);
+        if (!sectionNode) return [];
 
-        const sections = settings.barSectionOrder
-          .filter((key) => settings.barSections[key])
-          .map((key) => sectionNodes[key])
-          .filter((node): node is React.ReactNode => node !== null);
-
-        return sections.flatMap((node, i) =>
-          i < sections.length - 1
-            ? [node, <div key={`div-${i}`} className="bar-divider" />]
-            : [node]
+        const stackNode = (
+          <div key={`stack-${stack.id}-${key}`} className="bar-stack-viewport bar-stack-slide" style={getSectionStyle(stack.minWidth, stack.token)}>
+            {sectionNode}
+          </div>
         );
-      })()}
+
+        return index < visibleStacks.length - 1
+          ? [stackNode, <div key={`div-${stack.id}`} className="bar-divider" />]
+          : [stackNode];
+      })}
       <GlobalAlertLayer />
     </div>
   );

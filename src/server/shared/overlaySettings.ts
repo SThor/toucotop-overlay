@@ -27,6 +27,12 @@ export type BarSectionPriority = Record<BarSectionKey, number>;
 export type BarSectionMinWidth = Record<BarSectionKey, number>;
 export type BarWidthTokenType = 'stretch' | 'boost';
 export type BarSectionWidthTokens = Record<BarSectionKey, BarWidthTokenType | null>;
+export interface BarSectionStack {
+  id: string;
+  sections: BarSectionKey[];
+  widthToken: BarWidthTokenType | null;
+}
+export type BarStackPriority = string[];
 
 const DEFAULT_BAR_SECTIONS: BarSections = {
   clock: true,
@@ -74,6 +80,14 @@ const DEFAULT_BAR_SECTION_WIDTH_TOKENS: BarSectionWidthTokens = {
   recentFollower: 'boost',
   recentSub: 'boost',
 };
+
+const DEFAULT_BAR_SECTION_STACKS: BarSectionStack[] = BAR_SECTION_KEYS.map((key) => ({
+  id: `stack-${key}`,
+  sections: [key],
+  widthToken: DEFAULT_BAR_SECTION_WIDTH_TOKENS[key],
+}));
+
+const DEFAULT_BAR_STACK_PRIORITY: BarStackPriority = DEFAULT_BAR_SECTION_STACKS.map((stack) => stack.id);
 
 export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSections {
   const src = raw ?? {};
@@ -162,6 +176,82 @@ export function normalizeBarSectionWidthTokens(raw?: Partial<Record<BarSectionKe
   return normalized;
 }
 
+function normalizeStackId(raw: unknown, fallback: string): string {
+  if (typeof raw !== 'string') return fallback;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return fallback;
+  return trimmed.slice(0, 80);
+}
+
+export function normalizeBarSectionStacks(
+  raw?: ReadonlyArray<unknown> | null,
+  fallback?: {
+    barSections?: Partial<BarSections> | null | undefined;
+    barSectionOrder?: ReadonlyArray<unknown> | null | undefined;
+    barSectionWidthTokens?: Partial<Record<BarSectionKey, unknown>> | null | undefined;
+  },
+): BarSectionStack[] {
+  const seenSections = new Set<BarSectionKey>();
+  const seenIds = new Set<string>();
+  const normalized: BarSectionStack[] = [];
+
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (typeof item !== 'object' || item === null || Array.isArray(item)) continue;
+      const record = item as Record<string, unknown>;
+      const id = normalizeStackId(record.id, `stack-${normalized.length + 1}`);
+      if (seenIds.has(id)) continue;
+
+      const sectionsRaw = Array.isArray(record.sections) ? record.sections : [];
+      const sections = sectionsRaw
+        .filter((value): value is BarSectionKey => typeof value === 'string' && BAR_SECTION_KEYS.includes(value as BarSectionKey))
+        .filter((value, index, arr) => arr.indexOf(value) === index)
+        .filter((value) => !seenSections.has(value));
+
+      if (sections.length === 0) continue;
+
+      for (const section of sections) seenSections.add(section);
+      seenIds.add(id);
+      normalized.push({
+        id,
+        sections,
+        widthToken: record.widthToken === 'stretch' || record.widthToken === 'boost' ? record.widthToken : null,
+      });
+    }
+  }
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  const fallbackSections = normalizeBarSections(fallback?.barSections);
+  const fallbackOrder = normalizeBarSectionOrder(fallback?.barSectionOrder);
+  const fallbackTokens = normalizeBarSectionWidthTokens(fallback?.barSectionWidthTokens);
+  return fallbackOrder
+    .filter((key) => fallbackSections[key])
+    .map((key) => ({
+      id: `stack-${key}`,
+      sections: [key],
+      widthToken: fallbackTokens[key],
+    }));
+}
+
+export function normalizeBarStackPriority(
+  raw: unknown,
+  stacks: ReadonlyArray<BarSectionStack>,
+): BarStackPriority {
+  const stackIds = stacks.map((stack) => stack.id);
+  if (stackIds.length === 0) return [];
+
+  const selected = Array.isArray(raw)
+    ? raw.filter((value): value is string => typeof value === 'string' && stackIds.includes(value))
+    : [];
+
+  const deduped = selected.filter((value, index) => selected.indexOf(value) === index);
+  const missing = stackIds.filter((id) => !deduped.includes(id));
+  return [...deduped, ...missing];
+}
+
 export interface OverlaySettings {
   overlayOpacity: number;
   perOverlayOpacity: PerOverlayNumber;
@@ -171,6 +261,8 @@ export interface OverlaySettings {
   maxChatMessages: number;
   barFloating: boolean;
   barSections: BarSections;
+  barSectionStacks: BarSectionStack[];
+  barStackPriority: BarStackPriority;
   barSectionOrder: BarSectionOrder;
   barSectionPriority: BarSectionPriority;
   barSectionMinWidth: BarSectionMinWidth;
@@ -204,6 +296,8 @@ export const defaultOverlaySettings: OverlaySettings = {
   maxChatMessages: 50,
   barFloating: true,
   barSections: { ...DEFAULT_BAR_SECTIONS },
+  barSectionStacks: DEFAULT_BAR_SECTION_STACKS.map((stack) => ({ ...stack, sections: [...stack.sections] })),
+  barStackPriority: [...DEFAULT_BAR_STACK_PRIORITY],
   barSectionOrder: [...DEFAULT_BAR_SECTION_ORDER],
   barSectionPriority: { ...DEFAULT_BAR_SECTION_PRIORITY },
   barSectionMinWidth: { ...DEFAULT_BAR_SECTION_MIN_WIDTH },

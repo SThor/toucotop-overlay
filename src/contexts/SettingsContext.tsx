@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 
 import {
   defaultOverlaySettings,
+  normalizeBarSectionStacks,
+  normalizeBarStackPriority,
   normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
@@ -164,6 +166,11 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [serverSettings, setServerSettings] = useState<OverlaySettings>(() => {
     const cached = loadCachedSettings();
     if (!cached) return defaultOverlaySettings;
+    const normalizedStacks = normalizeBarSectionStacks(cached.barSectionStacks, {
+      barSections: cached.barSections,
+      barSectionOrder: cached.barSectionOrder,
+      barSectionWidthTokens: cached.barSectionWidthTokens,
+    });
     return {
       ...defaultOverlaySettings,
       ...cached,
@@ -178,6 +185,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       barSections: {
         ...normalizeBarSections(cached.barSections),
       },
+      barSectionStacks: normalizedStacks,
+      barStackPriority: normalizeBarStackPriority(cached.barStackPriority, normalizedStacks),
       barSectionOrder: normalizeBarSectionOrder(cached.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(cached.barSectionPriority),
       barSectionMinWidth: normalizeBarSectionMinWidth(cached.barSectionMinWidth),
@@ -266,6 +275,19 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             ...defaultOverlaySettings,
             ...fetched,
             barSections: normalizeBarSections(fetched.barSections),
+            barSectionStacks: normalizeBarSectionStacks(fetched.barSectionStacks, {
+              barSections: fetched.barSections,
+              barSectionOrder: fetched.barSectionOrder,
+              barSectionWidthTokens: fetched.barSectionWidthTokens,
+            }),
+            barStackPriority: normalizeBarStackPriority(
+              fetched.barStackPriority,
+              normalizeBarSectionStacks(fetched.barSectionStacks, {
+                barSections: fetched.barSections,
+                barSectionOrder: fetched.barSectionOrder,
+                barSectionWidthTokens: fetched.barSectionWidthTokens,
+              }),
+            ),
             barSectionOrder: normalizeBarSectionOrder(fetched.barSectionOrder),
             barSectionPriority: normalizeBarSectionPriority(fetched.barSectionPriority),
             barSectionMinWidth: normalizeBarSectionMinWidth(fetched.barSectionMinWidth),

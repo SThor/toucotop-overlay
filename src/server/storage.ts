@@ -14,6 +14,8 @@ const __dirname = path.dirname(__filename);
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
 import {
+  normalizeBarSectionStacks,
+  normalizeBarStackPriority,
   normalizeBarSectionMinWidth,
   defaultOverlaySettings,
   normalizeBarSectionOrder,
@@ -27,8 +29,10 @@ import {
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionStacks' | 'barStackPriority' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
+  barSectionStacks?: OverlaySettings['barSectionStacks'];
+  barStackPriority?: OverlaySettings['barStackPriority'];
   barSectionOrder?: OverlaySettings['barSectionOrder'];
   barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
   barSectionMinWidth?: Partial<OverlaySettings['barSectionMinWidth']>;
@@ -118,6 +122,19 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
       ...defaultOverlaySettings,
       ...(existingData?.overlaySettings ?? {}),
       barSections: normalizeBarSections(existingData?.overlaySettings?.barSections),
+      barSectionStacks: normalizeBarSectionStacks(existingData?.overlaySettings?.barSectionStacks, {
+        barSections: existingData?.overlaySettings?.barSections,
+        barSectionOrder: existingData?.overlaySettings?.barSectionOrder,
+        barSectionWidthTokens: existingData?.overlaySettings?.barSectionWidthTokens,
+      }),
+      barStackPriority: normalizeBarStackPriority(
+        existingData?.overlaySettings?.barStackPriority,
+        normalizeBarSectionStacks(existingData?.overlaySettings?.barSectionStacks, {
+          barSections: existingData?.overlaySettings?.barSections,
+          barSectionOrder: existingData?.overlaySettings?.barSectionOrder,
+          barSectionWidthTokens: existingData?.overlaySettings?.barSectionWidthTokens,
+        }),
+      ),
       barSectionOrder: normalizeBarSectionOrder(existingData?.overlaySettings?.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(existingData?.overlaySettings?.barSectionPriority),
       barSectionMinWidth: normalizeBarSectionMinWidth(existingData?.overlaySettings?.barSectionMinWidth),
@@ -280,6 +297,26 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
       settings.barSectionOrder
         ? normalizeBarSectionOrder(settings.barSectionOrder)
         : normalizeBarSectionOrder(base.barSectionOrder);
+    const mergedBarSectionStacks = (() => {
+      const baseStacks = normalizeBarSectionStacks(base.barSectionStacks, {
+        barSections: base.barSections,
+        barSectionOrder: base.barSectionOrder,
+        barSectionWidthTokens: base.barSectionWidthTokens,
+      });
+      const patchStacks = settings.barSectionStacks;
+      if (!patchStacks) return baseStacks;
+      return normalizeBarSectionStacks(patchStacks, {
+        barSections: settings.barSections ?? base.barSections,
+        barSectionOrder: settings.barSectionOrder ?? base.barSectionOrder,
+        barSectionWidthTokens: settings.barSectionWidthTokens ?? base.barSectionWidthTokens,
+      });
+    })();
+    const mergedBarStackPriority = (() => {
+      if (!settings.barStackPriority) {
+        return normalizeBarStackPriority(base.barStackPriority, mergedBarSectionStacks);
+      }
+      return normalizeBarStackPriority(settings.barStackPriority, mergedBarSectionStacks);
+    })();
     const mergedBarSectionPriority = (() => {
       const basePriority = normalizeBarSectionPriority(base.barSectionPriority);
       const patchPriority = settings.barSectionPriority;
@@ -307,6 +344,8 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
       ...base,
       ...settings,
       barSections: mergedBarSections,
+      barSectionStacks: mergedBarSectionStacks,
+      barStackPriority: mergedBarStackPriority,
       barSectionOrder: mergedBarSectionOrder,
       barSectionPriority: mergedBarSectionPriority,
       barSectionMinWidth: mergedBarSectionMinWidth,
