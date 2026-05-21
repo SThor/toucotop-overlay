@@ -375,6 +375,22 @@
   padding: 2px 4px;
 }
 
+.bar-token-pill.is-pool {
+  width: auto;
+  min-width: 78px;
+  min-height: 18px;
+  padding: 1px 5px;
+  border-radius: 99px;
+}
+
+.bar-token-pill.is-pool .bar-token-pill-icon {
+  font-size: 0.62rem;
+}
+
+.bar-token-pill.is-pool .bar-token-pill-label {
+  font-size: 0.58rem;
+}
+
 .bar-token-pill.is-overlay {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
   width: 108px;

@@ -77,7 +77,7 @@ function TokenPill({ tokenType, sourceSection, id, removable, onRemove }: { toke
     <span
       ref={setNodeRef}
       style={style}
-      className={`bar-token-pill bar-token-${tokenType}${isDragging ? ' is-dragging' : ''}`}
+      className={`bar-token-pill bar-token-${tokenType}${sourceSection === 'pool' ? ' is-pool' : ''}${isDragging ? ' is-dragging' : ''}`}
       {...attributes}
       {...listeners}
       title={label}
