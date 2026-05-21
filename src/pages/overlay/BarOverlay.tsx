@@ -227,12 +227,10 @@ const BarOverlayContent = () => {
     if (key === 'viewers') {
       return (
         <div className="bar-section bar-stat-section">
-          <div className="bar-stat-item">
-            <div className="bar-stat-icon" aria-hidden="true">👥</div>
-            <div className="bar-stat-content">
-              <div className="bar-stat-value">{twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}</div>
-              <div className="bar-stat-label">Viewers</div>
-            </div>
+          <div className="bar-stat-icon" aria-hidden="true">👥</div>
+          <div className="bar-stat-content">
+            <div className="bar-stat-value">{twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}</div>
+            <div className="bar-stat-label">Viewers</div>
           </div>
         </div>
       );
@@ -241,12 +239,10 @@ const BarOverlayContent = () => {
     if (key === 'followers') {
       return (
         <div className="bar-section bar-stat-section">
-          <div className="bar-stat-item">
-            <div className="bar-stat-icon" aria-hidden="true">❤️</div>
-            <div className="bar-stat-content">
-              <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
-              <div className="bar-stat-label">Followers</div>
-            </div>
+          <div className="bar-stat-icon" aria-hidden="true">❤️</div>
+          <div className="bar-stat-content">
+            <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
+            <div className="bar-stat-label">Followers</div>
           </div>
         </div>
       );
@@ -255,12 +251,10 @@ const BarOverlayContent = () => {
     if (key === 'subscribers') {
       return (
         <div className="bar-section bar-stat-section">
-          <div className="bar-stat-item">
-            <div className="bar-stat-icon" aria-hidden="true">⭐</div>
-            <div className="bar-stat-content">
-              <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
-              <div className="bar-stat-label">Subscribers</div>
-            </div>
+          <div className="bar-stat-icon" aria-hidden="true">⭐</div>
+          <div className="bar-stat-content">
+            <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
+            <div className="bar-stat-label">Subscribers</div>
           </div>
         </div>
       );
@@ -269,13 +263,11 @@ const BarOverlayContent = () => {
     if (key === 'recentFollower') {
       if (!twitch.lastFollower) return null;
       return (
-        <div className="bar-section bar-recent-section">
-          <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
-            <div className="bar-recent-icon" aria-hidden="true">❤️</div>
-            <div className="bar-recent-content">
-              <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
-              <MarqueeText className="bar-recent-label" text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`} />
-            </div>
+        <div className={`bar-section bar-recent-section ${newFollowerAnimation ? 'new-update' : ''}`}>
+          <div className="bar-recent-icon" aria-hidden="true">❤️</div>
+          <div className="bar-recent-content">
+            <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
+            <MarqueeText className="bar-recent-label" text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`} />
           </div>
         </div>
       );
@@ -284,16 +276,14 @@ const BarOverlayContent = () => {
     if (key === 'recentSub') {
       if (!twitch.lastSubscriber) return null;
       return (
-        <div className="bar-section bar-recent-section">
-          <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
-            <div className="bar-recent-icon" aria-hidden="true">⭐</div>
-            <div className="bar-recent-content">
-              <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
-              <MarqueeText
-                className="bar-recent-label"
-                text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
-              />
-            </div>
+        <div className={`bar-section bar-recent-section ${newSubscriberAnimation ? 'new-update' : ''}`}>
+          <div className="bar-recent-icon" aria-hidden="true">⭐</div>
+          <div className="bar-recent-content">
+            <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
+            <MarqueeText
+              className="bar-recent-label"
+              text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
+            />
           </div>
         </div>
       );
