@@ -1,12 +1,33 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon, NumberInput, Badge,
 } from '@mantine/core';
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
-import { defaultOverlaySettings } from '../server/shared/overlaySettings';
+import { BAR_SECTION_KEYS, type BarSectionKey, defaultOverlaySettings } from '../server/shared/overlaySettings';
 import '../styles/ServerPages.css';
+
+const BAR_SECTION_META: Record<BarSectionKey, { label: string; icon: string }> = {
+  clock: { label: 'Current Time', icon: '🕐' },
+  duration: { label: 'Stream Duration', icon: '⏱️' },
+  title: { label: 'Stream Title / Category', icon: '🎬' },
+  viewers: { label: 'Viewers', icon: '👥' },
+  followers: { label: 'Followers', icon: '❤️' },
+  subscribers: { label: 'Subscribers', icon: '⭐' },
+  recentFollower: { label: 'Last Follower', icon: '🆕' },
+  recentSub: { label: 'Last Subscriber', icon: '🎁' },
+};
+
+function moveSection(order: BarSectionKey[], dragged: BarSectionKey, target: BarSectionKey): BarSectionKey[] {
+  const from = order.indexOf(dragged);
+  const to = order.indexOf(target);
+  if (from < 0 || to < 0 || from === to) return order;
+  const next = [...order];
+  next.splice(from, 1);
+  next.splice(to, 0, dragged);
+  return next;
+}
 
 function formatExpiryDate(isoString: string): string {
   const date = new Date(isoString);
@@ -179,6 +200,9 @@ export default function AuthSuccessPage() {
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
+  const [draggedBarSection, setDraggedBarSection] = useState<BarSectionKey | null>(null);
+  const enabledBarSections = persistedSettings.barSectionOrder.filter((key) => persistedSettings.barSections[key]);
+  const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -386,28 +410,101 @@ export default function AuthSuccessPage() {
 
               <div>
                 <Text size="sm" fw={500} mb="xs">Bar Sections</Text>
-                <Stack gap="xs">
-                  {(
-                    [
-                      ['clock', 'Current Time'],
-                      ['duration', 'Stream Duration'],
-                      ['title', 'Stream Title / Category'],
-                      ['viewers', 'Viewers'],
-                      ['followers', 'Followers'],
-                      ['subscribers', 'Subscribers'],
-                      ['recentFollower', 'Last Follower'],
-                      ['recentSub', 'Last Subscriber'],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <Switch
-                      key={key}
-                      label={label}
-                      checked={persistedSettings.barSections[key]}
-                      onChange={(e) =>
-                        save({ barSections: { ...persistedSettings.barSections, [key]: e.currentTarget.checked } })
-                      }
-                    />
-                  ))}
+                <Text size="xs" c="dimmed" mb="xs">
+                  Drag blocks to change render order. Lower priority numbers are kept visible longer when space runs out.
+                </Text>
+                <Stack gap="xs" className="bar-sections-manager">
+                  {enabledBarSections.length === 0 && (
+                    <Text size="xs" c="dimmed">No blocks enabled. Add one from the list below.</Text>
+                  )}
+                  {enabledBarSections.map((key, index) => {
+                    const meta = BAR_SECTION_META[key];
+                    return (
+                      <div
+                        key={key}
+                        className={`bar-section-item ${draggedBarSection === key ? 'is-dragging' : ''}`}
+                        draggable
+                        onDragStart={() => setDraggedBarSection(key)}
+                        onDragEnd={() => setDraggedBarSection(null)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => {
+                          if (!draggedBarSection || draggedBarSection === key) return;
+                          save({ barSectionOrder: moveSection(persistedSettings.barSectionOrder, draggedBarSection, key) });
+                          setDraggedBarSection(null);
+                        }}
+                      >
+                        <Group justify="space-between" wrap="nowrap" gap="sm">
+                          <Group gap="xs" wrap="nowrap">
+                            <Text className="bar-section-grip" aria-hidden="true">⋮⋮</Text>
+                            <Badge variant="light" color="gray">{index + 1}</Badge>
+                            <Text size="sm">{meta.icon} {meta.label}</Text>
+                          </Group>
+                          <Group gap="xs" wrap="nowrap">
+                            <NumberInput
+                              aria-label={`${meta.label} priority`}
+                              size="xs"
+                              min={1}
+                              max={99}
+                              value={persistedSettings.barSectionPriority[key]}
+                              onChange={(value) => {
+                                if (typeof value !== 'number' || !Number.isFinite(value)) return;
+                                save({
+                                  barSectionPriority: {
+                                    ...persistedSettings.barSectionPriority,
+                                    [key]: Math.min(99, Math.max(1, Math.round(value))),
+                                  },
+                                });
+                              }}
+                              styles={{ input: { width: 80 } }}
+                            />
+                            <ActionIcon
+                              variant="subtle"
+                              color="red"
+                              onClick={() => {
+                                save({
+                                  barSections: {
+                                    ...persistedSettings.barSections,
+                                    [key]: false,
+                                  },
+                                });
+                              }}
+                              title="Remove block"
+                              aria-label={`Remove ${meta.label}`}
+                            >
+                              ✕
+                            </ActionIcon>
+                          </Group>
+                        </Group>
+                      </div>
+                    );
+                  })}
+
+                  {disabledBarSections.length > 0 && (
+                    <div className="bar-section-add-zone">
+                      <Text size="xs" c="dimmed" mb={6}>Add block</Text>
+                      <Group gap="xs" wrap="wrap">
+                        {disabledBarSections.map((key) => (
+                          <Button
+                            key={key}
+                            size="compact-xs"
+                            variant="light"
+                            onClick={() => {
+                              const nextOrder = [...persistedSettings.barSectionOrder.filter((v) => v !== key), key];
+                              save({
+                                barSectionOrder: nextOrder,
+                                barSections: {
+                                  ...persistedSettings.barSections,
+                                  [key]: true,
+                                },
+                              });
+                            }}
+                          >
+                            + {BAR_SECTION_META[key].label}
+                          </Button>
+                        ))}
+                      </Group>
+                    </div>
+                  )}
                 </Stack>
               </div>
 

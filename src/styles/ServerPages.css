@@ -284,6 +284,38 @@
   font-weight: 600;
 }
 
+.bar-sections-manager {
+  border: 1px solid var(--sv-border-sub);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bar-section-item {
+  border: 1px solid var(--sv-border-sub);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 10px;
+}
+
+.bar-section-item.is-dragging {
+  opacity: 0.6;
+  border-color: var(--sv-indigo-dark);
+}
+
+.bar-section-grip {
+  color: var(--sv-text-4);
+  letter-spacing: -2px;
+  cursor: grab;
+  user-select: none;
+}
+
+.bar-section-add-zone {
+  margin-top: 6px;
+  border-top: 1px dashed var(--sv-border-sub);
+  padding-top: 10px;
+}
+
 @media (max-width: 600px) {
   .server-page .container {
     padding: 1rem;

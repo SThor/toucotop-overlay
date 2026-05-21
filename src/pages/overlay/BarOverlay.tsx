@@ -5,13 +5,24 @@ import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import GlobalAlertLayer from '../../components/GlobalAlertLayer';
+import { type BarSectionKey } from '../../server/shared/overlaySettings';
 import '../../styles/BarOverlay.css';
+
+const SECTION_MIN_WIDTH: Record<BarSectionKey, number> = {
+  clock: 114,
+  duration: 132,
+  title: 148,
+  viewers: 92,
+  followers: 92,
+  subscribers: 102,
+  recentFollower: 144,
+  recentSub: 144,
+};
 
 const BarOverlayContent = () => {
   const { settings, isLoadingSettings } = useSettings();
   const twitch = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
-  const showBarOrnaments = settings.themeSettings.y2k.showBarOrnaments;
   const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [overlayWidth, setOverlayWidth] = useState(0);
@@ -139,65 +150,43 @@ const BarOverlayContent = () => {
   };
 
   const visibleItems = useMemo(() => {
-    type ItemKey =
-      | 'clock'
-      | 'duration'
-      | 'title'
-      | 'viewers'
-      | 'followers'
-      | 'subscribers'
-      | 'recentFollower'
-      | 'recentSub';
+    const ordered = settings.barSectionOrder.filter((key) => settings.barSections[key]);
+    const active = ordered.filter((key) => {
+      if (key === 'recentFollower') return !!twitch.lastFollower;
+      if (key === 'recentSub') return !!twitch.lastSubscriber;
+      return true;
+    });
 
-    const config: Array<{ key: ItemKey; enabled: boolean; minWidth: number; dropRank: number; keep?: boolean }> = [
-      { key: 'clock', enabled: settings.barSections.clock, minWidth: 114, dropRank: 3 },
-      { key: 'duration', enabled: settings.barSections.duration, minWidth: 132, dropRank: 4 },
-      { key: 'title', enabled: settings.barSections.title, minWidth: 148, dropRank: 0, keep: true },
-      { key: 'viewers', enabled: settings.barSections.viewers, minWidth: 92, dropRank: 2 },
-      { key: 'followers', enabled: settings.barSections.followers, minWidth: 92, dropRank: 5 },
-      { key: 'subscribers', enabled: settings.barSections.subscribers, minWidth: 102, dropRank: 6 },
-      { key: 'recentFollower', enabled: settings.barSections.recentFollower && !!twitch.lastFollower, minWidth: 144, dropRank: 1 },
-      { key: 'recentSub', enabled: settings.barSections.recentSub && !!twitch.lastSubscriber, minWidth: 144, dropRank: 7 },
-    ];
+    if (active.length === 0) return new Set<BarSectionKey>();
+    if (overlayWidth <= 0) return new Set<BarSectionKey>(active);
 
-    const active = config.filter((item) => item.enabled);
-    if (active.length === 0) return new Set<ItemKey>();
-
-    // On first render before measurement, keep all enabled sections.
-    if (overlayWidth <= 0) return new Set<ItemKey>(active.map((item) => item.key));
-
-    // Reserve a little room for dividers and section gaps.
     const dividerBudget = Math.max(0, active.length - 1) * 16;
     const available = Math.max(0, overlayWidth - 24);
-    let total = active.reduce((sum, item) => sum + item.minWidth, 0) + dividerBudget;
-    const keep = new Set<ItemKey>(active.map((item) => item.key));
+    let total = active.reduce((sum, key) => sum + SECTION_MIN_WIDTH[key], 0) + dividerBudget;
+    const keep = new Set<BarSectionKey>(active);
 
-    const droppable = [...active]
-      .filter((item) => !item.keep)
-      .sort((a, b) => b.dropRank - a.dropRank);
+    const orderIndex = new Map(settings.barSectionOrder.map((key, index) => [key, index]));
+    const droppable = [...active].sort((a, b) => {
+      const priorityDiff = (settings.barSectionPriority[b] ?? 99) - (settings.barSectionPriority[a] ?? 99);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (orderIndex.get(b) ?? 0) - (orderIndex.get(a) ?? 0);
+    });
 
-    for (const item of droppable) {
+    for (const key of droppable) {
       if (total <= available) break;
-      if (!keep.has(item.key)) continue;
-      keep.delete(item.key);
-      total -= item.minWidth + 16;
+      if (!keep.has(key)) continue;
+      keep.delete(key);
+      total -= SECTION_MIN_WIDTH[key] + 16;
     }
 
-    // Always keep at least one item visible.
-    if (keep.size === 0 && active[0]) keep.add(active[0].key);
+    if (keep.size === 0 && active[0]) keep.add(active[0]);
 
     return keep;
   }, [
     overlayWidth,
-    settings.barFloating,
-    settings.barSections.clock,
-    settings.barSections.duration,
-    settings.barSections.title,
-    settings.barSections.viewers,
-    settings.barSections.followers,
-    settings.barSections.subscribers,
-    settings.barSections.recentFollower,
-    settings.barSections.recentSub,
+    settings.barSectionOrder,
+    settings.barSectionPriority,
+    settings.barSections,
     twitch.lastFollower,
     twitch.lastSubscriber,
   ]);
@@ -212,7 +201,7 @@ const BarOverlayContent = () => {
     >
       <ThemeBackground panelMode />
 
-      {settings.theme === 'y2k' && showBarOrnaments && (
+      {settings.theme === 'y2k' && (
         <>
           <BarY2KOrnament staticMode={reducedEffects} />
           <BarY2KOrnament src="/tribal_center.png" center height={65} yOffset={-72} staticMode={reducedEffects} />
@@ -220,109 +209,120 @@ const BarOverlayContent = () => {
         </>
       )}
       {(() => {
-        const sec = settings.barSections;
-        const sections: React.ReactNode[] = [];
-
-        if (sec.clock && visibleItems.has('clock')) sections.push(
-          <div key="clock" className="bar-section bar-section-clock">
-            <div className="bar-stat-content">
-              <div className="bar-time-value">{formatTime(currentTime)}</div>
-              <div className="bar-time-label">Current Time</div>
-            </div>
-          </div>
-        );
-
-        if (sec.duration && visibleItems.has('duration')) sections.push(
-          <div key="duration" className="bar-section bar-section-duration">
-            <div className="bar-stat-content">
-              <div className="bar-time-value">{formatStreamDuration()}</div>
-              <div className="bar-time-label">Stream Duration</div>
-            </div>
-          </div>
-        );
-
-        if (sec.title && visibleItems.has('title')) sections.push(
-          <div key="title" className="bar-section bar-stream-section">
-            <MarqueeText
-              className="bar-stream-title"
-              text={twitch.streamInfo?.title || 'Stream Title'}
-            />
-            <MarqueeText
-              className="bar-stream-category"
-              text={twitch.streamInfo?.gameName || 'No Category'}
-            />
-          </div>
-        );
-
-        if (sec.viewers && visibleItems.has('viewers')) sections.push(
-          <div key="viewers" className="bar-section bar-stat-section">
-            <div className="bar-stat-item">
-              <div className="bar-stat-icon" aria-hidden="true">👥</div>
-              <div className="bar-stat-content">
-                <div className="bar-stat-value">
-                  {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
-                </div>
-                <div className="bar-stat-label">Viewers</div>
-              </div>
-            </div>
-          </div>
-        );
-
-        if (sec.followers && visibleItems.has('followers')) sections.push(
-          <div key="followers" className="bar-section bar-stat-section">
-            <div className="bar-stat-item">
-              <div className="bar-stat-icon" aria-hidden="true">❤️</div>
-              <div className="bar-stat-content">
-                <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
-                <div className="bar-stat-label">Followers</div>
-              </div>
-            </div>
-          </div>
-        );
-
-        if (sec.subscribers && visibleItems.has('subscribers')) sections.push(
-          <div key="subscribers" className="bar-section bar-stat-section">
-            <div className="bar-stat-item">
-              <div className="bar-stat-icon" aria-hidden="true">⭐</div>
-              <div className="bar-stat-content">
-                <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
-                <div className="bar-stat-label">Subscribers</div>
-              </div>
-            </div>
-          </div>
-        );
-
-        const showRecentFollower = sec.recentFollower && !!twitch.lastFollower && visibleItems.has('recentFollower');
-        const showRecentSub = sec.recentSub && !!twitch.lastSubscriber && visibleItems.has('recentSub');
-        const hasRecent = showRecentFollower || showRecentSub;
-        if (hasRecent) sections.push(
-          <div key="recent" className="bar-section bar-recent-section">
-            {showRecentFollower && twitch.lastFollower && (
-              <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
-                <div className="bar-recent-icon" aria-hidden="true">❤️</div>
-                <div className="bar-recent-content">
-                  <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
-                  <MarqueeText
-                    className="bar-recent-label"
-                    text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`}
-                  />
+        const sectionNodes: Record<BarSectionKey, React.ReactNode | null> = {
+          clock: visibleItems.has('clock')
+            ? (
+              <div key="clock" className="bar-section bar-section-clock">
+                <div className="bar-stat-content">
+                  <div className="bar-time-value">{formatTime(currentTime)}</div>
+                  <div className="bar-time-label">Current Time</div>
                 </div>
               </div>
-            )}
-            {showRecentSub && twitch.lastSubscriber && (
-              <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
-                <div className="bar-recent-icon" aria-hidden="true">⭐</div>
-                <div className="bar-recent-content">
-                  <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
-                  <MarqueeText
-                    className="bar-recent-label"
-                    text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
-                  />
+            )
+            : null,
+          duration: visibleItems.has('duration')
+            ? (
+              <div key="duration" className="bar-section bar-section-duration">
+                <div className="bar-stat-content">
+                  <div className="bar-time-value">{formatStreamDuration()}</div>
+                  <div className="bar-time-label">Stream Duration</div>
                 </div>
               </div>
-            )}
-          </div>
-        );
+            )
+            : null,
+          title: visibleItems.has('title')
+            ? (
+              <div key="title" className="bar-section bar-stream-section">
+                <MarqueeText
+                  className="bar-stream-title"
+                  text={twitch.streamInfo?.title || 'Stream Title'}
+                />
+                <MarqueeText
+                  className="bar-stream-category"
+                  text={twitch.streamInfo?.gameName || 'No Category'}
+                />
+              </div>
+            )
+            : null,
+          viewers: visibleItems.has('viewers')
+            ? (
+              <div key="viewers" className="bar-section bar-stat-section">
+                <div className="bar-stat-item">
+                  <div className="bar-stat-icon" aria-hidden="true">👥</div>
+                  <div className="bar-stat-content">
+                    <div className="bar-stat-value">
+                      {twitch.streamInfo?.isLive ? formatNumber(twitch.streamInfo.viewerCount) : '0'}
+                    </div>
+                    <div className="bar-stat-label">Viewers</div>
+                  </div>
+                </div>
+              </div>
+            )
+            : null,
+          followers: visibleItems.has('followers')
+            ? (
+              <div key="followers" className="bar-section bar-stat-section">
+                <div className="bar-stat-item">
+                  <div className="bar-stat-icon" aria-hidden="true">❤️</div>
+                  <div className="bar-stat-content">
+                    <div className="bar-stat-value">{formatNumber(twitch.followerCount)}</div>
+                    <div className="bar-stat-label">Followers</div>
+                  </div>
+                </div>
+              </div>
+            )
+            : null,
+          subscribers: visibleItems.has('subscribers')
+            ? (
+              <div key="subscribers" className="bar-section bar-stat-section">
+                <div className="bar-stat-item">
+                  <div className="bar-stat-icon" aria-hidden="true">⭐</div>
+                  <div className="bar-stat-content">
+                    <div className="bar-stat-value">{formatNumber(twitch.subscriberCount)}</div>
+                    <div className="bar-stat-label">Subscribers</div>
+                  </div>
+                </div>
+              </div>
+            )
+            : null,
+          recentFollower: visibleItems.has('recentFollower') && twitch.lastFollower
+            ? (
+              <div key="recentFollower" className="bar-section bar-recent-section">
+                <div className={`bar-recent-item ${newFollowerAnimation ? 'new-update' : ''}`}>
+                  <div className="bar-recent-icon" aria-hidden="true">❤️</div>
+                  <div className="bar-recent-content">
+                    <MarqueeText className="bar-recent-name" text={twitch.lastFollower.userDisplayName} />
+                    <MarqueeText
+                      className="bar-recent-label"
+                      text={`Last Follow ${formatRelativeTime(twitch.lastFollower.followDate)}`}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+            : null,
+          recentSub: visibleItems.has('recentSub') && twitch.lastSubscriber
+            ? (
+              <div key="recentSub" className="bar-section bar-recent-section">
+                <div className={`bar-recent-item ${newSubscriberAnimation ? 'new-update' : ''}`}>
+                  <div className="bar-recent-icon" aria-hidden="true">⭐</div>
+                  <div className="bar-recent-content">
+                    <MarqueeText className="bar-recent-name" text={twitch.lastSubscriber.userDisplayName} />
+                    <MarqueeText
+                      className="bar-recent-label"
+                      text={`Last Sub${twitch.lastSubscriber.subscribeDate ? ` ${formatRelativeTime(twitch.lastSubscriber.subscribeDate)}` : ''}${twitch.lastSubscriber.isGift ? ' (Gift)' : ''}`}
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+            : null,
+        };
+
+        const sections = settings.barSectionOrder
+          .filter((key) => settings.barSections[key])
+          .map((key) => sectionNodes[key])
+          .filter((node): node is React.ReactNode => node !== null);
 
         return sections.flatMap((node, i) =>
           i < sections.length - 1

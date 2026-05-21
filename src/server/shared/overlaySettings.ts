@@ -2,22 +2,28 @@
 // src/server/storage.ts (server) and src/contexts/SettingsContext.tsx (client)
 export type OverlayTheme = 'crt' | 'default' | 'y2k';
 
+export const BAR_SECTION_KEYS = [
+  'clock',
+  'duration',
+  'title',
+  'viewers',
+  'followers',
+  'subscribers',
+  'recentFollower',
+  'recentSub',
+] as const;
+
+export type BarSectionKey = (typeof BAR_SECTION_KEYS)[number];
+
 export interface PerOverlayNumber {
   chat?: number | null;
   clock?: number | null;
   bar?: number | null;
 }
 
-export interface BarSections {
-  clock: boolean;
-  duration: boolean;
-  title: boolean;
-  viewers: boolean;
-  followers: boolean;
-  subscribers: boolean;
-  recentFollower: boolean;
-  recentSub: boolean;
-}
+export type BarSections = Record<BarSectionKey, boolean>;
+export type BarSectionOrder = BarSectionKey[];
+export type BarSectionPriority = Record<BarSectionKey, number>;
 
 const DEFAULT_BAR_SECTIONS: BarSections = {
   clock: true,
@@ -28,6 +34,20 @@ const DEFAULT_BAR_SECTIONS: BarSections = {
   subscribers: true,
   recentFollower: true,
   recentSub: true,
+};
+
+const DEFAULT_BAR_SECTION_ORDER: BarSectionOrder = [...BAR_SECTION_KEYS];
+
+// Lower number means higher priority (kept visible longer as space shrinks).
+const DEFAULT_BAR_SECTION_PRIORITY: BarSectionPriority = {
+  title: 1,
+  recentFollower: 2,
+  viewers: 3,
+  clock: 4,
+  duration: 5,
+  followers: 6,
+  subscribers: 7,
+  recentSub: 8,
 };
 
 export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSections {
@@ -44,6 +64,32 @@ export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSect
   };
 }
 
+export function normalizeBarSectionOrder(raw?: ReadonlyArray<unknown> | null): BarSectionOrder {
+  const selected = Array.isArray(raw)
+    ? raw.filter((value): value is BarSectionKey =>
+      typeof value === 'string' && BAR_SECTION_KEYS.includes(value as BarSectionKey),
+    )
+    : [];
+
+  const deduped = selected.filter((value, index) => selected.indexOf(value) === index);
+  const missing = BAR_SECTION_KEYS.filter((key) => !deduped.includes(key));
+  return [...deduped, ...missing];
+}
+
+export function normalizeBarSectionPriority(raw?: Partial<Record<BarSectionKey, number>> | null): BarSectionPriority {
+  const src = raw ?? {};
+  const normalized: BarSectionPriority = { ...DEFAULT_BAR_SECTION_PRIORITY };
+
+  for (const key of BAR_SECTION_KEYS) {
+    const value = src[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      normalized[key] = Math.min(99, Math.max(1, Math.round(value)));
+    }
+  }
+
+  return normalized;
+}
+
 export interface OverlaySettings {
   overlayOpacity: number;
   perOverlayOpacity: PerOverlayNumber;
@@ -53,6 +99,8 @@ export interface OverlaySettings {
   maxChatMessages: number;
   barFloating: boolean;
   barSections: BarSections;
+  barSectionOrder: BarSectionOrder;
+  barSectionPriority: BarSectionPriority;
   theme: OverlayTheme;
   themeSettings: {
     crt: {
@@ -82,6 +130,8 @@ export const defaultOverlaySettings: OverlaySettings = {
   maxChatMessages: 50,
   barFloating: true,
   barSections: { ...DEFAULT_BAR_SECTIONS },
+  barSectionOrder: [...DEFAULT_BAR_SECTION_ORDER],
+  barSectionPriority: { ...DEFAULT_BAR_SECTION_PRIORITY },
   theme: 'crt',
   themeSettings: {
     crt: {

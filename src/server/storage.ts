@@ -13,12 +13,22 @@ const __dirname = path.dirname(__filename);
 // in the Dockerfile so the path always matches the Docker volume mount point.
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
+import {
+  defaultOverlaySettings,
+  normalizeBarSectionOrder,
+  normalizeBarSectionPriority,
+  normalizeBarSections,
+  type OverlaySettings,
+  type OverlayTheme,
+  type PerOverlayNumber,
+} from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
+  barSectionOrder?: OverlaySettings['barSectionOrder'];
+  barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
 };
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
@@ -104,6 +114,8 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
       ...defaultOverlaySettings,
       ...(existingData?.overlaySettings ?? {}),
       barSections: normalizeBarSections(existingData?.overlaySettings?.barSections),
+      barSectionOrder: normalizeBarSectionOrder(existingData?.overlaySettings?.barSectionOrder),
+      barSectionPriority: normalizeBarSectionPriority(existingData?.overlaySettings?.barSectionPriority),
       perOverlayOpacity: {
         ...defaultOverlaySettings.perOverlayOpacity,
         ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
@@ -258,12 +270,24 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
 
       return normalizeBarSections({ ...baseBarSections, ...patchBarSections });
     })();
+    const mergedBarSectionOrder =
+      settings.barSectionOrder
+        ? normalizeBarSectionOrder(settings.barSectionOrder)
+        : normalizeBarSectionOrder(base.barSectionOrder);
+    const mergedBarSectionPriority = (() => {
+      const basePriority = normalizeBarSectionPriority(base.barSectionPriority);
+      const patchPriority = settings.barSectionPriority;
+      if (!patchPriority) return basePriority;
+      return normalizeBarSectionPriority({ ...basePriority, ...patchPriority });
+    })();
 
     const merged: OverlaySettings = {
       ...defaultOverlaySettings,
       ...base,
       ...settings,
       barSections: mergedBarSections,
+      barSectionOrder: mergedBarSectionOrder,
+      barSectionPriority: mergedBarSectionPriority,
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {

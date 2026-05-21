@@ -9,11 +9,13 @@
 
 import express, { type Request, type Response, Router } from 'express';
 import { getUserTokens, updateUserSettings, defaultOverlaySettings, type OverlaySettings } from './storage.js';
-import { normalizeBarSections } from './shared/overlaySettings.js';
+import { BAR_SECTION_KEYS, normalizeBarSectionOrder, normalizeBarSectionPriority, normalizeBarSections } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionOrder' | 'barSectionPriority'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
+  barSectionOrder?: OverlaySettings['barSectionOrder'];
+  barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
 };
 
 /**
@@ -30,6 +32,8 @@ router.get('/', (req: Request, res: Response) => {
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
     barSections: normalizeBarSections(raw.barSections),
+    barSectionOrder: normalizeBarSectionOrder(raw.barSectionOrder),
+    barSectionPriority: normalizeBarSectionPriority(raw.barSectionPriority),
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -131,6 +135,52 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         }
       }
       if (errors.length === 0) patch.barSections = sections;
+    }
+  }
+
+  if ('barSectionOrder' in body) {
+    const v = body.barSectionOrder;
+    if (!Array.isArray(v)) {
+      errors.push('barSectionOrder must be an array');
+    } else {
+      const seen = new Set<string>();
+      const keys: OverlaySettings['barSectionOrder'] = [];
+      for (const item of v) {
+        if (typeof item !== 'string' || !BAR_SECTION_KEYS.includes(item)) {
+          errors.push('barSectionOrder contains invalid section keys');
+          break;
+        }
+        if (seen.has(item)) {
+          errors.push('barSectionOrder cannot contain duplicate keys');
+          break;
+        }
+        seen.add(item);
+        keys.push(item);
+      }
+
+      if (errors.length === 0) {
+        patch.barSectionOrder = normalizeBarSectionOrder(keys);
+      }
+    }
+  }
+
+  if ('barSectionPriority' in body) {
+    const v = body.barSectionPriority;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSectionPriority must be an object');
+    } else {
+      const priorityPatch: Partial<OverlaySettings['barSectionPriority']> = {};
+      for (const key of BAR_SECTION_KEYS) {
+        if (key in v) {
+          const rawValue = (v as Record<string, unknown>)[key];
+          if (typeof rawValue !== 'number' || !Number.isFinite(rawValue)) {
+            errors.push(`barSectionPriority.${key} must be a number`);
+          } else {
+            priorityPatch[key] = Math.min(99, Math.max(1, Math.round(rawValue)));
+          }
+        }
+      }
+      if (errors.length === 0) patch.barSectionPriority = priorityPatch;
     }
   }
 
