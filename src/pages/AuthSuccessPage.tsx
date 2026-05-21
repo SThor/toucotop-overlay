@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon, NumberInput,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon,
 } from '@mantine/core';
 import {
   DndContext,
@@ -15,6 +15,7 @@ import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
+  verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -23,15 +24,15 @@ import { useSettings } from '../contexts/SettingsContext';
 import { BAR_SECTION_KEYS, type BarSectionKey, defaultOverlaySettings } from '../server/shared/overlaySettings';
 import '../styles/ServerPages.css';
 
-const BAR_SECTION_META: Record<BarSectionKey, { label: string; icon: string }> = {
-  clock: { label: 'Current Time', icon: '🕐' },
-  duration: { label: 'Stream Duration', icon: '⏱️' },
-  title: { label: 'Stream Title / Category', icon: '🎬' },
-  viewers: { label: 'Viewers', icon: '👥' },
-  followers: { label: 'Followers', icon: '❤️' },
-  subscribers: { label: 'Subscribers', icon: '⭐' },
-  recentFollower: { label: 'Last Follower', icon: '🆕' },
-  recentSub: { label: 'Last Subscriber', icon: '🎁' },
+const BAR_SECTION_META: Record<BarSectionKey, { label: string; shortLabel: string; icon: string }> = {
+  clock: { label: 'Current Time', shortLabel: 'Time', icon: '🕐' },
+  duration: { label: 'Stream Duration', shortLabel: 'Duration', icon: '⏱️' },
+  title: { label: 'Stream Title / Category', shortLabel: 'Title + Category', icon: '🎬' },
+  viewers: { label: 'Viewers', shortLabel: 'Viewers', icon: '👥' },
+  followers: { label: 'Followers', shortLabel: 'Followers', icon: '❤️' },
+  subscribers: { label: 'Subscribers', shortLabel: 'Subscribers', icon: '⭐' },
+  recentFollower: { label: 'Last Follower', shortLabel: 'Latest Follow', icon: '🆕' },
+  recentSub: { label: 'Last Subscriber', shortLabel: 'Latest Sub', icon: '🎁' },
 };
 
 function isBarSectionKey(value: unknown): value is BarSectionKey {
@@ -59,21 +60,50 @@ function SortableBarOrderItem({ sectionKey, onRemove }: SortableBarOrderItemProp
       {...attributes}
       {...listeners}
     >
-      <span className="bar-order-chip-label">{meta.icon} {meta.label}</span>
-      <ActionIcon
-        variant="subtle"
-        color="red"
-        size="sm"
-        title="Remove block"
-        aria-label={`Remove ${meta.label}`}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove(sectionKey);
-        }}
-      >
-        ✕
-      </ActionIcon>
+      <div className="bar-chip-top-row">
+        <span className="bar-chip-icon" aria-hidden="true">{meta.icon}</span>
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          size="sm"
+          title="Remove block"
+          aria-label={`Remove ${meta.label}`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(sectionKey);
+          }}
+        >
+          ✕
+        </ActionIcon>
+      </div>
+      <span className="bar-order-chip-label">{meta.shortLabel}</span>
+    </div>
+  );
+}
+
+interface SortableBarPriorityItemProps {
+  sectionKey: BarSectionKey;
+}
+
+function SortableBarPriorityItem({ sectionKey }: SortableBarPriorityItemProps) {
+  const meta = BAR_SECTION_META[sectionKey];
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sectionKey });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bar-priority-item${isDragging ? ' is-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="bar-priority-item-rank" aria-hidden="true">☰</span>
+      <Text size="sm" className="bar-priority-label">{meta.icon} {meta.shortLabel}</Text>
     </div>
   );
 }
@@ -250,6 +280,9 @@ export default function AuthSuccessPage() {
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
   const enabledBarSections = persistedSettings.barSectionOrder.filter((key) => persistedSettings.barSections[key]);
+  const priorityOrderedSections = [...enabledBarSections].sort(
+    (a, b) => (persistedSettings.barSectionPriority[a] ?? 99) - (persistedSettings.barSectionPriority[b] ?? 99),
+  );
   const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -281,6 +314,24 @@ export default function AuthSuccessPage() {
         [key]: false,
       },
     });
+  };
+
+  const handlePriorityDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    if (active.id === over.id) return;
+    if (!isBarSectionKey(active.id) || !isBarSectionKey(over.id)) return;
+
+    const from = priorityOrderedSections.indexOf(active.id);
+    const to = priorityOrderedSections.indexOf(over.id);
+    if (from < 0 || to < 0 || from === to) return;
+
+    const reordered = arrayMove(priorityOrderedSections, from, to);
+    const nextPriority = { ...persistedSettings.barSectionPriority };
+    reordered.forEach((key, index) => {
+      nextPriority[key] = index + 1;
+    });
+    save({ barSectionPriority: nextPriority });
   };
 
   return (
@@ -480,16 +531,16 @@ export default function AuthSuccessPage() {
                 })}
               </Stack>
 
-              <Switch
-                label="Floating Bar"
-                description="Bar overlay appears as a centered floating pill instead of full-width"
-                checked={persistedSettings.barFloating}
-                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
-              />
-
               <div>
-                <Text size="sm" fw={500} mb="xs">Bar Sections</Text>
-                <Stack gap="sm" className="bar-sections-manager">
+                <Text size="sm" fw={700} mb="xs">Bar</Text>
+                <Stack gap="sm">
+                  <Switch
+                    label="Floating Bar"
+                    description="Bar overlay appears as a centered floating pill instead of full-width"
+                    checked={persistedSettings.barFloating}
+                    onChange={(e) => save({ barFloating: e.currentTarget.checked })}
+                  />
+
                   <div>
                     <Text size="xs" fw={600} mb={4}>Bar Order (left to right)</Text>
                     <Text size="xs" c="dimmed" mb="xs">
@@ -512,40 +563,6 @@ export default function AuthSuccessPage() {
                         </SortableContext>
                       </DndContext>
                     )}
-                  </div>
-
-                  <div>
-                    <Text size="xs" fw={600} mb={4}>Visibility Priority</Text>
-                    <Text size="xs" c="dimmed" mb="xs">
-                      When space is tight, blocks with higher numbers disappear first. Keep your most important blocks at lower numbers.
-                    </Text>
-                    <Stack gap="xs" className="bar-priority-list">
-                      {enabledBarSections.map((key) => {
-                        const meta = BAR_SECTION_META[key];
-                        return (
-                          <div key={key} className="bar-priority-item">
-                            <Text size="sm" className="bar-priority-label">{meta.icon} {meta.label}</Text>
-                            <NumberInput
-                              aria-label={`${meta.label} priority`}
-                              size="xs"
-                              min={1}
-                              max={99}
-                              value={persistedSettings.barSectionPriority[key]}
-                              onChange={(value) => {
-                                if (typeof value !== 'number' || !Number.isFinite(value)) return;
-                                save({
-                                  barSectionPriority: {
-                                    ...persistedSettings.barSectionPriority,
-                                    [key]: Math.min(99, Math.max(1, Math.round(value))),
-                                  },
-                                });
-                              }}
-                              styles={{ input: { width: 84 } }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </Stack>
                   </div>
 
                   {disabledBarSections.length > 0 && (
@@ -574,6 +591,28 @@ export default function AuthSuccessPage() {
                       </Group>
                     </div>
                   )}
+
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Visibility Priority</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Drag to rank importance from top to bottom. Top items stay visible the longest when space gets tight.
+                    </Text>
+                    {priorityOrderedSections.length > 0 && (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handlePriorityDragEnd}
+                      >
+                        <SortableContext items={priorityOrderedSections} strategy={verticalListSortingStrategy}>
+                          <div className="bar-priority-list">
+                            {priorityOrderedSections.map((key) => (
+                              <SortableBarPriorityItem key={key} sectionKey={key} />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </div>
                 </Stack>
               </div>
 

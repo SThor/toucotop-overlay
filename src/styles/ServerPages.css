@@ -284,19 +284,12 @@
   font-weight: 600;
 }
 
-.bar-sections-manager {
-  border: 1px solid var(--sv-border-sub);
-  border-radius: 8px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
 .bar-order-lane {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding: 6px;
   border: 1px solid var(--sv-border-sub);
   border-radius: 8px;
@@ -305,23 +298,24 @@
 
 .bar-order-chip {
   display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 36px;
-  min-width: 150px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 50px;
+  min-width: 92px;
+  max-width: 132px;
   border: 1px solid var(--sv-border-sub);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--sv-text-2);
-  padding: 6px 8px;
+  padding: 5px 6px;
   cursor: grab;
   touch-action: none;
 }
 
 .bar-order-chip-title {
-  flex: 1 1 260px;
-  min-width: 220px;
+  flex: 1 1 180px;
+  max-width: none;
 }
 
 .bar-order-chip.is-dragging {
@@ -331,36 +325,64 @@
 }
 
 .bar-order-chip-label {
+  font-size: 0.67rem;
+  line-height: 1.05;
+  color: var(--sv-text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.bar-chip-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 20px;
+}
+
+.bar-chip-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .bar-priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   border: 1px solid var(--sv-border-sub);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background: rgba(255, 255, 255, 0.02);
 }
 
 .bar-priority-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   padding: 6px 8px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.bar-priority-item.is-dragging {
+  opacity: 0.65;
+  border-color: var(--sv-indigo-dark);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 .bar-priority-label {
   color: var(--sv-text-2);
 }
 
+.bar-priority-item-rank {
+  color: var(--sv-text-4);
+  font-size: 0.8rem;
+}
+
 .bar-section-add-zone {
-  margin-top: 6px;
-  border-top: 1px dashed var(--sv-border-sub);
-  padding-top: 10px;
+  padding-top: 2px;
 }
 
 @media (max-width: 600px) {
