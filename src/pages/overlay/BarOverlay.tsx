@@ -13,6 +13,20 @@ const STRETCH_MIN_WIDTH_PX = 28;
 const STACK_HEADROOM_PX = 14;
 const STACK_ROTATE_MS = 5000;
 
+// Safety floors observed from real rendered content widths at default scale.
+// These guard against viewport widths that are technically "configured" but too
+// small for the actual section internals (labels, icons, paddings).
+const SECTION_INTRINSIC_MIN_WIDTH: Record<BarSectionKey, number> = {
+  clock: 122,
+  duration: 152,
+  title: 168,
+  viewers: 112,
+  followers: 112,
+  subscribers: 126,
+  recentFollower: 168,
+  recentSub: 168,
+};
+
 function getSectionStyle(finalMinWidth: number, token: BarWidthTokenType | null): React.CSSProperties {
   const stretch = token === 'stretch';
   const basis = finalMinWidth;
@@ -289,6 +303,7 @@ const BarOverlayContent = () => {
   };
 
   const visibleStacks = useMemo(() => {
+    const barFontScale = settings.perOverlayFontSize?.bar ?? settings.fontSize;
     const stacks = orderedActiveStacks
       .map((stack) => {
         const availableSections = stack.sections.filter((key) => {
@@ -298,7 +313,11 @@ const BarOverlayContent = () => {
         });
         if (availableSections.length === 0) return null;
 
-        const maxBaseMinWidth = Math.max(...availableSections.map((key) => settings.barSectionMinWidth[key] ?? 132));
+        const maxBaseMinWidth = Math.max(...availableSections.map((key) => {
+          const configured = settings.barSectionMinWidth[key] ?? 132;
+          const intrinsicFloor = Math.round((SECTION_INTRINSIC_MIN_WIDTH[key] ?? 132) * barFontScale);
+          return Math.max(configured, intrinsicFloor);
+        }));
         const token = stack.widthToken ?? null;
         const dynamicMin = maxBaseMinWidth + (token === 'boost' ? BOOST_MIN_WIDTH_PX : 0) + (token === 'stretch' ? STRETCH_MIN_WIDTH_PX : 0) + STACK_HEADROOM_PX;
         return {
@@ -342,7 +361,9 @@ const BarOverlayContent = () => {
   }, [
     orderedActiveStacks,
     overlayWidth,
+    settings.fontSize,
     settings.barSectionMinWidth,
+    settings.perOverlayFontSize,
     settings.barStackPriority,
     twitch.lastFollower,
     twitch.lastSubscriber,
