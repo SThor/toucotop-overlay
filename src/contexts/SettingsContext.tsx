@@ -89,11 +89,11 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
   }
   if (p.has('barStackScrollDurationSeconds')) {
     const v = parseFloat(p.get('barStackScrollDurationSeconds') || '');
-    if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackScrollDurationSeconds = Math.round(v * 100) / 100;
+    if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackScrollDurationSeconds = normalizeBarStackScrollDurationSeconds(v);
   }
   if (p.has('barStackPauseSeconds')) {
     const v = parseFloat(p.get('barStackPauseSeconds') || '');
-    if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackPauseSeconds = Math.round(v * 100) / 100;
+    if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackPauseSeconds = normalizeBarStackPauseSeconds(v);
   }
   if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
   if (p.has('pauseTitle')) o.pauseTitle = p.get('pauseTitle')!;

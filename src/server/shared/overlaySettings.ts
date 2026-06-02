@@ -148,7 +148,8 @@ function normalizeBarTimingSeconds(raw: unknown, fallbackSeconds: number): numbe
     return fallbackSeconds;
   }
 
-  return Math.min(30, Math.max(0.1, Math.round(raw * 100) / 100));
+  const clamped = Math.min(30, Math.max(0.1, raw));
+  return Number(clamped.toPrecision(2));
 }
 
 export function normalizeBarStackScrollDurationSeconds(raw?: unknown): number {

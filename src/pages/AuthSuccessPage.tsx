@@ -57,7 +57,7 @@ function timingSecondsToSliderValue(seconds: number): number {
 function timingSliderValueToSeconds(value: number): number {
   const clamped = Math.min(100, Math.max(0, value));
   const seconds = Math.exp(BAR_TIMING_LOG_MIN + (clamped / 100) * BAR_TIMING_LOG_RANGE);
-  return Math.round(seconds * 100) / 100;
+  return Number(seconds.toPrecision(2));
 }
 
 function isBarSectionKey(value: unknown): value is BarSectionKey {
@@ -865,11 +865,12 @@ export default function AuthSuccessPage() {
                     </Text>
 
                     <Text size="xs" fw={600} mb={4}>
-                      Scroll Length: {persistedSettings.barStackScrollDurationSeconds.toFixed(2)}s
+                      Scroll Length: {persistedSettings.barStackScrollDurationSeconds}s
                     </Text>
                     <Slider
                       value={timingSecondsToSliderValue(persistedSettings.barStackScrollDurationSeconds)}
                       onChange={(v) => save({ barStackScrollDurationSeconds: timingSliderValueToSeconds(v) })}
+                      label={null}
                       min={0}
                       max={100}
                       step={1}
@@ -881,11 +882,12 @@ export default function AuthSuccessPage() {
                     </Group>
 
                     <Text size="xs" fw={600} mb={4}>
-                      Pause Length: {persistedSettings.barStackPauseSeconds.toFixed(2)}s
+                      Pause Length: {persistedSettings.barStackPauseSeconds}s
                     </Text>
                     <Slider
                       value={timingSecondsToSliderValue(persistedSettings.barStackPauseSeconds)}
                       onChange={(v) => save({ barStackPauseSeconds: timingSliderValueToSeconds(v) })}
+                      label={null}
                       min={0}
                       max={100}
                       step={1}
@@ -897,7 +899,7 @@ export default function AuthSuccessPage() {
                     </Group>
 
                     <Text size="xs" c="dimmed" mt={6}>
-                      Total cycle: {(persistedSettings.barStackScrollDurationSeconds + persistedSettings.barStackPauseSeconds).toFixed(2)}s
+                      Total cycle: {Number((persistedSettings.barStackScrollDurationSeconds + persistedSettings.barStackPauseSeconds).toPrecision(2))}s
                     </Text>
                   </div>
 
