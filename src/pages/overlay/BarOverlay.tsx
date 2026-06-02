@@ -47,15 +47,16 @@ interface RotatingStackViewportProps {
   sections: BarSectionKey[];
   minWidth: number;
   token: BarWidthTokenType | null;
-  rotateMs: number;
+  pulse: number;
   transitionMs: number;
   renderSectionNode: (key: BarSectionKey) => React.ReactNode | null;
 }
 
-function RotatingStackViewport({ stackId, sections, minWidth, token, rotateMs, transitionMs, renderSectionNode }: RotatingStackViewportProps) {
+function RotatingStackViewport({ stackId, sections, minWidth, token, pulse, transitionMs, renderSectionNode }: RotatingStackViewportProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const sectionCount = sections.length;
+  const lastPulseRef = useRef(pulse);
 
   useEffect(() => {
     setCurrentIndex(0);
@@ -63,13 +64,11 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, rotateMs, t
   }, [stackId, sections.join('|')]);
 
   useEffect(() => {
+    if (pulse === lastPulseRef.current) return;
+    lastPulseRef.current = pulse;
     if (sectionCount <= 1 || isAnimating) return;
-    const timeout = setTimeout(() => {
-      setIsAnimating(true);
-    }, rotateMs);
-
-    return () => clearTimeout(timeout);
-  }, [sectionCount, currentIndex, isAnimating, rotateMs]);
+    setIsAnimating(true);
+  }, [pulse, sectionCount, isAnimating]);
 
   const queue = useMemo(() => {
     if (sectionCount <= 1) return sections.slice(0, 1);
@@ -129,8 +128,10 @@ const BarOverlayContent = () => {
   const showBarOrnaments = settings.themeSettings.y2k.showBarOrnaments;
   const stackScrollDurationSeconds = normalizeBarStackScrollDurationSeconds(settings.barStackScrollDurationSeconds);
   const stackPauseSeconds = normalizeBarStackPauseSeconds(settings.barStackPauseSeconds);
-  const stackRotateMs = Math.round(stackPauseSeconds * 1000);
+  const stackPauseMs = Math.round(stackPauseSeconds * 1000);
   const stackTransitionMs = Math.round(stackScrollDurationSeconds * 1000);
+  const stackCycleMs = stackPauseMs + stackTransitionMs;
+  const [stackPulse, setStackPulse] = useState(0);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [overlayWidth, setOverlayWidth] = useState(0);
@@ -153,6 +154,26 @@ const BarOverlayContent = () => {
     document.body.classList.add('overlay-mode');
     return () => document.body.classList.remove('overlay-mode');
   }, []);
+
+  // Drive all stack marquee animations from one shared wall-clock-aligned pulse
+  // so stacks stay in sync even if they mount at slightly different times.
+  useEffect(() => {
+    if (isLoadingSettings) return;
+    if (stackCycleMs <= 0) return;
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const tick = () => setStackPulse((value) => value + 1);
+    const delayMs = stackCycleMs - (Date.now() % stackCycleMs);
+    const timeoutId = setTimeout(() => {
+      tick();
+      intervalId = setInterval(tick, stackCycleMs);
+    }, delayMs);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isLoadingSettings, stackCycleMs]);
 
   // Track rendered width so lower-priority items can be hidden as space shrinks.
   useEffect(() => {
@@ -464,7 +485,7 @@ const BarOverlayContent = () => {
             sections={stack.sections}
             minWidth={stack.minWidth}
             token={stack.token}
-            rotateMs={stackRotateMs}
+            pulse={stackPulse}
             transitionMs={stackTransitionMs}
             renderSectionNode={renderSectionNode}
           />
