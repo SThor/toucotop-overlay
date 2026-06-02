@@ -86,7 +86,9 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, renderSecti
     if (!singleNode) return null;
     return (
       <div className="bar-stack-viewport" style={getSectionStyle(minWidth, token)}>
-        {singleNode}
+        <div className="bar-stack-frame bar-stack-frame-single">
+          {singleNode}
+        </div>
       </div>
     );
   }

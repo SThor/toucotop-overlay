@@ -93,6 +93,11 @@
   flex: 0 0 33.3333%;
 }
 
+.bar-stack-frame-single {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
 .bar-section-clock,
 .bar-section-duration {
   flex: 0 0 auto;
