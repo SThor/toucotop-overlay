@@ -101,10 +101,10 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, rotateMs, t
   return (
     <div className="bar-stack-viewport" style={getSectionStyle(minWidth, token)}>
       <div
-        className={`bar-stack-track${isAnimating ? ' is-animating' : ''}`}
+        className="bar-stack-track"
         style={{
           transform: isAnimating ? 'translateY(-50%)' : 'translateY(0%)',
-          transitionDuration: `${transitionMs}ms`,
+          transition: isAnimating ? `transform ${transitionMs}ms ease-in-out` : 'none',
         }}
         onTransitionEnd={handleTransitionEnd}
       >
