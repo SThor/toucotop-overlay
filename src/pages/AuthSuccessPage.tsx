@@ -291,9 +291,11 @@ function TokenPoolZone() {
 
 interface SortableBarPriorityItemProps {
   stack: BarStack;
+  stackWidth: number;
+  onWidthChange: (stack: BarStack, value: number) => void;
 }
 
-function SortableBarPriorityItem({ stack }: SortableBarPriorityItemProps) {
+function SortableBarPriorityItem({ stack, stackWidth, onWidthChange }: SortableBarPriorityItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stack.id });
   const labels = stack.sections.map((sectionKey) => BAR_SECTION_META[sectionKey].shortLabel).join(' • ');
   const style = {
@@ -306,11 +308,23 @@ function SortableBarPriorityItem({ stack }: SortableBarPriorityItemProps) {
       ref={setNodeRef}
       style={style}
       className={`bar-priority-item${isDragging ? ' is-dragging' : ''}`}
-      {...attributes}
-      {...listeners}
     >
-      <span className="bar-priority-item-rank" aria-hidden="true">☰</span>
+      <span className="bar-priority-item-rank bar-priority-drag-handle" aria-hidden="true" {...attributes} {...listeners}>☰</span>
       <Text size="sm" className="bar-priority-label">{labels}</Text>
+      <NumberInput
+        min={72}
+        max={480}
+        step={4}
+        size="xs"
+        value={stackWidth}
+        onPointerDown={(e) => e.stopPropagation()}
+        onChange={(value) => {
+          if (typeof value !== 'number' || !Number.isFinite(value)) return;
+          onWidthChange(stack, value);
+        }}
+        styles={{ input: { width: 84 } }}
+        aria-label={`${labels} min width`}
+      />
     </div>
   );
 }
@@ -647,6 +661,17 @@ export default function AuthSuccessPage() {
 
     const reordered = arrayMove(priorityOrderIds, from, to);
     save({ barStackPriority: reordered });
+  };
+
+  const updateStackMinWidth = (stack: BarStack, value: number) => {
+    const clamped = Math.min(480, Math.max(72, Math.round(value)));
+    const nextMinWidth = { ...persistedSettings.barSectionMinWidth };
+    for (const sectionKey of stack.sections) {
+      nextMinWidth[sectionKey] = clamped;
+    }
+    save({
+      barSectionMinWidth: nextMinWidth,
+    });
   };
 
   return (
@@ -1012,9 +1037,10 @@ export default function AuthSuccessPage() {
                   )}
 
                   <div>
-                    <Text size="xs" fw={600} mb={4}>Visibility Priority</Text>
+                    <Text size="xs" fw={600} mb={4}>Visibility Priority & Min Width</Text>
                     <Text size="xs" c="dimmed" mb="xs">
-                      Drag to rank stacks from top to bottom. Top stacks stay visible the longest when space gets tight.
+                      Drag using ☰ to rank stacks from top to bottom. Top stacks stay visible the longest when space gets tight.
+                      Adjust width per stack on the right.
                     </Text>
                     {priorityOrderedStacks.length > 0 && (
                       <DndContext
@@ -1025,50 +1051,17 @@ export default function AuthSuccessPage() {
                         <SortableContext items={priorityOrderedStacks.map((stack) => stack.id)} strategy={verticalListSortingStrategy}>
                           <div className="bar-priority-list">
                             {priorityOrderedStacks.map((stack) => (
-                              <SortableBarPriorityItem key={stack.id} stack={stack} />
+                              <SortableBarPriorityItem
+                                key={stack.id}
+                                stack={stack}
+                                stackWidth={Math.max(...stack.sections.map((sectionKey) => persistedSettings.barSectionMinWidth[sectionKey] ?? 132))}
+                                onWidthChange={updateStackMinWidth}
+                              />
                             ))}
                           </div>
                         </SortableContext>
                       </DndContext>
                     )}
-                  </div>
-
-                  <div>
-                    <Text size="xs" fw={600} mb={4}>Minimum Width (px)</Text>
-                    <Text size="xs" c="dimmed" mb="xs">
-                      Per-block base width. Stack width uses the largest block width inside the stack.
-                    </Text>
-                    <Stack gap="xs" className="bar-priority-list">
-                      {activeBarStacks.map((stack) => {
-                        const labels = stack.sections.map((sectionKey) => BAR_SECTION_META[sectionKey].shortLabel).join(' • ');
-                        const stackWidth = Math.max(...stack.sections.map((sectionKey) => persistedSettings.barSectionMinWidth[sectionKey] ?? 132));
-                        return (
-                          <div key={`min-${stack.id}`} className="bar-priority-item">
-                            <Text size="sm" className="bar-priority-label">{labels}</Text>
-                            <NumberInput
-                              min={72}
-                              max={480}
-                              step={4}
-                              size="xs"
-                              value={stackWidth}
-                              onChange={(value) => {
-                                if (typeof value !== 'number' || !Number.isFinite(value)) return;
-                                const clamped = Math.min(480, Math.max(72, Math.round(value)));
-                                const nextMinWidth = { ...persistedSettings.barSectionMinWidth };
-                                for (const sectionKey of stack.sections) {
-                                  nextMinWidth[sectionKey] = clamped;
-                                }
-                                save({
-                                  barSectionMinWidth: nextMinWidth,
-                                });
-                              }}
-                              styles={{ input: { width: 84 } }}
-                              aria-label={`${labels} min width`}
-                            />
-                          </div>
-                        );
-                      })}
-                    </Stack>
                   </div>
                 </Stack>
               </div>

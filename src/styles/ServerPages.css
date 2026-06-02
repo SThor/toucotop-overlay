@@ -589,8 +589,6 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   padding: 6px 8px;
-  cursor: grab;
-  touch-action: none;
 }
 
 .bar-priority-item.is-dragging {
@@ -601,11 +599,23 @@
 
 .bar-priority-label {
   color: var(--sv-text-2);
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .bar-priority-item-rank {
   color: var(--sv-text-4);
   font-size: 0.8rem;
+}
+
+.bar-priority-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.bar-priority-drag-handle:active {
+  cursor: grabbing;
 }
 
 .bar-section-add-zone {
