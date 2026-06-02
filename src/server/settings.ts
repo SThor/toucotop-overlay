@@ -17,6 +17,7 @@ import {
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
   normalizeBarSectionWidthTokens,
+  normalizeBarStackScrollSeconds,
   normalizeBarSections,
 } from './shared/overlaySettings.js';
 
@@ -49,6 +50,7 @@ router.get('/', (req: Request, res: Response) => {
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
+    barStackScrollSeconds: normalizeBarStackScrollSeconds(raw.barStackScrollSeconds),
     barSections: normalizeBarSections(raw.barSections),
     barSectionStacks: normalizedStacks,
     barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
@@ -146,6 +148,15 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
       errors.push('barFloating must be a boolean');
     } else {
       patch.barFloating = v;
+    }
+  }
+
+  if ('barStackScrollSeconds' in body) {
+    const v = body.barStackScrollSeconds;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 2 || v > 20) {
+      errors.push('barStackScrollSeconds must be a number between 2 and 20');
+    } else {
+      patch.barStackScrollSeconds = Math.round(v * 10) / 10;
     }
   }
 

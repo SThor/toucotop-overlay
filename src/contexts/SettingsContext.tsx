@@ -8,6 +8,7 @@ import {
   normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
+  normalizeBarStackScrollSeconds,
   normalizeBarSectionWidthTokens,
   normalizeBarSections,
   type OverlaySettings,
@@ -84,6 +85,10 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
   if (p.has('maxChatMessages')) {
     const v = parseInt(p.get('maxChatMessages') || '', 10);
     if (!isNaN(v) && v >= 10 && v <= 100) o.maxChatMessages = v;
+  }
+  if (p.has('barStackScrollSeconds')) {
+    const v = parseFloat(p.get('barStackScrollSeconds') || '');
+    if (!isNaN(v) && v >= 2 && v <= 20) o.barStackScrollSeconds = Math.round(v * 10) / 10;
   }
   if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
   if (p.has('pauseTitle')) o.pauseTitle = p.get('pauseTitle')!;
@@ -190,6 +195,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       barSectionOrder: normalizeBarSectionOrder(cached.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(cached.barSectionPriority),
       barSectionMinWidth: normalizeBarSectionMinWidth(cached.barSectionMinWidth),
+      barStackScrollSeconds: normalizeBarStackScrollSeconds(cached.barStackScrollSeconds),
       barSectionWidthTokens: normalizeBarSectionWidthTokens(cached.barSectionWidthTokens),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
@@ -291,6 +297,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             barSectionOrder: normalizeBarSectionOrder(fetched.barSectionOrder),
             barSectionPriority: normalizeBarSectionPriority(fetched.barSectionPriority),
             barSectionMinWidth: normalizeBarSectionMinWidth(fetched.barSectionMinWidth),
+            barStackScrollSeconds: normalizeBarStackScrollSeconds(fetched.barStackScrollSeconds),
             barSectionWidthTokens: normalizeBarSectionWidthTokens(fetched.barSectionWidthTokens),
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,

@@ -5,13 +5,12 @@ import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import GlobalAlertLayer from '../../components/GlobalAlertLayer';
-import { type BarSectionKey, type BarWidthTokenType } from '../../server/shared/overlaySettings';
+import { normalizeBarStackScrollSeconds, type BarSectionKey, type BarWidthTokenType } from '../../server/shared/overlaySettings';
 import '../../styles/BarOverlay.css';
 
 const BOOST_MIN_WIDTH_PX = 56;
 const STRETCH_MIN_WIDTH_PX = 28;
 const STACK_HEADROOM_PX = 14;
-const STACK_ROTATE_MS = 5000;
 
 // Safety floors observed from real rendered content widths at default scale.
 // These guard against viewport widths that are technically "configured" but too
@@ -43,10 +42,12 @@ interface RotatingStackViewportProps {
   sections: BarSectionKey[];
   minWidth: number;
   token: BarWidthTokenType | null;
+  rotateMs: number;
+  transitionMs: number;
   renderSectionNode: (key: BarSectionKey) => React.ReactNode | null;
 }
 
-function RotatingStackViewport({ stackId, sections, minWidth, token, renderSectionNode }: RotatingStackViewportProps) {
+function RotatingStackViewport({ stackId, sections, minWidth, token, rotateMs, transitionMs, renderSectionNode }: RotatingStackViewportProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const sectionCount = sections.length;
@@ -60,10 +61,10 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, renderSecti
     if (sectionCount <= 1 || isAnimating) return;
     const timeout = setTimeout(() => {
       setIsAnimating(true);
-    }, STACK_ROTATE_MS);
+    }, rotateMs);
 
     return () => clearTimeout(timeout);
-  }, [sectionCount, currentIndex, isAnimating]);
+  }, [sectionCount, currentIndex, isAnimating, rotateMs]);
 
   const queue = useMemo(() => {
     if (sectionCount <= 1) return sections.slice(0, 1);
@@ -97,7 +98,10 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, renderSecti
     <div className="bar-stack-viewport" style={getSectionStyle(minWidth, token)}>
       <div
         className={`bar-stack-track${isAnimating ? ' is-animating' : ''}`}
-        style={{ transform: isAnimating ? 'translateY(-33.3333%)' : 'translateY(0%)' }}
+        style={{
+          transform: isAnimating ? 'translateY(-33.3333%)' : 'translateY(0%)',
+          transitionDuration: `${transitionMs}ms`,
+        }}
         onTransitionEnd={handleTransitionEnd}
       >
         {queue.map((sectionKey, index) => {
@@ -119,6 +123,9 @@ const BarOverlayContent = () => {
   const twitch = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const showBarOrnaments = settings.themeSettings.y2k.showBarOrnaments;
+  const stackScrollSeconds = normalizeBarStackScrollSeconds(settings.barStackScrollSeconds);
+  const stackRotateMs = Math.round(stackScrollSeconds * 1000);
+  const stackTransitionMs = Math.min(1200, Math.max(320, Math.round(stackRotateMs * 0.1)));
   const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [overlayWidth, setOverlayWidth] = useState(0);
@@ -452,6 +459,8 @@ const BarOverlayContent = () => {
             sections={stack.sections}
             minWidth={stack.minWidth}
             token={stack.token}
+            rotateMs={stackRotateMs}
+            transitionMs={stackTransitionMs}
             renderSectionNode={renderSectionNode}
           />
         );

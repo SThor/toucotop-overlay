@@ -712,7 +712,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;barStackScrollSeconds=9&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -839,6 +839,28 @@ export default function AuthSuccessPage() {
                     checked={persistedSettings.barFloating}
                     onChange={(e) => save({ barFloating: e.currentTarget.checked })}
                   />
+
+                  <div>
+                    <Text size="sm" fw={500} mb="xs">
+                      Stack Scroll Interval: {persistedSettings.barStackScrollSeconds.toFixed(1)}s
+                    </Text>
+                    <Slider
+                      value={persistedSettings.barStackScrollSeconds}
+                      onChange={(v) => save({ barStackScrollSeconds: Math.round(v * 10) / 10 })}
+                      min={2}
+                      max={20}
+                      step={0.5}
+                      marks={[
+                        { value: 2, label: '2s' },
+                        { value: 7, label: '7s' },
+                        { value: 12, label: '12s' },
+                        { value: 20, label: '20s' },
+                      ]}
+                    />
+                    <Text size="xs" c="dimmed" mt={4}>
+                      Controls how long each item stays visible before the next stack scroll.
+                    </Text>
+                  </div>
 
                   <div>
                     <Text size="xs" fw={600} mb={4}>Bar Stacks (left to right)</Text>
