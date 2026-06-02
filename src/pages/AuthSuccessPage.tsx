@@ -276,15 +276,53 @@ function SortableBarStack({
   );
 }
 
-function TokenPoolZone() {
+function BarWidthTokenBankRow() {
   return (
-    <div className="bar-token-pool">
-      <Text size="xs" c="dimmed">Width tokens</Text>
-      <div className="bar-token-pool-items">
+    <div className="bar-bank-row">
+      <Text size="xs" c="dimmed" className="bar-bank-label">width tokens</Text>
+      <div className="bar-bank-items">
         <TokenPill id="pool-stretch" tokenType="stretch" sourceStackId="pool" />
         <TokenPill id="pool-boost" tokenType="boost" sourceStackId="pool" />
       </div>
-      <Text size="xs" c="dimmed">Drag into a block to assign. Use the ✕ on an assigned token to remove.</Text>
+    </div>
+  );
+}
+
+function BankBlockPill({ sectionKey }: { sectionKey: BarSectionKey }) {
+  const meta = BAR_SECTION_META[sectionKey];
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `bank-block-${sectionKey}`,
+    data: {
+      dragKind: 'barBlock',
+      sectionKey,
+      stackId: 'bank',
+    },
+  });
+
+  return (
+    <span
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform) }}
+      className={`bar-bank-block${isDragging ? ' is-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+      title={meta.label}
+    >
+      <span className="bar-chip-icon" aria-hidden="true">{meta.icon}</span>
+      <span className="bar-bank-block-label">{meta.shortLabel}</span>
+    </span>
+  );
+}
+
+function BarBlockBankRow({ sectionKeys }: { sectionKeys: BarSectionKey[] }) {
+  return (
+    <div className="bar-bank-row">
+      <Text size="xs" c="dimmed" className="bar-bank-label">blocks</Text>
+      <div className="bar-bank-items">
+        {sectionKeys.length > 0
+          ? sectionKeys.map((key) => <BankBlockPill key={key} sectionKey={key} />)
+          : <Text size="xs" c="dimmed">all active</Text>}
+      </div>
     </div>
   );
 }
@@ -583,14 +621,22 @@ export default function AuthSuccessPage() {
 
     const sectionKey = active.data.current?.sectionKey;
     const sourceStackId = active.data.current?.stackId as string | undefined;
-    if (!isBarSectionKey(sectionKey) || !sourceStackId || !activeStackIds.includes(sourceStackId)) return;
+    const isFromBank = sourceStackId === 'bank';
+    if (!isBarSectionKey(sectionKey) || !sourceStackId || (!isFromBank && !activeStackIds.includes(sourceStackId))) return;
 
     const insertDrop = parseInsertDropId(over.id);
     const sideDrop = parseStackSideDropId(over.id);
     const nextStacks = persistedSettings.barSectionStacks.map((stack) => ({ ...stack, sections: [...stack.sections] }));
-    const sourceStack = nextStacks.find((stack) => stack.id === sourceStackId);
-    if (!sourceStack) return;
-    sourceStack.sections = sourceStack.sections.filter((key) => key !== sectionKey);
+    if (isFromBank) {
+      // Defensive dedupe: if stale UI allows dragging an already-used block, keep only one instance.
+      for (const stack of nextStacks) {
+        stack.sections = stack.sections.filter((key) => key !== sectionKey);
+      }
+    } else {
+      const sourceStack = nextStacks.find((stack) => stack.id === sourceStackId);
+      if (!sourceStack) return;
+      sourceStack.sections = sourceStack.sections.filter((key) => key !== sectionKey);
+    }
 
     if (insertDrop && activeStackIds.includes(insertDrop.stackId)) {
       const targetStack = nextStacks.find((stack) => stack.id === insertDrop.stackId);
@@ -614,13 +660,20 @@ export default function AuthSuccessPage() {
     }
 
     const cleanedStacks = nextStacks.filter((stack) => stack.sections.length > 0);
-    save({
+    const patch: Parameters<typeof save>[0] = {
       barSectionStacks: cleanedStacks,
       barStackPriority: [
         ...persistedSettings.barStackPriority.filter((id) => cleanedStacks.some((stack) => stack.id === id)),
         ...cleanedStacks.map((stack) => stack.id).filter((id) => !persistedSettings.barStackPriority.includes(id)),
       ],
-    });
+    };
+    if (isFromBank) {
+      patch.barSections = {
+        ...persistedSettings.barSections,
+        [sectionKey]: true,
+      };
+    }
+    save(patch);
   };
 
   const removeBarSection = (key: BarSectionKey) => {
@@ -963,78 +1016,43 @@ export default function AuthSuccessPage() {
                       >
                         <SortableContext items={activeBarStacks.map((stack) => stack.id)} strategy={horizontalListSortingStrategy}>
                           <div className="bar-order-lane">
-                            {activeBarStacks.map((stack, index) => (
-                              <div key={stack.id} className="bar-stack-slot">
-                                {index === 0 && (
+                            <BarWidthTokenBankRow />
+                            <BarBlockBankRow sectionKeys={disabledBarSections} />
+                            <div className="bar-stacks-row">
+                              {activeBarStacks.map((stack, index) => (
+                                <div key={stack.id} className="bar-stack-slot">
+                                  {index === 0 && (
+                                    <StackSideDropZone
+                                      id={`stack-left-${stack.id}`}
+                                      side="left"
+                                      active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
+                                    />
+                                  )}
+                                  <SortableBarStack
+                                    stack={stack}
+                                    token={stack.widthToken ?? null}
+                                    showTokenDropZone={activeBarDragKind === 'widthToken'}
+                                    showBlockInsertZones={activeBarDragKind === 'barBlock'}
+                                    activeDraggedBlockKey={activeDraggedBlockKey}
+                                    onRemoveBlock={removeBarSection}
+                                    onRemoveToken={removeBarSectionToken}
+                                  />
                                   <StackSideDropZone
-                                    id={`stack-left-${stack.id}`}
-                                    side="left"
+                                    id={`stack-right-${stack.id}`}
+                                    side="right"
                                     active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
                                   />
-                                )}
-                                <SortableBarStack
-                                  stack={stack}
-                                  token={stack.widthToken ?? null}
-                                  showTokenDropZone={activeBarDragKind === 'widthToken'}
-                                  showBlockInsertZones={activeBarDragKind === 'barBlock'}
-                                  activeDraggedBlockKey={activeDraggedBlockKey}
-                                  onRemoveBlock={removeBarSection}
-                                  onRemoveToken={removeBarSectionToken}
-                                />
-                                <StackSideDropZone
-                                  id={`stack-right-${stack.id}`}
-                                  side="right"
-                                  active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
-                                />
-                              </div>
-                            ))}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </SortableContext>
-                        <TokenPoolZone />
                         <DragOverlay>
                           {activeWidthToken && <span className={`bar-token-pill bar-token-${activeWidthToken} is-overlay`}>{activeWidthToken === 'stretch' ? '↔' : '＋'}</span>}
                         </DragOverlay>
                       </DndContext>
                     )}
                   </div>
-
-                  {disabledBarSections.length > 0 && (
-                    <div className="bar-section-add-zone">
-                      <Text size="xs" c="dimmed" mb={6}>Add block</Text>
-                      <Group gap="xs" wrap="wrap">
-                        {disabledBarSections.map((key) => (
-                          <Button
-                            key={key}
-                            size="compact-xs"
-                            variant="light"
-                            onClick={() => {
-                              const nextStacks = [
-                                ...persistedSettings.barSectionStacks,
-                                {
-                                  id: createStackId(persistedSettings.barSectionStacks),
-                                  sections: [key],
-                                  widthToken: null,
-                                },
-                              ];
-                              save({
-                                barSections: {
-                                  ...persistedSettings.barSections,
-                                  [key]: true,
-                                },
-                                barSectionStacks: nextStacks,
-                                barStackPriority: [
-                                  ...persistedSettings.barStackPriority,
-                                  nextStacks[nextStacks.length - 1].id,
-                                ],
-                              });
-                            }}
-                          >
-                            + {BAR_SECTION_META[key].label}
-                          </Button>
-                        ))}
-                      </Group>
-                    </div>
-                  )}
 
                   <div>
                     <Text size="xs" fw={600} mb={4}>Visibility Priority & Min Width</Text>
