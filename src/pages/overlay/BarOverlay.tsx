@@ -69,9 +69,9 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, rotateMs, t
   const queue = useMemo(() => {
     if (sectionCount <= 1) return sections.slice(0, 1);
     return [
+      sections[(currentIndex - 1 + sectionCount) % sectionCount],
       sections[currentIndex],
       sections[(currentIndex + 1) % sectionCount],
-      sections[(currentIndex + 2) % sectionCount],
     ];
   }, [sectionCount, sections, currentIndex]);
 
@@ -99,7 +99,7 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, rotateMs, t
       <div
         className={`bar-stack-track${isAnimating ? ' is-animating' : ''}`}
         style={{
-          transform: isAnimating ? 'translateY(-33.3333%)' : 'translateY(0%)',
+          transform: isAnimating ? 'translateY(-66.6667%)' : 'translateY(-33.3333%)',
           transitionDuration: `${transitionMs}ms`,
         }}
         onTransitionEnd={handleTransitionEnd}
