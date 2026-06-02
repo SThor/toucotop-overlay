@@ -8,7 +8,8 @@ import {
   normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
-  normalizeBarStackScrollSeconds,
+  normalizeBarStackPauseSeconds,
+  normalizeBarStackScrollDurationSeconds,
   normalizeBarSectionWidthTokens,
   normalizeBarSections,
   type OverlaySettings,
@@ -86,9 +87,18 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     const v = parseInt(p.get('maxChatMessages') || '', 10);
     if (!isNaN(v) && v >= 10 && v <= 100) o.maxChatMessages = v;
   }
-  if (p.has('barStackScrollSeconds')) {
-    const v = parseFloat(p.get('barStackScrollSeconds') || '');
-    if (!isNaN(v) && v >= 2 && v <= 20) o.barStackScrollSeconds = Math.round(v * 10) / 10;
+  if (p.has('barStackScrollDurationSeconds')) {
+    const v = parseFloat(p.get('barStackScrollDurationSeconds') || '');
+    if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackScrollDurationSeconds = Math.round(v * 100) / 100;
+  }
+  if (p.has('barStackPauseSeconds')) {
+    const v = parseFloat(p.get('barStackPauseSeconds') || '');
+    if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackPauseSeconds = Math.round(v * 100) / 100;
+  }
+  // Backward compatibility for the old single timing query param.
+  if (!p.has('barStackPauseSeconds') && p.has('barStackScrollSeconds')) {
+    const legacy = parseFloat(p.get('barStackScrollSeconds') || '');
+    if (!isNaN(legacy) && legacy >= 0.1 && legacy <= 30) o.barStackPauseSeconds = Math.round(legacy * 100) / 100;
   }
   if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
   if (p.has('pauseTitle')) o.pauseTitle = p.get('pauseTitle')!;
@@ -195,7 +205,11 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       barSectionOrder: normalizeBarSectionOrder(cached.barSectionOrder),
       barSectionPriority: normalizeBarSectionPriority(cached.barSectionPriority),
       barSectionMinWidth: normalizeBarSectionMinWidth(cached.barSectionMinWidth),
-      barStackScrollSeconds: normalizeBarStackScrollSeconds(cached.barStackScrollSeconds),
+      barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(cached.barStackScrollDurationSeconds),
+      barStackPauseSeconds: normalizeBarStackPauseSeconds(
+        cached.barStackPauseSeconds,
+        (cached as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
+      ),
       barSectionWidthTokens: normalizeBarSectionWidthTokens(cached.barSectionWidthTokens),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
@@ -297,7 +311,11 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             barSectionOrder: normalizeBarSectionOrder(fetched.barSectionOrder),
             barSectionPriority: normalizeBarSectionPriority(fetched.barSectionPriority),
             barSectionMinWidth: normalizeBarSectionMinWidth(fetched.barSectionMinWidth),
-            barStackScrollSeconds: normalizeBarStackScrollSeconds(fetched.barStackScrollSeconds),
+            barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(fetched.barStackScrollDurationSeconds),
+            barStackPauseSeconds: normalizeBarStackPauseSeconds(
+              fetched.barStackPauseSeconds,
+              (fetched as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
+            ),
             barSectionWidthTokens: normalizeBarSectionWidthTokens(fetched.barSectionWidthTokens),
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,

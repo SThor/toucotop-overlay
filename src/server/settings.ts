@@ -13,11 +13,12 @@ import {
   BAR_SECTION_KEYS,
   normalizeBarSectionStacks,
   normalizeBarStackPriority,
+  normalizeBarStackPauseSeconds,
+  normalizeBarStackScrollDurationSeconds,
   normalizeBarSectionMinWidth,
   normalizeBarSectionOrder,
   normalizeBarSectionPriority,
   normalizeBarSectionWidthTokens,
-  normalizeBarStackScrollSeconds,
   normalizeBarSections,
 } from './shared/overlaySettings.js';
 
@@ -50,7 +51,11 @@ router.get('/', (req: Request, res: Response) => {
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
-    barStackScrollSeconds: normalizeBarStackScrollSeconds(raw.barStackScrollSeconds),
+    barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(raw.barStackScrollDurationSeconds),
+    barStackPauseSeconds: normalizeBarStackPauseSeconds(
+      raw.barStackPauseSeconds,
+      (raw as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
+    ),
     barSections: normalizeBarSections(raw.barSections),
     barSectionStacks: normalizedStacks,
     barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
@@ -151,12 +156,21 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
-  if ('barStackScrollSeconds' in body) {
-    const v = body.barStackScrollSeconds;
-    if (typeof v !== 'number' || !Number.isFinite(v) || v < 2 || v > 20) {
-      errors.push('barStackScrollSeconds must be a number between 2 and 20');
+  if ('barStackScrollDurationSeconds' in body) {
+    const v = body.barStackScrollDurationSeconds;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.1 || v > 30) {
+      errors.push('barStackScrollDurationSeconds must be a number between 0.1 and 30');
     } else {
-      patch.barStackScrollSeconds = Math.round(v * 10) / 10;
+      patch.barStackScrollDurationSeconds = Math.round(v * 100) / 100;
+    }
+  }
+
+  if ('barStackPauseSeconds' in body) {
+    const v = body.barStackPauseSeconds;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.1 || v > 30) {
+      errors.push('barStackPauseSeconds must be a number between 0.1 and 30');
+    } else {
+      patch.barStackPauseSeconds = Math.round(v * 100) / 100;
     }
   }
 

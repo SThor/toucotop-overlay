@@ -5,7 +5,12 @@ import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import GlobalAlertLayer from '../../components/GlobalAlertLayer';
-import { normalizeBarStackScrollSeconds, type BarSectionKey, type BarWidthTokenType } from '../../server/shared/overlaySettings';
+import {
+  normalizeBarStackPauseSeconds,
+  normalizeBarStackScrollDurationSeconds,
+  type BarSectionKey,
+  type BarWidthTokenType,
+} from '../../server/shared/overlaySettings';
 import '../../styles/BarOverlay.css';
 
 const BOOST_MIN_WIDTH_PX = 56;
@@ -122,9 +127,13 @@ const BarOverlayContent = () => {
   const twitch = TwitchProvider.useTwitch();
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const showBarOrnaments = settings.themeSettings.y2k.showBarOrnaments;
-  const stackScrollSeconds = normalizeBarStackScrollSeconds(settings.barStackScrollSeconds);
-  const stackRotateMs = Math.round(stackScrollSeconds * 1000);
-  const stackTransitionMs = Math.min(1200, Math.max(320, Math.round(stackRotateMs * 0.1)));
+  const stackScrollDurationSeconds = normalizeBarStackScrollDurationSeconds(settings.barStackScrollDurationSeconds);
+  const stackPauseSeconds = normalizeBarStackPauseSeconds(
+    settings.barStackPauseSeconds,
+    (settings as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
+  );
+  const stackRotateMs = Math.round(stackPauseSeconds * 1000);
+  const stackTransitionMs = Math.round(stackScrollDurationSeconds * 1000);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [overlayWidth, setOverlayWidth] = useState(0);

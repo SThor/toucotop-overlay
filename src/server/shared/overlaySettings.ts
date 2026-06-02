@@ -143,12 +143,27 @@ export function normalizeBarSectionMinWidth(raw?: Partial<Record<BarSectionKey, 
   return normalized;
 }
 
-export function normalizeBarStackScrollSeconds(raw?: unknown): number {
+function normalizeBarTimingSeconds(raw: unknown, fallbackSeconds: number): number {
   if (typeof raw !== 'number' || !Number.isFinite(raw)) {
-    return 7;
+    return fallbackSeconds;
   }
 
-  return Math.min(20, Math.max(2, Math.round(raw * 10) / 10));
+  return Math.min(30, Math.max(0.1, Math.round(raw * 100) / 100));
+}
+
+export function normalizeBarStackScrollDurationSeconds(raw?: unknown): number {
+  return normalizeBarTimingSeconds(raw, 0.5);
+}
+
+export function normalizeBarStackPauseSeconds(raw?: unknown, legacyTotalSeconds?: unknown): number {
+  if (raw === undefined || raw === null) {
+    if (legacyTotalSeconds !== undefined && legacyTotalSeconds !== null) {
+      return normalizeBarTimingSeconds(legacyTotalSeconds, 6.5);
+    }
+    return 6.5;
+  }
+
+  return normalizeBarTimingSeconds(raw, 6.5);
 }
 
 export function normalizeBarSectionWidthTokens(raw?: Partial<Record<BarSectionKey, unknown>> | null): BarSectionWidthTokens {
@@ -268,7 +283,8 @@ export interface OverlaySettings {
   chatFeedDirection: 'top' | 'bottom';
   maxChatMessages: number;
   barFloating: boolean;
-  barStackScrollSeconds: number;
+  barStackScrollDurationSeconds: number;
+  barStackPauseSeconds: number;
   barSections: BarSections;
   barSectionStacks: BarSectionStack[];
   barStackPriority: BarStackPriority;
@@ -304,7 +320,8 @@ export const defaultOverlaySettings: OverlaySettings = {
   chatFeedDirection: 'bottom',
   maxChatMessages: 50,
   barFloating: true,
-  barStackScrollSeconds: 7,
+  barStackScrollDurationSeconds: 0.5,
+  barStackPauseSeconds: 6.5,
   barSections: { ...DEFAULT_BAR_SECTIONS },
   barSectionStacks: DEFAULT_BAR_SECTION_STACKS.map((stack) => ({ ...stack, sections: [...stack.sections] })),
   barStackPriority: [...DEFAULT_BAR_STACK_PRIORITY],

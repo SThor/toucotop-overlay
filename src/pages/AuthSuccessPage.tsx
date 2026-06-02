@@ -44,6 +44,22 @@ const BAR_SECTION_META: Record<BarSectionKey, { label: string; shortLabel: strin
   recentSub: { label: 'Last Subscriber', shortLabel: 'Latest Sub', icon: '🎁' },
 };
 
+const BAR_TIMING_MIN_SECONDS = 0.1;
+const BAR_TIMING_MAX_SECONDS = 30;
+const BAR_TIMING_LOG_MIN = Math.log(BAR_TIMING_MIN_SECONDS);
+const BAR_TIMING_LOG_RANGE = Math.log(BAR_TIMING_MAX_SECONDS) - BAR_TIMING_LOG_MIN;
+
+function timingSecondsToSliderValue(seconds: number): number {
+  const clamped = Math.min(BAR_TIMING_MAX_SECONDS, Math.max(BAR_TIMING_MIN_SECONDS, seconds));
+  return ((Math.log(clamped) - BAR_TIMING_LOG_MIN) / BAR_TIMING_LOG_RANGE) * 100;
+}
+
+function timingSliderValueToSeconds(value: number): number {
+  const clamped = Math.min(100, Math.max(0, value));
+  const seconds = Math.exp(BAR_TIMING_LOG_MIN + (clamped / 100) * BAR_TIMING_LOG_RANGE);
+  return Math.round(seconds * 100) / 100;
+}
+
 function isBarSectionKey(value: unknown): value is BarSectionKey {
   return typeof value === 'string' && BAR_SECTION_KEYS.includes(value as BarSectionKey);
 }
@@ -712,7 +728,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;barStackScrollSeconds=9&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;barStackScrollDurationSeconds=0.5&amp;barStackPauseSeconds=6.5&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -842,23 +858,46 @@ export default function AuthSuccessPage() {
 
                   <div>
                     <Text size="sm" fw={500} mb="xs">
-                      Stack Scroll Interval: {persistedSettings.barStackScrollSeconds.toFixed(1)}s
+                      Stack Scroll Timing
+                    </Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Cycle duration = scroll length + pause length.
+                    </Text>
+
+                    <Text size="xs" fw={600} mb={4}>
+                      Scroll Length: {persistedSettings.barStackScrollDurationSeconds.toFixed(2)}s
                     </Text>
                     <Slider
-                      value={persistedSettings.barStackScrollSeconds}
-                      onChange={(v) => save({ barStackScrollSeconds: Math.round(v * 10) / 10 })}
-                      min={2}
-                      max={20}
-                      step={0.5}
-                      marks={[
-                        { value: 2, label: '2s' },
-                        { value: 7, label: '7s' },
-                        { value: 12, label: '12s' },
-                        { value: 20, label: '20s' },
-                      ]}
+                      value={timingSecondsToSliderValue(persistedSettings.barStackScrollDurationSeconds)}
+                      onChange={(v) => save({ barStackScrollDurationSeconds: timingSliderValueToSeconds(v) })}
+                      min={0}
+                      max={100}
+                      step={1}
                     />
-                    <Text size="xs" c="dimmed" mt={4}>
-                      Controls how long each item stays visible before the next stack scroll.
+                    <Group justify="space-between" mt={4} mb="sm">
+                      <Text size="xs" c="dimmed">0.10s</Text>
+                      <Text size="xs" c="dimmed">log scale</Text>
+                      <Text size="xs" c="dimmed">30.00s</Text>
+                    </Group>
+
+                    <Text size="xs" fw={600} mb={4}>
+                      Pause Length: {persistedSettings.barStackPauseSeconds.toFixed(2)}s
+                    </Text>
+                    <Slider
+                      value={timingSecondsToSliderValue(persistedSettings.barStackPauseSeconds)}
+                      onChange={(v) => save({ barStackPauseSeconds: timingSliderValueToSeconds(v) })}
+                      min={0}
+                      max={100}
+                      step={1}
+                    />
+                    <Group justify="space-between" mt={4}>
+                      <Text size="xs" c="dimmed">0.10s</Text>
+                      <Text size="xs" c="dimmed">log scale</Text>
+                      <Text size="xs" c="dimmed">30.00s</Text>
+                    </Group>
+
+                    <Text size="xs" c="dimmed" mt={6}>
+                      Total cycle: {(persistedSettings.barStackScrollDurationSeconds + persistedSettings.barStackPauseSeconds).toFixed(2)}s
                     </Text>
                   </div>
 
