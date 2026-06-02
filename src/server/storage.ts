@@ -141,10 +141,7 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
       barSectionPriority: normalizeBarSectionPriority(existingData?.overlaySettings?.barSectionPriority),
       barSectionMinWidth: normalizeBarSectionMinWidth(existingData?.overlaySettings?.barSectionMinWidth),
       barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(existingData?.overlaySettings?.barStackScrollDurationSeconds),
-      barStackPauseSeconds: normalizeBarStackPauseSeconds(
-        existingData?.overlaySettings?.barStackPauseSeconds,
-        (existingData?.overlaySettings as unknown as { barStackScrollSeconds?: unknown } | undefined)?.barStackScrollSeconds,
-      ),
+      barStackPauseSeconds: normalizeBarStackPauseSeconds(existingData?.overlaySettings?.barStackPauseSeconds),
       barSectionWidthTokens: normalizeBarSectionWidthTokens(existingData?.overlaySettings?.barSectionWidthTokens),
       perOverlayOpacity: {
         ...defaultOverlaySettings.perOverlayOpacity,
@@ -359,10 +356,7 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
       barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(
         settings.barStackScrollDurationSeconds ?? base.barStackScrollDurationSeconds,
       ),
-      barStackPauseSeconds: normalizeBarStackPauseSeconds(
-        settings.barStackPauseSeconds ?? base.barStackPauseSeconds,
-        (base as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
-      ),
+      barStackPauseSeconds: normalizeBarStackPauseSeconds(settings.barStackPauseSeconds ?? base.barStackPauseSeconds),
       barSectionWidthTokens: mergedBarSectionWidthTokens,
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),

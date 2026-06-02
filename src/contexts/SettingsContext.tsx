@@ -95,11 +95,6 @@ function parseUrlOverrides(search: string): Partial<OverlaySettings> {
     const v = parseFloat(p.get('barStackPauseSeconds') || '');
     if (!isNaN(v) && v >= 0.1 && v <= 30) o.barStackPauseSeconds = Math.round(v * 100) / 100;
   }
-  // Backward compatibility for the old single timing query param.
-  if (!p.has('barStackPauseSeconds') && p.has('barStackScrollSeconds')) {
-    const legacy = parseFloat(p.get('barStackScrollSeconds') || '');
-    if (!isNaN(legacy) && legacy >= 0.1 && legacy <= 30) o.barStackPauseSeconds = Math.round(legacy * 100) / 100;
-  }
   if (p.has('barFloating')) o.barFloating = p.get('barFloating') !== 'false';
   if (p.has('pauseTitle')) o.pauseTitle = p.get('pauseTitle')!;
   if (p.has('pauseSubtitle')) o.pauseSubtitle = p.get('pauseSubtitle')!;
@@ -206,10 +201,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       barSectionPriority: normalizeBarSectionPriority(cached.barSectionPriority),
       barSectionMinWidth: normalizeBarSectionMinWidth(cached.barSectionMinWidth),
       barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(cached.barStackScrollDurationSeconds),
-      barStackPauseSeconds: normalizeBarStackPauseSeconds(
-        cached.barStackPauseSeconds,
-        (cached as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
-      ),
+      barStackPauseSeconds: normalizeBarStackPauseSeconds(cached.barStackPauseSeconds),
       barSectionWidthTokens: normalizeBarSectionWidthTokens(cached.barSectionWidthTokens),
       themeSettings: {
         ...defaultOverlaySettings.themeSettings,
@@ -312,10 +304,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             barSectionPriority: normalizeBarSectionPriority(fetched.barSectionPriority),
             barSectionMinWidth: normalizeBarSectionMinWidth(fetched.barSectionMinWidth),
             barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(fetched.barStackScrollDurationSeconds),
-            barStackPauseSeconds: normalizeBarStackPauseSeconds(
-              fetched.barStackPauseSeconds,
-              (fetched as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
-            ),
+            barStackPauseSeconds: normalizeBarStackPauseSeconds(fetched.barStackPauseSeconds),
             barSectionWidthTokens: normalizeBarSectionWidthTokens(fetched.barSectionWidthTokens),
             themeSettings: {
               ...defaultOverlaySettings.themeSettings,

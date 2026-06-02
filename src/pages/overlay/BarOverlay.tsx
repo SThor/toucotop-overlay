@@ -128,10 +128,7 @@ const BarOverlayContent = () => {
   const reducedEffects = settings.themeSettings.y2k.reducedEffects;
   const showBarOrnaments = settings.themeSettings.y2k.showBarOrnaments;
   const stackScrollDurationSeconds = normalizeBarStackScrollDurationSeconds(settings.barStackScrollDurationSeconds);
-  const stackPauseSeconds = normalizeBarStackPauseSeconds(
-    settings.barStackPauseSeconds,
-    (settings as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
-  );
+  const stackPauseSeconds = normalizeBarStackPauseSeconds(settings.barStackPauseSeconds);
   const stackRotateMs = Math.round(stackPauseSeconds * 1000);
   const stackTransitionMs = Math.round(stackScrollDurationSeconds * 1000);
   const overlayRef = useRef<HTMLDivElement>(null);

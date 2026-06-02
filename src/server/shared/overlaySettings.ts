@@ -155,14 +155,7 @@ export function normalizeBarStackScrollDurationSeconds(raw?: unknown): number {
   return normalizeBarTimingSeconds(raw, 0.5);
 }
 
-export function normalizeBarStackPauseSeconds(raw?: unknown, legacyTotalSeconds?: unknown): number {
-  if (raw === undefined || raw === null) {
-    if (legacyTotalSeconds !== undefined && legacyTotalSeconds !== null) {
-      return normalizeBarTimingSeconds(legacyTotalSeconds, 6.5);
-    }
-    return 6.5;
-  }
-
+export function normalizeBarStackPauseSeconds(raw?: unknown): number {
   return normalizeBarTimingSeconds(raw, 6.5);
 }
 

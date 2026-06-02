@@ -52,10 +52,7 @@ router.get('/', (req: Request, res: Response) => {
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
     barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(raw.barStackScrollDurationSeconds),
-    barStackPauseSeconds: normalizeBarStackPauseSeconds(
-      raw.barStackPauseSeconds,
-      (raw as unknown as { barStackScrollSeconds?: unknown }).barStackScrollSeconds,
-    ),
+    barStackPauseSeconds: normalizeBarStackPauseSeconds(raw.barStackPauseSeconds),
     barSections: normalizeBarSections(raw.barSections),
     barSectionStacks: normalizedStacks,
     barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
