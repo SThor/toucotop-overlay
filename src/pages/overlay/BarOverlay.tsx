@@ -48,13 +48,11 @@ interface RotatingStackViewportProps {
 
 function RotatingStackViewport({ stackId, sections, minWidth, token, renderSectionNode }: RotatingStackViewportProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [offsetPct, setOffsetPct] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const sectionCount = sections.length;
 
   useEffect(() => {
     setCurrentIndex(0);
-    setOffsetPct(0);
     setIsAnimating(false);
   }, [stackId, sections.join('|')]);
 
@@ -62,7 +60,6 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, renderSecti
     if (sectionCount <= 1 || isAnimating) return;
     const timeout = setTimeout(() => {
       setIsAnimating(true);
-      setOffsetPct(-100);
     }, STACK_ROTATE_MS);
 
     return () => clearTimeout(timeout);
@@ -81,7 +78,6 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, renderSecti
     if (!isAnimating || sectionCount <= 1) return;
     setIsAnimating(false);
     setCurrentIndex((value) => (value + 1) % sectionCount);
-    setOffsetPct(0);
   };
 
   if (sectionCount <= 1) {
@@ -99,7 +95,7 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, renderSecti
     <div className="bar-stack-viewport" style={getSectionStyle(minWidth, token)}>
       <div
         className={`bar-stack-track${isAnimating ? ' is-animating' : ''}`}
-        style={{ transform: `translateY(${offsetPct}%)` }}
+        style={{ transform: isAnimating ? 'translateY(-33.3333%)' : 'translateY(0%)' }}
         onTransitionEnd={handleTransitionEnd}
       >
         {queue.map((sectionKey, index) => {
