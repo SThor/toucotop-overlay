@@ -72,6 +72,11 @@
   flex-direction: column;
   align-self: stretch;
   min-width: 0;
+  /* Reserve a little vertical bleed room so CRT glow is not clipped by the marquee viewport. */
+  padding-top: 3px;
+  padding-bottom: 3px;
+  margin-top: -3px;
+  margin-bottom: -3px;
 }
 
 .bar-stack-track {
