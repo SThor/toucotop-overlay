@@ -2,8 +2,14 @@
 /* CRT BACKGROUND EFFECTS */
 /* ==================== */
 
-/* CSS Custom Properties for CRT Effects */
-:root {
+/* CRT palette + effect variables — scoped to .crt-active, cascade to all descendants */
+.crt-active {
+  --DarkRGBA: 31, 15, 1;
+  --MainRGBA: 229, 109, 12;
+  --LightRGBA: 255, 235, 219;
+  --Dark: rgb(var(--DarkRGBA));
+  --Main: rgb(var(--MainRGBA));
+  --Light: rgb(var(--LightRGBA));
   --crt-base-glow: rgba(var(--MainRGBA), 0.08);
   --crt-base-scanline: rgba(var(--LightRGBA), 0.03);
   --crt-aberration-red: rgba(255, 0, 0, 0.1);
@@ -124,11 +130,8 @@
 /* 3. CHROMATIC ABERRATION */
 /* ==================== */
 
-/* Base Chromatic Aberration for all CRT content */
-.clock-overlay:has(.crt-background) *:not(.crt-background):not(.crt-background *),
-.chat-overlay:has(.crt-background) *:not(.crt-background):not(.crt-background *),
-.bar-overlay:has(.crt-background) *:not(.crt-background):not(.crt-background *),
-.main-page:has(.crt-background) *:not(.crt-background):not(.crt-background *) {
+/* Base Chromatic Aberration — scoped to any overlay with .crt-active */
+.crt-active *:not(.crt-background):not(.crt-background *) {
   filter: 
     drop-shadow(-1px 0 0 var(--crt-aberration-red))
     drop-shadow(1px 0 0 var(--crt-aberration-cyan));
@@ -161,10 +164,7 @@
   );
 }
 
-.clock-overlay:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *),
-.chat-overlay:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *),
-.bar-overlay:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *),
-.main-page:has(.crt-background.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *) {
+.crt-active:is(.crt-intensity-minimal) *:not(.crt-background):not(.crt-background *) {
   --crt-aberration-red: rgba(255, 0, 0, 0.05);
   --crt-aberration-cyan: rgba(0, 255, 255, 0.05);
   filter: 
@@ -197,10 +197,7 @@
   );
 }
 
-.clock-overlay:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *),
-.chat-overlay:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *),
-.bar-overlay:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *),
-.main-page:has(.crt-background.crt-intensity-medium) *:not(.crt-background):not(.crt-background *) {
+.crt-active:is(.crt-intensity-medium) *:not(.crt-background):not(.crt-background *) {
   --crt-aberration-red: rgba(255, 0, 0, 0.2);
   --crt-aberration-cyan: rgba(0, 255, 255, 0.2);
   filter: 
@@ -213,9 +210,8 @@
 /* 5. TYPOGRAPHY & TEXT EFFECTS */
 /* ==================== */
 
-/* CRT Font Application */
-.crt-background ~ *,
-.crt-background ~ * * {
+/* CRT Font — applies only inside .crt-active containers */
+.crt-active * {
   font-family: 'Courier New', monospace !important;
   letter-spacing: 0.5px;
   text-rendering: optimizeLegibility;
@@ -223,30 +219,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Text Glow Utility Classes */
-.crt-glow-text {
+/* Text Glow Utility Classes — only active inside .crt-active */
+.crt-active .crt-glow-text {
   text-shadow: 
     0 0 10px rgba(var(--MainRGBA), 0.5),
     0 0 20px rgba(var(--MainRGBA), 0.3),
     0 0 30px rgba(var(--MainRGBA), 0.2);
 }
 
-.crt-glow-text-strong {
+.crt-active .crt-glow-text-strong {
   text-shadow: 
     0 0 8px rgba(var(--MainRGBA), 0.7),
     0 0 16px rgba(var(--MainRGBA), 0.5),
     0 0 24px rgba(var(--MainRGBA), 0.3);
 }
 
-.crt-glow-text-subtle {
+.crt-active .crt-glow-text-subtle {
   text-shadow: 0 0 8px rgba(var(--MainRGBA), 0.3);
-}
-
-/* Enhanced Label Glows */
-.crt-background ~ * .time-label,
-.crt-background ~ * .progress-label,
-.crt-background ~ * .stat-label {
-  text-shadow: 0 0 4px rgba(var(--MainRGBA), 0.3);
 }
 
 /* ==================== */

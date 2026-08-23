@@ -1,32 +1,201 @@
+import { useSettings } from './contexts/SettingsContext';
+import { Navigate, useLocation } from 'react-router-dom';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 import '@mantine/core/styles.css';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TwitchProvider } from './contexts/TwitchContext';
 import { theme } from './theme';
-import MainPage from './pages/MainPage';
-import ChatOverlay from './pages/ChatOverlay';
-import ClockOverlay from './pages/ClockOverlay';
-import BarOverlay from './pages/BarOverlay';
-import './App.css';
+import LandingPage from './pages/LandingPage';
+import AuthSuccessPage from './pages/AuthSuccessPage';
+import AuthErrorPage from './pages/AuthErrorPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
+import NotFoundPage from './pages/NotFoundPage';
+import DemoPage from './pages/DemoPage';
+import ShaderTestPage from './pages/ShaderTestPage';
+import ChatOverlay from './pages/overlay/ChatOverlay';
+import ClockOverlay from './pages/overlay/ClockOverlay';
+import BarOverlay from './pages/overlay/BarOverlay';
+import PauseOverlay from './pages/overlay/PauseOverlay';
+import AlertOverlay from './pages/overlay/AlertOverlay';
+import BorderOverlay from './pages/overlay/BorderOverlay';
+import NavMenu from './components/NavMenu';
+import './styles/ServerPages.css';
+
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+// Pages that don't need a valid token
+const ALLOW_NO_TOKEN = [
+  '/', '/auth/success', '/auth/error', '/auth/denied', '/auth/twitch', '/auth/callback', '/404', '/notfound', '/shader-test'
+];
+
+// Overlay paths: invalid/expired token shows an inline message instead of redirecting,
+// since OBS Browser Sources can't interact with a Twitch auth flow.
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause', '/alerts', '/border'];
+
+// Shown inside an overlay when the token is missing or expired
+function OverlayExpired() {
+  return (
+    <div className="overlay-expired">
+      <div>
+        <div className="overlay-expired__icon">⏰</div>
+        <div className="overlay-expired__title">Overlay session expired</div>
+        <div className="overlay-expired__message">
+          Re-authenticate at <strong>{window.location.origin}/auth/twitch</strong> in your browser.
+          <br />Your OBS source URLs will keep working — no changes needed.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Module-level cache so navigation between routes doesn't re-trigger validation
+interface ValidationCache {
+  token: string;
+  validUntil: number;
+}
+let validationCache: ValidationCache | null = null;
+const VALIDATION_TTL_MS = 5 * 60 * 1000; // re-check at most every 5 minutes
+let validationErrorCount = 0;
+const MAX_VALIDATION_ERRORS = 3; // fail closed after 3 consecutive network errors
+
+function RequireToken({ children }: { children: React.ReactNode }) {
+  const { settings, updateSettings } = useSettings();
+  const location = useLocation();
+  const [params] = useSearchParams();
+  const redirectingRef = useRef(false);
+  const [tokenExpired, setTokenExpired] = useState(false);
+
+  // Sync token: URL takes precedence, otherwise fall back to dedicated localStorage key
+  useEffect(() => {
+    const urlToken = params.get('token');
+    console.log('[RequireToken:syncEffect] path:', location.pathname, '| urlToken:', urlToken ? '(set)' : null, '| storedToken:', settings.overlayToken ? '(set)' : '(empty)');
+    if (urlToken) {
+      if (urlToken !== settings.overlayToken) {
+        updateSettings({ overlayToken: urlToken });
+      }
+      // Strip the token from the address bar so it doesn't linger in browser history.
+      // Exception: overlay paths are opened in OBS Browser Sources which refresh from
+      // the browser engine's *current* URL (post-replaceState), not the configured URL.
+      // Keeping the token in the URL there ensures a manual refresh still works,
+      // even when localStorage is unavailable (e.g. "Clear cache on refresh" is on).
+      if (!OVERLAY_PATHS.includes(location.pathname)) {
+        const nextParams = new URLSearchParams(params);
+        nextParams.delete('token');
+        const nextSearch = nextParams.toString();
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`
+        );
+      }
+      return;
+    }
+    // No URL token — try dedicated localStorage key as fallback
+    if (!settings.overlayToken) {
+      const savedToken = localStorage.getItem('toucotop-overlay-token');
+      if (savedToken) {
+        updateSettings({ overlayToken: savedToken });
+      }
+    }
+  }, [params, settings.overlayToken, updateSettings]);
+
+  // Validate token with server on protected routes
+  useEffect(() => {
+    const token = settings.overlayToken;
+    console.log('[RequireToken:validateEffect] path:', location.pathname, '| token:', token ? '(set)' : '(empty)', '| allowed:', ALLOW_NO_TOKEN.includes(location.pathname));
+
+    // Navigating to a non-overlay page clears any stale expired state
+    if (!OVERLAY_PATHS.includes(location.pathname)) setTokenExpired(false);
+
+    if (!token || ALLOW_NO_TOKEN.includes(location.pathname)) return;
+
+    // Reset error count when a different token is being validated so a new/updated
+    // token doesn't inherit the previous token's consecutive network error count.
+    if (validationCache?.token !== token) {
+      validationErrorCount = 0;
+      setTokenExpired(false); // new token — clear the expired flag
+    }
+
+    const now = Date.now();
+    if (validationCache && validationCache.token === token && now < validationCache.validUntil) return;
+
+    // Shared handler: on auth failure, show inline expired UI for overlays and
+    // redirect to /auth/twitch for everything else.
+    const handleAuthFail = () => {
+      validationCache = null;
+      if (OVERLAY_PATHS.includes(location.pathname)) {
+        setTokenExpired(true);
+      } else {
+        console.warn('[RequireToken:validateEffect] redirecting to /auth/twitch');
+        redirectingRef.current = true;
+        window.location.href = '/auth/twitch';
+      }
+    };
+
+    fetch(`/auth/status?token=${encodeURIComponent(token)}`)
+      .then((res) => res.json() as Promise<{ authenticated: boolean }>)
+      .then((data) => {
+        console.log('[RequireToken:validateEffect] /auth/status response:', data);
+        if (data.authenticated) {
+          validationErrorCount = 0;
+          validationCache = { token, validUntil: now + VALIDATION_TTL_MS };
+        } else if (!redirectingRef.current) {
+          console.warn('[RequireToken:validateEffect] token invalid — invalidating cache');
+          handleAuthFail();
+        }
+      })
+      .catch((err) => {
+        console.error('[RequireToken:validateEffect] /auth/status fetch error:', err);
+        // Count consecutive network errors; fail closed after threshold to avoid
+        // leaving protected routes accessible with an invalid/expired token
+        validationErrorCount++;
+        console.warn('[RequireToken:validateEffect] validationErrorCount now:', validationErrorCount);
+        if (validationErrorCount >= MAX_VALIDATION_ERRORS && !redirectingRef.current) {
+          console.warn('[RequireToken:validateEffect] too many errors — invalidating cache');
+          handleAuthFail();
+        }
+      });
+  }, [settings.overlayToken, location.pathname]);
+
+  if (tokenExpired) return <OverlayExpired />;
+  if (!settings.overlayToken && !ALLOW_NO_TOKEN.includes(location.pathname)) {
+    if (OVERLAY_PATHS.includes(location.pathname)) return <OverlayExpired />;
+    return <Navigate to="/" replace state={{ from: location }} />;
+  }
+  return <>{children}</>;
+}
 
 function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
-      <SettingsProvider>
-        <TwitchProvider>
-          <Router>
-            <div className="App">
-              <Routes>
-                <Route path="/" element={<MainPage />} />
-                <Route path="/chat" element={<ChatOverlay />} />
-                <Route path="/clock" element={<ClockOverlay />} />
-                <Route path="/bar" element={<BarOverlay />} />
-              </Routes>
-            </div>
-          </Router>
-        </TwitchProvider>
-      </SettingsProvider>
+      <Router>
+        <SettingsProvider>
+          <TwitchProvider>
+            <RequireToken>
+              <div className="App">
+                <NavMenu />
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth/success" element={<AuthSuccessPage />} />
+                  <Route path="/auth/error" element={<AuthErrorPage />} />
+                  <Route path="/auth/denied" element={<AccessDeniedPage />} />
+                  <Route path="/demo" element={<DemoPage />} />
+                  <Route path="/shader-test" element={<ShaderTestPage />} />
+                  <Route path="/chat" element={<ChatOverlay />} />
+                  <Route path="/clock" element={<ClockOverlay />} />
+                  <Route path="/bar" element={<BarOverlay />} />
+                  <Route path="/pause" element={<PauseOverlay />} />
+                  <Route path="/alerts" element={<AlertOverlay />} />
+                  <Route path="/border" element={<BorderOverlay />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </div>
+            </RequireToken>
+          </TwitchProvider>
+        </SettingsProvider>
+      </Router>
     </MantineProvider>
   );
 }

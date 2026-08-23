@@ -5,29 +5,18 @@
   width: 100vw;
   height: 100vh;
   pointer-events: auto;
-  background: rgba(var(--DarkRGBA), 0.9);
-  border: 2px solid var(--Main);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-
-.chat-overlay.full-width {
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  border-bottom: none;
+  isolation: isolate;
 }
 
 .chat-overlay.preview-mode {
   position: static;
   width: 350px;
   height: 500px;
-  background: rgba(var(--DarkRGBA), 0.9);
-  border: 2px solid var(--Main);
-  border-radius: 12px;
   margin: 2rem auto;
   max-width: none;
   top: auto;
@@ -36,39 +25,66 @@
   transform: none;
 }
 
-.chat-overlay.preview-mode.full-width {
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  border-bottom: none;
+.chat-overlay.crt-active {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.chat-overlay.crt-active.preview-mode {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 12px;
 }
 
 .chat-header {
   padding: 1rem;
+  /* Explicit stacking above position:absolute theme backgrounds (z-index:-1) */
+  position: relative;
+  z-index: 1;
 }
 
 .chat-header h3 {
   margin: 0 0 1rem 0;
-  color: var(--Main);
-  font-size: 1.1rem;
+  color: rgba(255,255,255,0.9);
+  font-size: 1.1em;
   text-align: center;
-  /* Enhanced glow effect when CRT is enabled */
 }
 
-.crt-background ~ .chat-header h3,
-.chat-overlay .chat-header h3.crt-glow-text {
+.chat-icon {
+  font-size: 0;
+}
+
+.chat-overlay.crt-active .chat-icon {
+  font-size: inherit;
+}
+
+.chat-overlay.crt-active .chat-header h3 {
+  margin: 1rem 0;
+  color: var(--Main);
   text-shadow: 0 0 10px rgba(var(--MainRGBA), 0.5);
 }
 
 .chat-divider {
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--Main), transparent);
+  height: 1px;
+  background: rgba(255,255,255,0.15);
   border-radius: 1px;
 }
 
+/* Y2K: flip divider vertically in feed-from-bottom */
+.chat-y2k-divider--flipped {
+  transform: scaleY(-1);
+  transform-origin: center;
+}
+
+.chat-overlay.crt-active .chat-divider {
+  background: linear-gradient(90deg, transparent, var(--Main), transparent);
+}
+
 .connection-status {
-  font-size: 0.8rem;
+  font-size: 0.8em;
   font-weight: normal;
   margin-left: 0.5rem;
 }
@@ -86,7 +102,7 @@
 }
 
 .connection-status.connected {
-  color: #4ecdc4;
+  color: rgba(255,255,255,0.75);
 }
 
 .chat-messages {
@@ -97,31 +113,15 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  scrollbar-width: thin;
-  scrollbar-color: var(--Main) transparent;
-}
-
-.chat-messages.feed-from-top {
-  flex-direction: column-reverse;
-  justify-content: flex-end;
-}
-
-.chat-messages.feed-from-bottom {
-  flex-direction: column;
-  justify-content: flex-start;
+  /* Hide scrollbar — OBS overlay, no user interaction */
+  scrollbar-width: none;
+  /* Explicit stacking above position:absolute theme backgrounds (z-index:-1) */
+  position: relative;
+  z-index: 1;
 }
 
 .chat-messages::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background: var(--Main);
-  border-radius: 3px;
+  display: none;
 }
 
 .chat-message {
@@ -138,9 +138,90 @@
 }
 
 .message {
-  color: var(--Light);
+  color: #fff;
   word-wrap: break-word;
   line-height: 1.4;
+}
+
+/* Oldest messages fade to transparent via CSS mask — replaces per-message JS opacity.
+   feed-from-bottom: newest at bottom, oldest at top → fade top edge.
+   feed-from-top:    newest at top (column-reverse), oldest overflow bottom → fade bottom edge. */
+.chat-messages.feed-from-bottom {
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  padding-bottom: 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
+  mask-image: linear-gradient(to bottom, transparent 10%, black 40%);
+}
+
+.chat-messages.feed-from-top {
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  -webkit-mask-image: linear-gradient(to top, transparent 10%, black 40%);
+  mask-image: linear-gradient(to top, transparent 10%, black 40%);
+}
+.chat-overlay.crt-active .connection-status.connected { color: #4ecdc4; }
+.chat-overlay.crt-active .message { color: var(--Light); }
+
+/* ---- Y2K theme overrides ---- */
+.chat-overlay.y2k-active .chat-header h3::before { content: '✮˖⊹ '; opacity: 0.8; }
+.chat-overlay.y2k-active .chat-header h3::after  { content: ' ⊹˖✮'; opacity: 0.8; }
+
+.chat-overlay.y2k-active {
+  border: none;
+}
+
+.chat-overlay.y2k-active .chat-header h3 {
+  margin-bottom: 0;
+  font-family: 'UnifrakturMaguntia', serif;
+  font-feature-settings: "cv01" 1;
+  font-size: 2em;
+  /* MeshGradient background is bright purple/magenta — dark glow keeps the text readable. */
+  text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.9),
+    0 0 20px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+/* preview-mode resets position to static; restore a containing block for the border shader */
+.chat-overlay.y2k-active.preview-mode {
+  position: relative;
+}
+
+.chat-overlay.y2k-active .chat-header {
+  margin-top: 10vh;
+}
+
+.chat-overlay.y2k-active.feed-from-bottom .chat-header {
+  margin-top: 0;
+  margin-bottom: 10vh;
+}
+
+.chat-overlay.y2k-active .chat-messages {
+  padding-left: 15%;
+  padding-right: 15%;
+}
+
+/* Ellipse mask on messages: same shape as the global bg panel ellipse, center shifted up
+   to align with the viewport centre (messages div starts ~14 vh from top).
+   "Harsher" = large opaque core, only fades in the outermost ~15% of the ellipse. */
+.chat-overlay.y2k-active .chat-messages.feed-from-bottom {
+  -webkit-mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to bottom, transparent 10%, black 40%);
+  mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to bottom, transparent 10%, black 40%);
+}
+
+.chat-overlay.y2k-active .chat-messages.feed-from-top {
+  -webkit-mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to top, transparent 10%, black 40%);
+  mask-image:
+    radial-gradient(ellipse 90% 130% at 50% 20%, black 75%, transparent 98%),
+    linear-gradient(to top, transparent 10%, black 40%);
 }
 
 /* Twitch Emote Styling */
@@ -153,8 +234,8 @@
   display: inline-block;
 }
 
-/* CRT effect for emotes when enabled */
-.crt-background ~ * .chat-emote {
+/* CRT effect for emotes */
+.chat-overlay.crt-active .chat-emote {
   filter: brightness(0.95) contrast(1.1);
   image-rendering: pixelated;
 }

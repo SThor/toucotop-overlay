@@ -1,0 +1,225 @@
+/* ================================ */
+/* Y2K / GOTHIC TECHNO THEME        */
+/* ================================ */
+
+/* ---- CSS custom properties ---- */
+:root {
+  --y2k-bg:        #030305;
+  --y2k-dark:      #1a0020;
+  --y2k-chrome-hi: #f0f0f0;
+  --y2k-chrome-lo: #505050;
+  --y2k-cyan:      #00ffcc;
+  --y2k-magenta:   #ff00aa;
+  --y2k-purple:    #7700ff;
+  --y2k-hud-red:   #cc0033;
+  --y2k-iridescent-linear: linear-gradient(
+    112deg,
+    #ffffff 0%,
+    #d6daea 18%,
+    #8f86b0 34%,
+    #72f3ff 50%,
+    #ff6dd7 65%,
+    #f9fbff 82%,
+    #8afcff 100%
+  );
+  --y2k-iridescent-conic: conic-gradient(
+    from 210deg at 50% 45%,
+    #ffffff 0deg,
+    #66f2ff 70deg,
+    #a56bff 135deg,
+    #ff58c5 220deg,
+    #f7fcff 300deg,
+    #ffffff 360deg
+  );
+}
+
+/* ---- Font families ---- */
+.y2k-font-fraktur   { font-family: 'UnifrakturMaguntia', serif; font-feature-settings: "cv01" 1; }
+.y2k-font-climate   { font-family: 'Climate Crisis', sans-serif; }
+.y2k-font-pixel     { font-family: 'Press Start 2P', monospace; }
+.y2k-font-barcode   { font-family: 'Libre Barcode 39 Extended Text', cursive; }
+
+@keyframes y2k-iridescent-shift {
+  0%, 100% {
+    background-position: 0% 45%;
+  }
+  50% {
+    background-position: 100% 55%;
+  }
+}
+
+@keyframes y2k-prism-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.y2k-iridescent-text {
+  position: relative;
+  display: inline-block;
+  background: var(--y2k-iridescent-linear);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: y2k-iridescent-shift 9s ease-in-out infinite;
+  filter: drop-shadow(0 0 7px rgba(0, 255, 204, 0.45))
+          drop-shadow(0 2px 15px rgba(119, 0, 255, 0.45));
+}
+
+.y2k-iridescent-text::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  background: var(--y2k-iridescent-conic);
+  background-size: 175% 175%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  mix-blend-mode: color-dodge;
+  opacity: 0.58;
+  animation: y2k-prism-drift 11s linear infinite;
+  pointer-events: none;
+}
+
+/* ---- Glitch ---- */
+.y2k-glitch {
+  position: relative;
+}
+
+.y2k-glitch::before,
+.y2k-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.y2k-glitch::before {
+  color: var(--y2k-cyan);
+  animation: glitch-r 5s steps(1) infinite;
+}
+
+.y2k-glitch::after {
+  color: var(--y2k-magenta);
+  animation: glitch-b 5s steps(1) infinite 0.15s;
+}
+
+@keyframes glitch-r {
+  0%, 88%, 100% { clip-path: none; transform: none; opacity: 0; }
+  90% { clip-path: inset(15% 0 70% 0); transform: translateX(-4px); opacity: 0.9; }
+  92% { clip-path: inset(60% 0 10% 0); transform: translateX(4px);  opacity: 0.9; }
+  94% { clip-path: inset(35% 0 45% 0); transform: translateX(-2px); opacity: 0.9; }
+  96% { clip-path: none; transform: none; opacity: 0; }
+}
+
+@keyframes glitch-b {
+  0%, 88%, 100% { clip-path: none; transform: none; opacity: 0; }
+  90% { clip-path: inset(50% 0 20% 0); transform: translateX(5px);  opacity: 0.9; }
+  93% { clip-path: inset(10% 0 65% 0); transform: translateX(-3px); opacity: 0.9; }
+  95% { clip-path: inset(75% 0  5% 0); transform: translateX(2px);  opacity: 0.9; }
+  97% { clip-path: none; transform: none; opacity: 0; }
+}
+
+/* ---- Chrome bevel panel ---- */
+.y2k-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(180, 180, 180, 0.03) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-bottom-color: rgba(0, 0, 0, 0.5);
+  border-right-color: rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 4px 24px rgba(119, 0, 255, 0.2),
+    0 1px 6px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+/* ---- HUD label (Press Start 2P) ---- */
+.y2k-hud-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--y2k-cyan);
+  text-shadow: 0 0 8px var(--y2k-cyan);
+}
+
+/* ---- LIVE badge ---- */
+.y2k-live-badge {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5em;
+  background: var(--y2k-hud-red);
+  color: #fff;
+  padding: 0.2em 0.5em;
+  letter-spacing: 0.1em;
+  box-shadow: 0 0 10px rgba(204, 0, 51, 0.8);
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(204, 0, 51, 0.8); }
+  50%       { box-shadow: 0 0 20px rgba(204, 0, 51, 1), 0 0 40px rgba(204, 0, 51, 0.4); }
+}
+
+/* ---- Scanline noise overlay ---- */
+.y2k-noise {
+  position: relative;
+}
+
+.y2k-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 204, 0.025) 2px,
+    rgba(0, 255, 204, 0.025) 4px
+  );
+  pointer-events: none;
+  animation: noise-roll 0.6s steps(5) infinite;
+  z-index: 2;
+}
+
+@keyframes noise-roll {
+  to { background-position: 0 30px; }
+}
+
+/* ---- Vignette ---- */
+.y2k-vignette {
+  position: relative;
+}
+
+.y2k-vignette::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(3, 3, 5, 0.5) 80%,
+    rgba(26, 0, 32, 0.85) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---- Panel background mask ---- */
+/* Applied to the Y2KBackground wrapper when used inside an overlay panel.
+   Fades the shader to transparent at the edges so it doesn't hard-clip.
+   will-change forces a GPU compositing layer, required for mask-image on
+   position:absolute children inside a position:fixed parent in Chromium/OBS.
+   isolation: isolate on the overlay container ensures z-index: 0 keeps this
+   layer behind content siblings. */
+.y2k-bg-panel {
+  will-change: mask;
+  -webkit-mask-image: radial-gradient(closest-side, black 20%, transparent 100%);
+  mask-image: radial-gradient(closest-side, black 20%, transparent 100%);
+}

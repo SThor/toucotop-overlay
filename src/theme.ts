@@ -2,18 +2,58 @@ import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
   colors: {
-    // Custom brand colors based on your CSS variables
-    brand: [
-      '#fff5ed', // lightest
+    // CRT orange — used by overlay pages (BarOverlay, ClockOverlay, ChatOverlay)
+    crt: [
+      '#fff5ed',
       '#ffedd5',
       '#fed7aa',
       '#fdba74',
       '#fb923c',
-      '#f97316', // main orange (--Main)
+      '#f97316', // index 5 (nearest Tailwind step; actual --Main is #e56d0c via --MainRGBA)
       '#ea580c',
       '#dc2626',
       '#b91c1c',
-      '#1f0f01', // darkest (--Dark)
+      '#1f0f01', // --Dark
+    ],
+    // Brand purple — dashboard UI (AuthSuccessPage Mantine components)
+    // Inspired by the #9146ff / #667eea accents already present in ServerPages.css
+    brand: [
+      '#f5eeff',
+      '#e8daff',
+      '#d0b4ff',
+      '#b88eff',
+      '#a069ff',
+      '#9146ff', // Twitch purple
+      '#7c3aed', // primary shade (index 6)
+      '#6d28d9',
+      '#5b21b6',
+      '#38115d',
+    ],
+    // Semantic success
+    success: [
+      '#f0fdf4',
+      '#dcfce7',
+      '#bbf7d0',
+      '#86efac',
+      '#4ade80',
+      '#22c55e',
+      '#16a34a',
+      '#15803d',
+      '#166534',
+      '#14532d',
+    ],
+    // Semantic danger
+    danger: [
+      '#fff1f2',
+      '#ffe4e6',
+      '#fecdd3',
+      '#fda4af',
+      '#fb7185',
+      '#f43f5e',
+      '#e11d48',
+      '#be123c',
+      '#9f1239',
+      '#881337',
     ],
     dark: [
       '#C1C2C5', // lightest text
@@ -34,6 +74,10 @@ export const theme = createTheme({
     fontFamily: 'Inter, system-ui, Avenir, Helvetica, Arial, sans-serif',
   },
   components: {
+    Slider: { defaultProps: { color: 'brand' } },
+    Switch: { defaultProps: { color: 'brand' } },
+    Radio:  { defaultProps: { color: 'brand' } },
+    Select: { defaultProps: { checkIconPosition: 'right' }, styles: { input: { '--input-bd-focus': 'var(--mantine-color-brand-filled)' } } },
     TextInput: {
       styles: {
         input: {
@@ -41,7 +85,7 @@ export const theme = createTheme({
           borderColor: 'transparent',
           color: 'rgba(255, 235, 219, 0.9)',
           '&:focus': {
-            borderColor: 'rgba(249, 115, 22, 0.3)',
+            borderColor: 'rgba(145, 70, 255, 0.4)',
             backgroundColor: 'rgba(255, 235, 219, 0.05)',
           },
           '&::placeholder': {
@@ -58,50 +102,17 @@ export const theme = createTheme({
       styles: {
         root: {
           '&[data-variant="outline"]': {
-            borderColor: 'rgba(249, 115, 22, 0.3)',
+            borderColor: 'rgba(145, 70, 255, 0.4)',
             color: 'rgba(255, 235, 219, 0.8)',
             backgroundColor: 'transparent',
             '&:hover': {
-              backgroundColor: 'rgba(249, 115, 22, 0.05)',
-              borderColor: 'rgba(249, 115, 22, 0.4)',
+              backgroundColor: 'rgba(145, 70, 255, 0.08)',
+              borderColor: 'rgba(145, 70, 255, 0.6)',
             },
           },
         },
       },
     },
   },
-//   components: {
-//     TextInput: {
-//       styles: {
-//         input: {
-//           backgroundColor: 'rgba(255, 235, 219, 0.05)', // Very dark background using your --Light color
-//           borderColor: 'rgba(229, 109, 12, 0.3)', // Subtle orange border using your --Main color
-//           color: 'rgba(255, 235, 219, 0.9)', // Light text using your --Light color
-//           '&:focus': {
-//             borderColor: '#f97316', // Your main orange on focus
-//             backgroundColor: 'rgba(255, 235, 219, 0.08)',
-//           },
-//           '&::placeholder': {
-//             color: 'rgba(255, 235, 219, 0.5)', // Dimmed placeholder
-//           },
-//         },
-//         label: {
-//           color: '#f97316', // Your main orange for labels
-//           fontWeight: 600,
-//         },
-//       },
-//     },
-//     Button: {
-//       styles: {
-//         root: {
-//           '&[data-variant="outline"]': {
-//             borderColor: '#f97316',
-//             color: '#f97316',
-//             '&:hover': {
-//               backgroundColor: 'rgba(249, 115, 22, 0.1)',
-//             },
-//           },
-//         },
-//       },
-//     },
 });
+

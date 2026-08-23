@@ -1,0 +1,89 @@
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.alert-overlay.global-alert-layer {
+  z-index: 2000;
+}
+
+.alert-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  text-align: center;
+  padding: 1em;
+  position: relative;
+  isolation: isolate;
+}
+
+/* ── CRT theme ──────────────────────────────────────────────────────────── */
+
+.alert-overlay.crt-active .alert-popup {
+  background: rgba(var(--DarkRGBA), 0.9);
+  border: 2px solid var(--Main);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  font-family: 'Courier New', monospace;
+  max-width: 80vw;
+}
+
+.alert-overlay.crt-active .alert-icon {
+  color: var(--Main);
+}
+
+.alert-overlay.crt-active .alert-title {
+  color: var(--Light);
+}
+
+.alert-overlay.crt-active .alert-message {
+  color: rgba(var(--LightRGBA), 0.8);
+}
+
+/* ── Y2K theme ──────────────────────────────────────────────────────────── */
+
+.alert-overlay.y2k-active .alert-popup {
+  max-width: min(86vw, 920px);
+  min-width: 320px;
+  padding: 1.2em 1.8em 3.6em;
+  border: none;
+  border-radius: 14px;
+  overflow: visible;
+  box-shadow: none;
+}
+
+.alert-overlay.y2k-active .alert-icon {
+  color: var(--y2k-cyan);
+  text-shadow:
+    0 0 10px rgba(0, 255, 204, 0.55),
+    0 0 22px rgba(119, 0, 255, 0.35);
+}
+
+.alert-overlay.y2k-active .alert-title {
+  font-family: 'UnifrakturMaguntia', serif;
+  font-size: 1.2em !important;
+  font-weight: 400 !important;
+  text-transform: none;
+  color: #f0f0f0;
+  text-shadow:
+    0 0 4px rgba(0, 255, 204, 0.4),
+    0 0 10px rgba(119, 0, 255, 0.3);
+}
+
+.alert-overlay.y2k-active .alert-message {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55em !important;
+  font-style: normal !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--y2k-cyan);
+  text-shadow: 0 0 8px var(--y2k-cyan);
+}
+

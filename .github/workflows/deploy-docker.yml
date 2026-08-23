@@ -1,0 +1,97 @@
+name: Deploy Overlay
+
+on:
+  pull_request:
+    branches: [ main, docker-migration ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-staging:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ghcr.io/sthor/toucotop-overlay:staging
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Deploy to Staging
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: github-deploy
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          # Debug permissions
+          echo "🔍 Current user: $(whoami)"
+          echo "🔍 User groups: $(groups)"
+          echo "🔍 Home directory: $HOME"
+          
+          # Check directory permissions
+          echo "🔍 Checking /home permissions:"
+          ls -la /home/ || echo "Cannot access /home"
+          
+          echo "🔍 Checking /home/ubuntu permissions:"
+          ls -la /home/ubuntu/ || echo "Cannot access /home/ubuntu"
+          
+          # Try to access the target directory
+          if [ -d "/home/ubuntu/infra-docs" ]; then
+            echo "✅ Directory exists"
+            echo "🔍 Directory permissions:"
+            ls -la /home/ubuntu/ | grep infra-docs || echo "Cannot see infra-docs details"
+          else
+            echo "❌ Directory /home/ubuntu/infra-docs does not exist"
+          fi
+          
+          # Change to infra-docs directory
+          echo "🔍 Changing to infra-docs directory..."
+          cd /home/ubuntu/infra-docs
+          # Create/update .env file for docker-compose with OAuth secrets
+          cat > .env << EOF
+          TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
+          EVENTSUB_SECRET=${{ secrets.EVENTSUB_SECRET }}
+          EVENTSUB_CALLBACK_URL=${{ secrets.EVENTSUB_CALLBACK_URL }}
+          EVENTSUB_PUBLIC_BASE_URL=${{ secrets.EVENTSUB_PUBLIC_BASE_URL }}
+          EVENTSUB_ALLOWED_HOSTS=${{ secrets.EVENTSUB_ALLOWED_HOSTS }}
+          EOF
+          
+          echo "✅ OAuth environment configured (persistent .env file)"
+          
+          # Pull new image and restart service (no explicit 'down' — compose replaces
+          # the container in-place, keeping the named volume attached and minimising
+          # the window where the server is unreachable)
+          docker compose pull toucotop-overlay-staging
+          docker compose up -d toucotop-overlay-staging
+          
+          # Verify deployment
+          sleep 15
+          echo "📊 Container status:"
+          docker compose ps toucotop-overlay-staging
+          
+          echo "🔍 Container logs (last 20 lines):"
+          docker compose logs --tail=20 toucotop-overlay-staging
+          
+          # Health checks
+          echo "🔍 Testing endpoints..."
+          curl -f http://localhost:3000/health && echo "✅ Health check passed" || echo "⚠️ Health check failed"
+          curl -f http://localhost:3000/auth/status && echo "✅ OAuth endpoints responding" || echo "⚠️ OAuth endpoints not responding"
+          
+          echo "🚀 Deployed staging to port 3000 with OAuth support"

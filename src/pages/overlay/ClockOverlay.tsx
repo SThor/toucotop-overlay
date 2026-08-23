@@ -1,30 +1,23 @@
 import { useEffect, useState } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
-import { TwitchProvider } from '../contexts/TwitchContext';
-import AnimatedBackground from '../components/AnimatedBackground';
-import CRTBackground from '../components/CRTBackground';
-import '../styles/ClockOverlay.css';
+import { useSettings } from '../../contexts/SettingsContext';
+import { TwitchProvider } from '../../contexts/TwitchContext';
+import ThemeBackground from '../../components/ThemeBackground';
+import MarqueeText from '../../components/MarqueeText';
+import GlobalAlertLayer from '../../components/GlobalAlertLayer';
+import '../../styles/ClockOverlay.css';
 
 // Destructure the hook for cleaner usage
 const { useTwitch } = TwitchProvider;
 
 const ClockOverlay = () => {
-  const { settings } = useSettings();
-  const { streamInfo, fetchStreamInfo } = useTwitch();
+  const { settings, isLoadingSettings } = useSettings();
+  const { streamInfo } = useTwitch();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [streamDuration, setStreamDuration] = useState('00:00:00');
   
   // Track previous values for change detection
   const [lastTitle, setLastTitle] = useState('');
   const [lastGame, setLastGame] = useState('');
-
-  // Trigger initial stream info fetch when component mounts or channel changes
-  // Note: TwitchContext handles the periodic refresh automatically
-  useEffect(() => {
-    if (settings.channelName && fetchStreamInfo && !settings.previewMode) {
-      fetchStreamInfo();
-    }
-  }, [settings.channelName, fetchStreamInfo, settings.previewMode]);
 
   // Detect and log changes in stream info
   useEffect(() => {
@@ -88,44 +81,43 @@ const ClockOverlay = () => {
     });
   };
 
+  if (isLoadingSettings) return null;
+
   return (
-    <div 
-      className={`clock-overlay ${settings.previewMode ? 'preview-mode' : ''} ${settings.overlayFullWidth ? 'full-width' : ''}`}
-      style={{ opacity: settings.overlayOpacity }}
+    <div
+      className={`clock-overlay${settings.theme === 'crt' ? ' crt-active' : ''}${settings.theme === 'y2k' ? ' y2k-active' : ''}`}
+      style={{ opacity: settings.perOverlayOpacity?.clock ?? settings.overlayOpacity, fontSize: `${settings.perOverlayFontSize?.clock ?? settings.fontSize}rem` }}
     >
-      {settings.crtEffects ? <CRTBackground /> : <AnimatedBackground />}
+      <ThemeBackground panelMode />
       <div className="current-time-section">
-        <div className={`time-label ${settings.crtEffects ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
-        <div className={`current-time ${settings.crtEffects ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>
+        <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Current Time</div>
+        <div className={`current-time ${settings.theme === 'crt' ? 'crt-glow-text' : ''}`}>{formatTime(currentTime)}</div>
         <div className="current-date">{formatDate(currentTime)}</div>
       </div>
       
       <div className="divider"></div>
       
       <div className="stream-time-section">
-        <div className={`time-label ${settings.crtEffects ? 'crt-glow-text-subtle' : ''}`}>Stream Duration</div>
-        <div className={`stream-duration ${settings.crtEffects ? 'crt-glow-text-strong' : ''}`}>{streamDuration}</div>
+        <div className={`time-label ${settings.theme === 'crt' ? 'crt-glow-text-subtle' : ''}`}>Stream Duration</div>
+        <div className={`stream-duration ${settings.theme === 'crt' ? 'crt-glow-text-strong' : ''}`}>{streamDuration}</div>
         <div className="stream-info">
-          {settings.channelName ? `${settings.channelName} Live` : 'Live Stream'}
+          {streamInfo == null ? '—' : streamInfo.isLive ? 'Live' : 'Offline'}
         </div>
       </div>
       
       <div className="clock-footer">
-        <div className="stream-title">
-          {streamInfo && streamInfo.isLive 
-            ? streamInfo.title 
-            : (settings.previewMode ? 'Preview: Stream Title' : 'Stream Offline')
-          }
-        </div>
-        <div className="stream-category">
-          {streamInfo && streamInfo.isLive && streamInfo.gameName && (
-              <>{streamInfo.gameName}</>
-            )}
-            {settings.previewMode && (
-              <>{`Preview: Game Category`}</>
-            )}
-          </div>
+        <MarqueeText
+          className="stream-title"
+          text={streamInfo?.isLive ? streamInfo.title : 'Stream Offline'}
+        />
+        {streamInfo?.isLive && streamInfo?.gameName && (
+          <MarqueeText
+            className="stream-category"
+            text={streamInfo.gameName}
+          />
+        )}
       </div>
+      <GlobalAlertLayer />
     </div>
   );
 };

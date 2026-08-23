@@ -5,6 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React + TS</title>
+    <!-- Preload static assets used by OBS overlays so they are in cache before
+         JS runs. This is especially important in OBS/CEF where each browser
+         source is isolated and loads everything fresh. -->
+    <link rel="preload" href="/tribal.png" as="image" />
+    <link rel="preload" href="/tribal_center.png" as="image" />
+    <link rel="preload" href="/tribal_alert.png" as="image" />
   </head>
   <body>
     <div id="root"></div>
