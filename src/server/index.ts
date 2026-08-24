@@ -178,6 +178,12 @@ try {
    * Main Twitch API endpoint router
    * Handles all 21 API endpoints with consistent token validation
    */
+  app.use('/api/twitch', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    next();
+  });
+
   app.get('/api/twitch/:endpoint', 
     validateEndpoint(),
     validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
