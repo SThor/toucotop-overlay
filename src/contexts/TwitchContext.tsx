@@ -323,6 +323,13 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     }
   }, [fetchApi, settings.overlayToken]);
 
+  const refreshLiveData = useCallback(() => {
+    void fetchStreamInfo();
+    void fetchFollowers();
+    void fetchSubscribers();
+    void fetchLastEvents();
+  }, [fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents]);
+
   // --- Set up polling and initial fetches ---
   useEffect(() => {
     if (!hasToken) return;
@@ -335,19 +342,29 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     const lastEventsTimer = setInterval(fetchLastEvents, LAST_EVENTS_POLL_MS);
 
     // Fire the initial fetches in a fire-and-forget, fully isolated way.
-    void fetchStreamInfo();
-    void fetchFollowers();
-    void fetchSubscribers();
-    void fetchLastEvents();
+    refreshLiveData();
     void fetchEmotes();
+
+    // OBS may throttle timers while a browser source's scene is inactive.
+    // Refresh immediately when the source becomes active again.
+    const refreshOnResume = () => {
+      if (document.visibilityState === 'hidden') return;
+      refreshLiveData();
+    };
+    document.addEventListener('visibilitychange', refreshOnResume);
+    window.addEventListener('pageshow', refreshOnResume);
+    window.addEventListener('focus', refreshOnResume);
 
     return () => {
       clearInterval(streamTimer);
       clearInterval(followersTimer);
       clearInterval(subscribersTimer);
       clearInterval(lastEventsTimer);
+      document.removeEventListener('visibilitychange', refreshOnResume);
+      window.removeEventListener('pageshow', refreshOnResume);
+      window.removeEventListener('focus', refreshOnResume);
     };
-  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents, fetchEmotes]);
+  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents, fetchEmotes, refreshLiveData]);
 
   const getEmoteByName = useCallback(
     (name: string): CachedEmote | undefined => cachedEmotes.get(name.toLowerCase()),
