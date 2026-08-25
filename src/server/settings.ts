@@ -9,11 +9,28 @@
 
 import express, { type Request, type Response, Router } from 'express';
 import { getUserTokens, updateUserSettings, defaultOverlaySettings, type OverlaySettings } from './storage.js';
-import { normalizeBarSections } from './shared/overlaySettings.js';
+import {
+  BAR_SECTION_KEYS,
+  normalizeBarSectionStacks,
+  normalizeBarStackPriority,
+  normalizeBarStackPauseSeconds,
+  normalizeBarStackScrollDurationSeconds,
+  normalizeBarSectionMinWidth,
+  normalizeBarSectionOrder,
+  normalizeBarSectionPriority,
+  normalizeBarSectionWidthTokens,
+  normalizeBarSections,
+} from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionStacks' | 'barStackPriority' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
+  barSectionStacks?: OverlaySettings['barSectionStacks'];
+  barStackPriority?: OverlaySettings['barStackPriority'];
+  barSectionOrder?: OverlaySettings['barSectionOrder'];
+  barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
+  barSectionMinWidth?: Partial<OverlaySettings['barSectionMinWidth']>;
+  barSectionWidthTokens?: Partial<OverlaySettings['barSectionWidthTokens']>;
 };
 
 /**
@@ -24,12 +41,25 @@ router.get('/', (req: Request, res: Response) => {
   const username = req.userData!.username;
   const user = getUserTokens(username);
   const raw = user?.overlaySettings ?? defaultOverlaySettings;
+  const normalizedStacks = normalizeBarSectionStacks(raw.barSectionStacks, {
+    barSections: raw.barSections,
+    barSectionOrder: raw.barSectionOrder,
+    barSectionWidthTokens: raw.barSectionWidthTokens,
+  });
   const normalized: OverlaySettings = {
     ...defaultOverlaySettings,
     ...raw,
     perOverlayOpacity: { ...defaultOverlaySettings.perOverlayOpacity, ...(raw.perOverlayOpacity ?? {}) },
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
+    barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(raw.barStackScrollDurationSeconds),
+    barStackPauseSeconds: normalizeBarStackPauseSeconds(raw.barStackPauseSeconds),
     barSections: normalizeBarSections(raw.barSections),
+    barSectionStacks: normalizedStacks,
+    barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
+    barSectionOrder: normalizeBarSectionOrder(raw.barSectionOrder),
+    barSectionPriority: normalizeBarSectionPriority(raw.barSectionPriority),
+    barSectionMinWidth: normalizeBarSectionMinWidth(raw.barSectionMinWidth),
+    barSectionWidthTokens: normalizeBarSectionWidthTokens(raw.barSectionWidthTokens),
     themeSettings: {
       ...defaultOverlaySettings.themeSettings,
       ...(raw.themeSettings ?? {}),
@@ -51,6 +81,15 @@ router.get('/', (req: Request, res: Response) => {
  * Validates and merges the provided partial settings into the stored settings.
  */
 router.patch('/', express.json(), (req: Request, res: Response) => {
+  const username = req.userData!.username;
+  const user = getUserTokens(username);
+  const rawExisting = user?.overlaySettings ?? defaultOverlaySettings;
+  const existingStacks = normalizeBarSectionStacks(rawExisting.barSectionStacks, {
+    barSections: rawExisting.barSections,
+    barSectionOrder: rawExisting.barSectionOrder,
+    barSectionWidthTokens: rawExisting.barSectionWidthTokens,
+  });
+
   const body = req.body as OverlaySettingsPatch;
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     res.status(400).json({ error: 'Request body must be a JSON object' });
@@ -114,6 +153,24 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
+  if ('barStackScrollDurationSeconds' in body) {
+    const v = body.barStackScrollDurationSeconds;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.1 || v > 30) {
+      errors.push('barStackScrollDurationSeconds must be a number between 0.1 and 30');
+    } else {
+      patch.barStackScrollDurationSeconds = Math.round(v * 100) / 100;
+    }
+  }
+
+  if ('barStackPauseSeconds' in body) {
+    const v = body.barStackPauseSeconds;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0.1 || v > 30) {
+      errors.push('barStackPauseSeconds must be a number between 0.1 and 30');
+    } else {
+      patch.barStackPauseSeconds = Math.round(v * 100) / 100;
+    }
+  }
+
   if ('barSections' in body) {
     const v = body.barSections;
     if (typeof v !== 'object' || v === null || Array.isArray(v)) {
@@ -131,6 +188,117 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
         }
       }
       if (errors.length === 0) patch.barSections = sections;
+    }
+  }
+
+  if ('barSectionStacks' in body) {
+    const v = body.barSectionStacks;
+    if (!Array.isArray(v)) {
+      errors.push('barSectionStacks must be an array');
+    } else {
+      const normalizedStacks = normalizeBarSectionStacks(v, {
+        barSections: normalizeBarSections(body.barSections),
+        barSectionOrder: body.barSectionOrder,
+        barSectionWidthTokens: body.barSectionWidthTokens,
+      });
+      patch.barSectionStacks = normalizedStacks;
+      patch.barStackPriority = normalizeBarStackPriority(body.barStackPriority, normalizedStacks);
+    }
+  }
+
+  if ('barStackPriority' in body && !('barSectionStacks' in body)) {
+    patch.barStackPriority = normalizeBarStackPriority(body.barStackPriority, existingStacks);
+  }
+
+  if ('barSectionOrder' in body) {
+    const v = body.barSectionOrder;
+    if (!Array.isArray(v)) {
+      errors.push('barSectionOrder must be an array');
+    } else {
+      const seen = new Set<string>();
+      const keys: OverlaySettings['barSectionOrder'] = [];
+      for (const item of v) {
+        if (typeof item !== 'string' || !BAR_SECTION_KEYS.includes(item)) {
+          errors.push('barSectionOrder contains invalid section keys');
+          break;
+        }
+        if (seen.has(item)) {
+          errors.push('barSectionOrder cannot contain duplicate keys');
+          break;
+        }
+        seen.add(item);
+        keys.push(item);
+      }
+
+      if (errors.length === 0) {
+        patch.barSectionOrder = normalizeBarSectionOrder(keys);
+      }
+    }
+  }
+
+  if ('barSectionPriority' in body) {
+    const v = body.barSectionPriority;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSectionPriority must be an object');
+    } else {
+      const priorityPatch: Partial<OverlaySettings['barSectionPriority']> = {};
+      for (const key of BAR_SECTION_KEYS) {
+        if (key in v) {
+          const rawValue = (v as Record<string, unknown>)[key];
+          if (typeof rawValue !== 'number' || !Number.isFinite(rawValue)) {
+            errors.push(`barSectionPriority.${key} must be a number`);
+          } else {
+            priorityPatch[key] = Math.min(99, Math.max(1, Math.round(rawValue)));
+          }
+        }
+      }
+      if (errors.length === 0) patch.barSectionPriority = priorityPatch;
+    }
+  }
+
+  if ('barSectionMinWidth' in body) {
+    const v = body.barSectionMinWidth;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSectionMinWidth must be an object');
+    } else {
+      const minWidthPatch: Partial<OverlaySettings['barSectionMinWidth']> = {};
+      for (const key of BAR_SECTION_KEYS) {
+        if (key in v) {
+          const rawValue = (v as Record<string, unknown>)[key];
+          if (typeof rawValue !== 'number' || !Number.isFinite(rawValue)) {
+            errors.push(`barSectionMinWidth.${key} must be a number`);
+          } else {
+            minWidthPatch[key] = Math.min(480, Math.max(72, Math.round(rawValue)));
+          }
+        }
+      }
+      if (errors.length === 0) patch.barSectionMinWidth = minWidthPatch;
+    }
+  }
+
+  if ('barSectionWidthTokens' in body) {
+    const v = body.barSectionWidthTokens;
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      errors.push('barSectionWidthTokens must be an object');
+    } else {
+      const tokenPatch: Partial<OverlaySettings['barSectionWidthTokens']> = {};
+      for (const key of BAR_SECTION_KEYS) {
+        if (!(key in v)) continue;
+        const rawToken = (v as Record<string, unknown>)[key];
+        if (rawToken === null || rawToken === 'stretch' || rawToken === 'boost') {
+          tokenPatch[key] = rawToken;
+          continue;
+        }
+
+        // Backward compatibility: accept old object shape and normalize server-side.
+        if (typeof rawToken === 'object' && rawToken !== null && !Array.isArray(rawToken)) {
+          tokenPatch[key] = rawToken as unknown as OverlaySettings['barSectionWidthTokens'][typeof key];
+          continue;
+        }
+
+        errors.push(`barSectionWidthTokens.${key} must be "stretch", "boost", or null`);
+      }
+      if (errors.length === 0) patch.barSectionWidthTokens = tokenPatch;
     }
   }
 
@@ -295,8 +463,6 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     res.status(400).json({ error: errors.join('; ') });
     return;
   }
-
-  const username = req.userData!.username;
 
   // updateUserSettings reads, deep-merges, writes, and returns the persisted result in one pass
   const persisted = updateUserSettings(username, patch);

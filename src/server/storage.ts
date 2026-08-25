@@ -13,12 +13,32 @@ const __dirname = path.dirname(__filename);
 // in the Dockerfile so the path always matches the Docker volume mount point.
 const TOKENS_DIR = process.env.TOKENS_DIR ?? path.join(__dirname, '../../tokens');
 
-import { defaultOverlaySettings, normalizeBarSections, type OverlaySettings, type OverlayTheme, type PerOverlayNumber } from './shared/overlaySettings.js';
+import {
+  normalizeBarSectionStacks,
+  normalizeBarStackPriority,
+  normalizeBarSectionMinWidth,
+  normalizeBarStackPauseSeconds,
+  normalizeBarStackScrollDurationSeconds,
+  defaultOverlaySettings,
+  normalizeBarSectionOrder,
+  normalizeBarSectionPriority,
+  normalizeBarSectionWidthTokens,
+  normalizeBarSections,
+  type OverlaySettings,
+  type OverlayTheme,
+  type PerOverlayNumber,
+} from './shared/overlaySettings.js';
 export type { OverlaySettings, OverlayTheme };
 export { defaultOverlaySettings };
 
-type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections'> & {
+type OverlaySettingsPatch = Omit<Partial<OverlaySettings>, 'barSections' | 'barSectionStacks' | 'barStackPriority' | 'barSectionOrder' | 'barSectionPriority' | 'barSectionMinWidth' | 'barSectionWidthTokens'> & {
   barSections?: Partial<OverlaySettings['barSections']>;
+  barSectionStacks?: OverlaySettings['barSectionStacks'];
+  barStackPriority?: OverlaySettings['barStackPriority'];
+  barSectionOrder?: OverlaySettings['barSectionOrder'];
+  barSectionPriority?: Partial<OverlaySettings['barSectionPriority']>;
+  barSectionMinWidth?: Partial<OverlaySettings['barSectionMinWidth']>;
+  barSectionWidthTokens?: Partial<OverlaySettings['barSectionWidthTokens']>;
 };
 
 // TokenData: the input shape — what the OAuth callback has available to pass into storeUserTokens().
@@ -104,6 +124,25 @@ export function storeUserTokens(username: string, tokenData: TokenData): void {
       ...defaultOverlaySettings,
       ...(existingData?.overlaySettings ?? {}),
       barSections: normalizeBarSections(existingData?.overlaySettings?.barSections),
+      barSectionStacks: normalizeBarSectionStacks(existingData?.overlaySettings?.barSectionStacks, {
+        barSections: existingData?.overlaySettings?.barSections,
+        barSectionOrder: existingData?.overlaySettings?.barSectionOrder,
+        barSectionWidthTokens: existingData?.overlaySettings?.barSectionWidthTokens,
+      }),
+      barStackPriority: normalizeBarStackPriority(
+        existingData?.overlaySettings?.barStackPriority,
+        normalizeBarSectionStacks(existingData?.overlaySettings?.barSectionStacks, {
+          barSections: existingData?.overlaySettings?.barSections,
+          barSectionOrder: existingData?.overlaySettings?.barSectionOrder,
+          barSectionWidthTokens: existingData?.overlaySettings?.barSectionWidthTokens,
+        }),
+      ),
+      barSectionOrder: normalizeBarSectionOrder(existingData?.overlaySettings?.barSectionOrder),
+      barSectionPriority: normalizeBarSectionPriority(existingData?.overlaySettings?.barSectionPriority),
+      barSectionMinWidth: normalizeBarSectionMinWidth(existingData?.overlaySettings?.barSectionMinWidth),
+      barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(existingData?.overlaySettings?.barStackScrollDurationSeconds),
+      barStackPauseSeconds: normalizeBarStackPauseSeconds(existingData?.overlaySettings?.barStackPauseSeconds),
+      barSectionWidthTokens: normalizeBarSectionWidthTokens(existingData?.overlaySettings?.barSectionWidthTokens),
       perOverlayOpacity: {
         ...defaultOverlaySettings.perOverlayOpacity,
         ...(existingData?.overlaySettings?.perOverlayOpacity ?? {}),
@@ -258,12 +297,67 @@ export function updateUserSettings(username: string, settings: OverlaySettingsPa
 
       return normalizeBarSections({ ...baseBarSections, ...patchBarSections });
     })();
+    const mergedBarSectionOrder =
+      settings.barSectionOrder
+        ? normalizeBarSectionOrder(settings.barSectionOrder)
+        : normalizeBarSectionOrder(base.barSectionOrder);
+    const mergedBarSectionStacks = (() => {
+      const baseStacks = normalizeBarSectionStacks(base.barSectionStacks, {
+        barSections: base.barSections,
+        barSectionOrder: base.barSectionOrder,
+        barSectionWidthTokens: base.barSectionWidthTokens,
+      });
+      const patchStacks = settings.barSectionStacks;
+      if (!patchStacks) return baseStacks;
+      return normalizeBarSectionStacks(patchStacks, {
+        barSections: settings.barSections ?? base.barSections,
+        barSectionOrder: settings.barSectionOrder ?? base.barSectionOrder,
+        barSectionWidthTokens: settings.barSectionWidthTokens ?? base.barSectionWidthTokens,
+      });
+    })();
+    const mergedBarStackPriority = (() => {
+      if (!settings.barStackPriority) {
+        return normalizeBarStackPriority(base.barStackPriority, mergedBarSectionStacks);
+      }
+      return normalizeBarStackPriority(settings.barStackPriority, mergedBarSectionStacks);
+    })();
+    const mergedBarSectionPriority = (() => {
+      const basePriority = normalizeBarSectionPriority(base.barSectionPriority);
+      const patchPriority = settings.barSectionPriority;
+      if (!patchPriority) return basePriority;
+      return normalizeBarSectionPriority({ ...basePriority, ...patchPriority });
+    })();
+    const mergedBarSectionMinWidth = (() => {
+      const baseMinWidth = normalizeBarSectionMinWidth(base.barSectionMinWidth);
+      const patchMinWidth = settings.barSectionMinWidth;
+      if (!patchMinWidth) return baseMinWidth;
+      return normalizeBarSectionMinWidth({ ...baseMinWidth, ...patchMinWidth });
+    })();
+    const mergedBarSectionWidthTokens = (() => {
+      const baseTokens = normalizeBarSectionWidthTokens(base.barSectionWidthTokens);
+      const patchTokens = settings.barSectionWidthTokens;
+      if (!patchTokens) return baseTokens;
+      return normalizeBarSectionWidthTokens({
+        ...baseTokens,
+        ...patchTokens,
+      });
+    })();
 
     const merged: OverlaySettings = {
       ...defaultOverlaySettings,
       ...base,
       ...settings,
       barSections: mergedBarSections,
+      barSectionStacks: mergedBarSectionStacks,
+      barStackPriority: mergedBarStackPriority,
+      barSectionOrder: mergedBarSectionOrder,
+      barSectionPriority: mergedBarSectionPriority,
+      barSectionMinWidth: mergedBarSectionMinWidth,
+      barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(
+        settings.barStackScrollDurationSeconds ?? base.barStackScrollDurationSeconds,
+      ),
+      barStackPauseSeconds: normalizeBarStackPauseSeconds(settings.barStackPauseSeconds ?? base.barStackPauseSeconds),
+      barSectionWidthTokens: mergedBarSectionWidthTokens,
       perOverlayOpacity: mergePerOverlay(defaultOverlaySettings.perOverlayOpacity, base.perOverlayOpacity ?? {}, settings.perOverlayOpacity),
       perOverlayFontSize: mergePerOverlay(defaultOverlaySettings.perOverlayFontSize, base.perOverlayFontSize ?? {}, settings.perOverlayFontSize),
       themeSettings: {
