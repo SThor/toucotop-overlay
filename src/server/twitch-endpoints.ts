@@ -39,6 +39,18 @@ export interface EventsResponse {
   total: number;
 }
 
+export interface LiveDataResponse {
+  stream?: TwitchApiResponse;
+  followers?: TwitchApiResponse;
+  subscribers?: TwitchApiResponse;
+  lastEvents: LastEventsResponse;
+  fetchedAt: string;
+}
+
+const LIVE_DATA_CACHE_MS = 25_000;
+const liveDataCache = new Map<string, { data: LiveDataResponse; expiresAt: number }>();
+const liveDataRequests = new Map<string, Promise<LiveDataResponse>>();
+
 // Endpoint configurations - all the differences between endpoints in one place
 const endpointConfigs: EndpointConfigs = {
   user: {
@@ -207,6 +219,61 @@ async function handleGamesEndpoint(userData: UserData, res: Response): Promise<T
   }
 }
 
+async function fetchTwitchData(url: string, userData: UserData): Promise<TwitchApiResponse> {
+  const response = await fetch(url, { headers: buildTwitchHeaders(userData) as HeadersInit });
+  const data = await response.json() as TwitchApiResponse;
+  if (!response.ok) {
+    throw new Error(`Twitch returned ${response.status}: ${data.message ?? data.error ?? 'request failed'}`);
+  }
+  return data;
+}
+
+async function fetchLiveData(userData: UserData): Promise<LiveDataResponse> {
+  const streamUrl = buildApiUrl(endpointConfigs.stream.url, endpointConfigs.stream.params!(userData));
+  const followersUrl = buildApiUrl(endpointConfigs.followers.url, endpointConfigs.followers.params!(userData));
+  const subscribersUrl = buildApiUrl(endpointConfigs.subscribers.url, endpointConfigs.subscribers.params!(userData));
+  const [streamResult, followersResult, subscribersResult] = await Promise.allSettled([
+    fetchTwitchData(streamUrl, userData),
+    fetchTwitchData(followersUrl, userData),
+    fetchTwitchData(subscribersUrl, userData),
+  ]);
+
+  for (const [name, result] of [
+    ['stream', streamResult],
+    ['followers', followersResult],
+    ['subscribers', subscribersResult],
+  ] as const) {
+    if (result.status === 'rejected') {
+      console.warn(`[live-data] ${name} request failed for ${userData.username}:`, result.reason);
+    }
+  }
+
+  return {
+    ...(streamResult.status === 'fulfilled' ? { stream: streamResult.value } : {}),
+    ...(followersResult.status === 'fulfilled' ? { followers: followersResult.value } : {}),
+    ...(subscribersResult.status === 'fulfilled' ? { subscribers: subscribersResult.value } : {}),
+    lastEvents: getLastEvents(userData.username),
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+async function handleLiveDataEndpoint(userData: UserData): Promise<LiveDataResponse> {
+  const cached = liveDataCache.get(userData.username);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  const existingRequest = liveDataRequests.get(userData.username);
+  if (existingRequest) return existingRequest;
+
+  const request = fetchLiveData(userData).then((data) => {
+    liveDataCache.set(userData.username, { data, expiresAt: Date.now() + LIVE_DATA_CACHE_MS });
+    return data;
+  }).finally(() => {
+    liveDataRequests.delete(userData.username);
+  });
+  liveDataRequests.set(userData.username, request);
+  return request;
+}
+
 /**
  * Special handler for events endpoint (accesses local storage)
  */
@@ -238,7 +305,7 @@ function handleEventsEndpoint(req: Request, eventStore: EventStore): EventsRespo
 }
 
 // List of valid endpoint names
-const validEndpoints: string[] = [...Object.keys(endpointConfigs), 'games', 'events', 'last-events'];
+const validEndpoints: string[] = [...Object.keys(endpointConfigs), 'games', 'events', 'last-events', 'live'];
 
 function handleLastEventsEndpoint(username: string): LastEventsResponse {
   return getLastEvents(username);
@@ -248,6 +315,7 @@ export {
   endpointConfigs,
   handleTwitchApiEndpoint,
   handleGamesEndpoint, 
+  handleLiveDataEndpoint,
   handleEventsEndpoint,
   handleLastEventsEndpoint,
   validEndpoints

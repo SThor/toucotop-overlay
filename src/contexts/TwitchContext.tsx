@@ -139,6 +139,16 @@ interface TwitchEmoteData {
   scale: string[];
 }
 
+interface TwitchLiveData {
+  stream?: { data?: TwitchStreamData[] };
+  followers?: { data?: TwitchFollowerData[]; total?: number };
+  subscribers?: { data?: TwitchSubscriberData[]; total?: number };
+  lastEvents?: {
+    lastFollower?: { userId?: string; userName?: string; userDisplayName?: string; followedAt?: string };
+    lastSubscriber?: { userId?: string; userName?: string; userDisplayName?: string; tier?: string; isGift?: boolean; gifterName?: string; subscribedAt?: string };
+  };
+}
+
 export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const { settings } = useSettings();
   const { fetchApi, hasToken } = useServerApi();
@@ -323,12 +333,93 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
     }
   }, [fetchApi, settings.overlayToken]);
 
-  const refreshLiveData = useCallback(() => {
-    void fetchStreamInfo();
-    void fetchFollowers();
-    void fetchSubscribers();
-    void fetchLastEvents();
-  }, [fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents]);
+  const fetchLiveData = useCallback(async () => {
+    setIsLoadingStreamInfo(true);
+    try {
+      const data = await fetchApi<TwitchLiveData>('live');
+      if (!data) return;
+
+      const stream = data.stream?.data;
+      if (Array.isArray(stream)) {
+        const current = stream[0];
+        if (current && typeof current.started_at === 'string') {
+          setStreamInfo({
+            id: current.id ?? '',
+            title: current.title ?? '',
+            gameName: current.game_name ?? '',
+            startedAt: new Date(current.started_at),
+            viewerCount: current.viewer_count ?? 0,
+            isLive: true,
+          });
+        } else {
+          setStreamInfo((prev) => prev
+            ? { ...prev, isLive: false, viewerCount: 0 }
+            : { id: '', title: '', gameName: '', startedAt: new Date(), viewerCount: 0, isLive: false });
+        }
+      }
+
+      const followers = data.followers?.data;
+      if (Array.isArray(followers)) {
+        setFollowerCount(data.followers?.total ?? 0);
+        const current = followers[0];
+        if (current && typeof current.followed_at === 'string') {
+          setLastFollower({
+            userId: current.user_id ?? '',
+            userName: current.user_login ?? '',
+            userDisplayName: current.user_name ?? '',
+            followDate: new Date(current.followed_at),
+          });
+        }
+      }
+
+      const subscribers = data.subscribers?.data;
+      if (Array.isArray(subscribers)) {
+        setSubscriberCount(data.subscribers?.total ?? 0);
+        const current = subscribers[0];
+        if (current) {
+          setLastSubscriber({
+            userId: current.user_id ?? '',
+            userName: current.user_login ?? '',
+            userDisplayName: current.user_name ?? '',
+            tier: current.tier ?? '1000',
+            isGift: !!current.is_gift,
+            gifterName: current.gifter_name,
+          });
+        }
+      }
+
+      const lastEvents = data.lastEvents;
+      if (lastEvents?.lastFollower?.followedAt) {
+        const storedDate = new Date(lastEvents.lastFollower.followedAt);
+        if (!isNaN(storedDate.getTime())) {
+          setLastFollower((prev) => !prev || storedDate > prev.followDate ? {
+            userId: lastEvents.lastFollower!.userId ?? '',
+            userName: lastEvents.lastFollower!.userName ?? '',
+            userDisplayName: lastEvents.lastFollower!.userDisplayName ?? '',
+            followDate: storedDate,
+          } : prev);
+        }
+      }
+      if (lastEvents?.lastSubscriber?.subscribedAt) {
+        const storedDate = new Date(lastEvents.lastSubscriber.subscribedAt);
+        if (!isNaN(storedDate.getTime())) {
+          setLastSubscriber((prev) => !prev || !prev.subscribeDate || storedDate > prev.subscribeDate ? {
+            userId: lastEvents.lastSubscriber!.userId ?? '',
+            userName: lastEvents.lastSubscriber!.userName ?? '',
+            userDisplayName: lastEvents.lastSubscriber!.userDisplayName ?? '',
+            tier: lastEvents.lastSubscriber!.tier ?? '1000',
+            isGift: !!lastEvents.lastSubscriber!.isGift,
+            gifterName: lastEvents.lastSubscriber!.gifterName,
+            subscribeDate: storedDate,
+          } : prev);
+        }
+      }
+    } catch (err) {
+      console.error('[TwitchContext] fetchLiveData failed:', err);
+    } finally {
+      setIsLoadingStreamInfo(false);
+    }
+  }, [fetchApi]);
 
   // --- Set up polling and initial fetches ---
   useEffect(() => {
@@ -336,35 +427,29 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
 
     // Register intervals FIRST so a failure in an initial fetch can never
     // prevent the polling timers from being created.
-    const streamTimer = setInterval(fetchStreamInfo, STREAM_POLL_MS);
-    const followersTimer = setInterval(fetchFollowers, FOLLOWERS_POLL_MS);
-    const subscribersTimer = setInterval(fetchSubscribers, SUBSCRIBERS_POLL_MS);
-    const lastEventsTimer = setInterval(fetchLastEvents, LAST_EVENTS_POLL_MS);
+    const liveDataTimer = setInterval(fetchLiveData, STREAM_POLL_MS);
 
     // Fire the initial fetches in a fire-and-forget, fully isolated way.
-    refreshLiveData();
+    void fetchLiveData();
     void fetchEmotes();
 
     // OBS may throttle timers while a browser source's scene is inactive.
     // Refresh immediately when the source becomes active again.
     const refreshOnResume = () => {
       if (document.visibilityState === 'hidden') return;
-      refreshLiveData();
+      void fetchLiveData();
     };
     document.addEventListener('visibilitychange', refreshOnResume);
     window.addEventListener('pageshow', refreshOnResume);
     window.addEventListener('focus', refreshOnResume);
 
     return () => {
-      clearInterval(streamTimer);
-      clearInterval(followersTimer);
-      clearInterval(subscribersTimer);
-      clearInterval(lastEventsTimer);
+      clearInterval(liveDataTimer);
       document.removeEventListener('visibilitychange', refreshOnResume);
       window.removeEventListener('pageshow', refreshOnResume);
       window.removeEventListener('focus', refreshOnResume);
     };
-  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents, fetchEmotes, refreshLiveData]);
+  }, [hasToken, fetchLiveData, fetchEmotes]);
 
   const getEmoteByName = useCallback(
     (name: string): CachedEmote | undefined => cachedEmotes.get(name.toLowerCase()),

@@ -11,7 +11,7 @@ import cors from 'cors';
 import session from 'express-session';
 
 // Import new modular components
-import { handleTwitchApiEndpoint, handleGamesEndpoint, handleEventsEndpoint, handleLastEventsEndpoint } from './twitch-endpoints.js';
+import { handleTwitchApiEndpoint, handleGamesEndpoint, handleLiveDataEndpoint, handleEventsEndpoint, handleLastEventsEndpoint } from './twitch-endpoints.js';
 import { 
   handleEventSubWebhook, 
   handleEventSubSubscription, 
@@ -228,6 +228,8 @@ try {
           data = handleLastEventsEndpoint(userData.username);
         } else if (endpoint === 'games') {
           data = await handleGamesEndpoint(userData, res);
+        } else if (endpoint === 'live') {
+          data = await handleLiveDataEndpoint(userData);
         } else {
           // All other endpoints use the generic handler
           data = await handleTwitchApiEndpoint(endpoint as string, userData, res);
