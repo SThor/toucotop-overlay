@@ -220,7 +220,7 @@ async function handleGamesEndpoint(userData: UserData, res: Response): Promise<T
 }
 
 async function fetchTwitchData(url: string, userData: UserData): Promise<TwitchApiResponse> {
-  const response = await fetch(url, { headers: buildTwitchHeaders(userData) as HeadersInit });
+  const response = await fetch(url, { headers: buildTwitchHeaders(userData) });
   const data = await response.json() as TwitchApiResponse;
   if (!response.ok) {
     throw new Error(`Twitch returned ${response.status}: ${data.message ?? data.error ?? 'request failed'}`);
@@ -229,9 +229,14 @@ async function fetchTwitchData(url: string, userData: UserData): Promise<TwitchA
 }
 
 async function fetchLiveData(userData: UserData): Promise<LiveDataResponse> {
-  const streamUrl = buildApiUrl(endpointConfigs.stream.url, endpointConfigs.stream.params!(userData));
-  const followersUrl = buildApiUrl(endpointConfigs.followers.url, endpointConfigs.followers.params!(userData));
-  const subscribersUrl = buildApiUrl(endpointConfigs.subscribers.url, endpointConfigs.subscribers.params!(userData));
+  const endpointUrl = (name: string): string => {
+    const config = endpointConfigs[name];
+    if (!config?.params) throw new Error(`Missing endpoint config: ${name}`);
+    return buildApiUrl(config.url, config.params(userData));
+  };
+  const streamUrl = endpointUrl('stream');
+  const followersUrl = endpointUrl('followers');
+  const subscribersUrl = endpointUrl('subscribers');
   const [streamResult, followersResult, subscribersResult] = await Promise.allSettled([
     fetchTwitchData(streamUrl, userData),
     fetchTwitchData(followersUrl, userData),
