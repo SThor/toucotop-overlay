@@ -1,12 +1,371 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput,
+  Slider, Switch, Button, Text, Group, Stack, Title, Paper, Radio, Container, Select, TextInput, ActionIcon, NumberInput,
 } from '@mantine/core';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { CopyButton } from '../components/CopyButton';
 import { useSettings } from '../contexts/SettingsContext';
-import { defaultOverlaySettings } from '../server/shared/overlaySettings';
+import {
+  BAR_SECTION_KEYS,
+  type BarSectionKey,
+  type BarWidthTokenType,
+  type OverlaySettings,
+  defaultOverlaySettings,
+} from '../server/shared/overlaySettings';
 import '../styles/ServerPages.css';
+
+const BAR_SECTION_META: Record<BarSectionKey, { label: string; shortLabel: string; icon: string }> = {
+  clock: { label: 'Current Time', shortLabel: 'Time', icon: '🕐' },
+  duration: { label: 'Stream Duration', shortLabel: 'Duration', icon: '⏱️' },
+  title: { label: 'Stream Title / Category', shortLabel: 'Title + Category', icon: '🎬' },
+  viewers: { label: 'Viewers', shortLabel: 'Viewers', icon: '👥' },
+  followers: { label: 'Followers', shortLabel: 'Followers', icon: '❤️' },
+  subscribers: { label: 'Subscribers', shortLabel: 'Subscribers', icon: '⭐' },
+  recentFollower: { label: 'Last Follower', shortLabel: 'Latest Follow', icon: '🆕' },
+  recentSub: { label: 'Last Subscriber', shortLabel: 'Latest Sub', icon: '🎁' },
+};
+
+const BAR_TIMING_MIN_SECONDS = 0.1;
+const BAR_TIMING_MAX_SECONDS = 30;
+const BAR_TIMING_LOG_MIN = Math.log(BAR_TIMING_MIN_SECONDS);
+const BAR_TIMING_LOG_RANGE = Math.log(BAR_TIMING_MAX_SECONDS) - BAR_TIMING_LOG_MIN;
+
+function timingSecondsToSliderValue(seconds: number): number {
+  const clamped = Math.min(BAR_TIMING_MAX_SECONDS, Math.max(BAR_TIMING_MIN_SECONDS, seconds));
+  return ((Math.log(clamped) - BAR_TIMING_LOG_MIN) / BAR_TIMING_LOG_RANGE) * 100;
+}
+
+function timingSliderValueToSeconds(value: number): number {
+  const clamped = Math.min(100, Math.max(0, value));
+  const seconds = Math.exp(BAR_TIMING_LOG_MIN + (clamped / 100) * BAR_TIMING_LOG_RANGE);
+  return Number(seconds.toPrecision(2));
+}
+
+function isBarSectionKey(value: unknown): value is BarSectionKey {
+  return typeof value === 'string' && BAR_SECTION_KEYS.includes(value as BarSectionKey);
+}
+
+function isBarWidthTokenType(value: unknown): value is BarWidthTokenType {
+  return value === 'stretch' || value === 'boost';
+}
+
+function createStackId(existingStacks: ReadonlyArray<BarStack>): string {
+  const existing = new Set(existingStacks.map((stack) => stack.id));
+  let counter = existingStacks.length + 1;
+  while (existing.has(`stack-${counter}`)) counter += 1;
+  return `stack-${counter}`;
+}
+
+function parseInsertDropId(rawId: unknown): { stackId: string; targetKey: BarSectionKey; position: 'before' | 'after' } | null {
+  if (typeof rawId !== 'string' || !rawId.startsWith('insert-')) return null;
+  const parts = rawId.split('-');
+  if (parts.length < 5) return null;
+  const position = parts[parts.length - 1];
+  const targetKey = parts[parts.length - 2];
+  const stackId = parts.slice(1, -2).join('-');
+  if ((position !== 'before' && position !== 'after') || !isBarSectionKey(targetKey) || !stackId) return null;
+  return { stackId, targetKey, position };
+}
+
+function parseStackSideDropId(rawId: unknown): { stackId: string; side: 'left' | 'right' } | null {
+  if (typeof rawId !== 'string') return null;
+  if (rawId.startsWith('stack-left-')) {
+    return { stackId: rawId.slice('stack-left-'.length), side: 'left' };
+  }
+  if (rawId.startsWith('stack-right-')) {
+    return { stackId: rawId.slice('stack-right-'.length), side: 'right' };
+  }
+  return null;
+}
+
+type BarStack = OverlaySettings['barSectionStacks'][number];
+
+function TokenPill({ tokenType, sourceStackId, id, removable, onRemove }: { tokenType: BarWidthTokenType; sourceStackId: string | 'pool'; id: string; removable?: boolean; onRemove?: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id,
+    data: {
+      dragKind: 'widthToken',
+      tokenType,
+      sourceStackId,
+    },
+  });
+  const style = {
+    transform: sourceStackId === 'pool' ? undefined : CSS.Transform.toString(transform),
+  };
+  const label = tokenType === 'stretch' ? 'Stretch' : 'Boost';
+
+  return (
+    <span
+      ref={setNodeRef}
+      style={style}
+      className={`bar-token-pill bar-token-${tokenType}${sourceStackId === 'pool' ? ' is-pool' : ''}${isDragging ? ' is-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+      title={label}
+    >
+      <span className="bar-token-pill-icon" aria-hidden="true">{tokenType === 'stretch' ? '↔' : '＋'}</span>
+      <span className="bar-token-pill-label">{label}</span>
+      {removable && onRemove && (
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          size="xs"
+          title="Remove token"
+          aria-label={`Remove ${label} token`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          ✕
+        </ActionIcon>
+      )}
+    </span>
+  );
+}
+
+function StackSideDropZone({ id, side, active }: { id: string; side: 'left' | 'right'; active: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    disabled: !active,
+    data: {
+      dropType: 'stackSide',
+      side,
+    },
+  });
+
+  return <div ref={setNodeRef} className={`bar-stack-side-zone side-${side}${active ? ' is-active' : ''}${isOver ? ' is-over' : ''}`} />;
+}
+
+function StackInsertZone({ id, active }: { id: string; active: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    disabled: !active,
+    data: { dropType: 'blockInsert' },
+  });
+
+  return <div ref={setNodeRef} className={`bar-block-insert-zone${active ? ' is-active' : ''}${isOver ? ' is-over' : ''}`} />;
+}
+
+function DraggableStackBlock({ sectionKey, stackId, onRemove }: { sectionKey: BarSectionKey; stackId: string; onRemove: (key: BarSectionKey) => void }) {
+  const meta = BAR_SECTION_META[sectionKey];
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `block-${sectionKey}`,
+    data: {
+      dragKind: 'barBlock',
+      sectionKey,
+      stackId,
+    },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform) }}
+      className={`bar-stack-block${isDragging ? ' is-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="bar-chip-icon" aria-hidden="true">{meta.icon}</span>
+      <span className="bar-stack-block-label">{meta.shortLabel}</span>
+      <ActionIcon
+        variant="subtle"
+        color="red"
+        size="sm"
+        title="Remove block"
+        aria-label={`Remove ${meta.label}`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove(sectionKey);
+        }}
+      >
+        ✕
+      </ActionIcon>
+    </div>
+  );
+}
+
+interface SortableBarStackProps {
+  stack: BarStack;
+  token: BarWidthTokenType | null;
+  showTokenDropZone: boolean;
+  showBlockInsertZones: boolean;
+  activeDraggedBlockKey: BarSectionKey | null;
+  onRemoveBlock: (key: BarSectionKey) => void;
+  onRemoveToken: (stackId: string) => void;
+}
+
+function SortableBarStack({
+  stack,
+  token,
+  showTokenDropZone,
+  showBlockInsertZones,
+  activeDraggedBlockKey,
+  onRemoveBlock,
+  onRemoveToken,
+}: SortableBarStackProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: stack.id,
+    data: { dragKind: 'barStack' },
+  });
+
+  const { setNodeRef: setDropZoneRef, isOver: isTokenOver } = useDroppable({
+    id: `token-zone-stack-${stack.id}`,
+    disabled: !showTokenDropZone,
+    data: {
+      dropType: 'tokenStack',
+      stackId: stack.id,
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bar-stack-card${isDragging ? ' is-dragging' : ''}`}
+    >
+      <div className="bar-chip-top-row bar-stack-header" {...attributes} {...listeners}>
+        <span className="bar-stack-title">Stack</span>
+        <span className="bar-priority-item-rank" aria-hidden="true">☰</span>
+      </div>
+
+      <div className="bar-stack-block-list">
+        {stack.sections.map((sectionKey, index) => {
+          const showInsertAround = showBlockInsertZones && activeDraggedBlockKey !== sectionKey;
+          return (
+            <div key={`${stack.id}-${sectionKey}`} className="bar-stack-block-entry">
+              {showInsertAround && <StackInsertZone id={`insert-${stack.id}-${sectionKey}-before`} active={showBlockInsertZones} />}
+              <DraggableStackBlock sectionKey={sectionKey} stackId={stack.id} onRemove={onRemoveBlock} />
+              {showInsertAround && index === stack.sections.length - 1 && <StackInsertZone id={`insert-${stack.id}-${sectionKey}-after`} active={showBlockInsertZones} />}
+            </div>
+          );
+        })}
+      </div>
+
+      <div ref={setDropZoneRef} className={`bar-token-zone${showTokenDropZone ? ' is-active' : ''}${isTokenOver ? ' is-over' : ''}`}>
+        {token && <TokenPill id={`token-${stack.id}`} tokenType={token} sourceStackId={stack.id} removable onRemove={() => onRemoveToken(stack.id)} />}
+        {!token && <span className="bar-token-zone-placeholder">Drop token</span>}
+      </div>
+    </div>
+  );
+}
+
+function BarWidthTokenBankRow() {
+  return (
+    <div className="bar-bank-row">
+      <Text size="xs" c="dimmed" className="bar-bank-label">width tokens</Text>
+      <div className="bar-bank-items">
+        <TokenPill id="pool-stretch" tokenType="stretch" sourceStackId="pool" />
+        <TokenPill id="pool-boost" tokenType="boost" sourceStackId="pool" />
+      </div>
+    </div>
+  );
+}
+
+function BankBlockPill({ sectionKey }: { sectionKey: BarSectionKey }) {
+  const meta = BAR_SECTION_META[sectionKey];
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `bank-block-${sectionKey}`,
+    data: {
+      dragKind: 'barBlock',
+      sectionKey,
+      stackId: 'bank',
+    },
+  });
+
+  return (
+    <span
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform) }}
+      className={`bar-bank-block${isDragging ? ' is-dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+      title={meta.label}
+    >
+      <span className="bar-chip-icon" aria-hidden="true">{meta.icon}</span>
+      <span className="bar-bank-block-label">{meta.shortLabel}</span>
+    </span>
+  );
+}
+
+function BarBlockBankRow({ sectionKeys }: { sectionKeys: BarSectionKey[] }) {
+  return (
+    <div className="bar-bank-row">
+      <Text size="xs" c="dimmed" className="bar-bank-label">blocks</Text>
+      <div className="bar-bank-items">
+        {sectionKeys.length > 0
+          ? sectionKeys.map((key) => <BankBlockPill key={key} sectionKey={key} />)
+          : <Text size="xs" c="dimmed">all active</Text>}
+      </div>
+    </div>
+  );
+}
+
+interface SortableBarPriorityItemProps {
+  stack: BarStack;
+  stackWidth: number;
+  onWidthChange: (stack: BarStack, value: number) => void;
+}
+
+function SortableBarPriorityItem({ stack, stackWidth, onWidthChange }: SortableBarPriorityItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stack.id });
+  const labels = stack.sections.map((sectionKey) => BAR_SECTION_META[sectionKey].shortLabel).join(' • ');
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bar-priority-item${isDragging ? ' is-dragging' : ''}`}
+    >
+      <span className="bar-priority-item-rank bar-priority-drag-handle" aria-hidden="true" {...attributes} {...listeners}>☰</span>
+      <Text size="sm" className="bar-priority-label">{labels}</Text>
+      <NumberInput
+        min={72}
+        max={480}
+        step={4}
+        size="xs"
+        value={stackWidth}
+        onPointerDown={(e) => e.stopPropagation()}
+        onChange={(value) => {
+          if (typeof value !== 'number' || !Number.isFinite(value)) return;
+          onWidthChange(stack, value);
+        }}
+        styles={{ input: { width: 84 } }}
+        aria-label={`${labels} min width`}
+      />
+    </div>
+  );
+}
 
 function formatExpiryDate(isoString: string): string {
   const date = new Date(isoString);
@@ -179,6 +538,194 @@ export default function AuthSuccessPage() {
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
+  const seenEnabledSections = new Set<BarSectionKey>();
+  const activeBarStacks: BarStack[] = persistedSettings.barSectionStacks
+    .map((stack) => ({
+      ...stack,
+      sections: stack.sections.filter((sectionKey) => {
+        if (!persistedSettings.barSections[sectionKey]) return false;
+        if (seenEnabledSections.has(sectionKey)) return false;
+        seenEnabledSections.add(sectionKey);
+        return true;
+      }),
+    }))
+    .filter((stack) => stack.sections.length > 0);
+
+  const activeStackIds = activeBarStacks.map((stack) => stack.id);
+  const priorityOrderIds = [
+    ...persistedSettings.barStackPriority.filter((id) => activeStackIds.includes(id)),
+    ...activeStackIds.filter((id) => !persistedSettings.barStackPriority.includes(id)),
+  ];
+  const priorityOrderedStacks = priorityOrderIds
+    .map((id) => activeBarStacks.find((stack) => stack.id === id))
+    .filter((stack): stack is BarStack => !!stack);
+
+  const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
+  const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
+  const [activeBarDragKind, setActiveBarDragKind] = useState<'barBlock' | 'barStack' | 'widthToken' | null>(null);
+  const [activeDraggedBlockKey, setActiveDraggedBlockKey] = useState<BarSectionKey | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+
+  const handleBarOrderDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const dragKind = active.data.current?.dragKind;
+
+    if (dragKind === 'widthToken') {
+      const tokenType = active.data.current?.tokenType;
+      const sourceStackId = active.data.current?.sourceStackId as string | 'pool' | undefined;
+      if (!isBarWidthTokenType(tokenType) || (!sourceStackId || (sourceStackId !== 'pool' && !activeStackIds.includes(sourceStackId)))) return;
+
+      const targetStackId = over.data.current?.dropType === 'tokenStack'
+        ? (over.data.current?.stackId as string | undefined)
+        : null;
+      if (!targetStackId || !activeStackIds.includes(targetStackId)) return;
+      if (sourceStackId === targetStackId) return;
+
+      const nextStacks = persistedSettings.barSectionStacks.map((stack) => {
+        if (sourceStackId !== 'pool' && stack.id === sourceStackId) {
+          return { ...stack, widthToken: null };
+        }
+        if (stack.id === targetStackId) {
+          return { ...stack, widthToken: tokenType };
+        }
+        return stack;
+      });
+      save({ barSectionStacks: nextStacks });
+      return;
+    }
+
+    if (dragKind === 'barStack') {
+      const sourceStackId = typeof active.id === 'string' ? active.id : null;
+      const sideDrop = parseStackSideDropId(over.id);
+      if (!sourceStackId || !sideDrop) return;
+      const { stackId: targetStackId, side } = sideDrop;
+      if (!activeStackIds.includes(sourceStackId) || !activeStackIds.includes(targetStackId) || sourceStackId === targetStackId) return;
+
+      const current = [...persistedSettings.barSectionStacks];
+      const from = current.findIndex((stack) => stack.id === sourceStackId);
+      const target = current.findIndex((stack) => stack.id === targetStackId);
+      if (from < 0 || target < 0) return;
+
+      const [moved] = current.splice(from, 1);
+      const targetAfterRemoval = current.findIndex((stack) => stack.id === targetStackId);
+      const insertAt = side === 'left' ? targetAfterRemoval : targetAfterRemoval + 1;
+      current.splice(insertAt, 0, moved);
+      save({ barSectionStacks: current });
+      return;
+    }
+
+    if (dragKind !== 'barBlock') return;
+
+    const sectionKey = active.data.current?.sectionKey;
+    const sourceStackId = active.data.current?.stackId as string | undefined;
+    const isFromBank = sourceStackId === 'bank';
+    if (!isBarSectionKey(sectionKey) || !sourceStackId || (!isFromBank && !activeStackIds.includes(sourceStackId))) return;
+
+    const insertDrop = parseInsertDropId(over.id);
+    const sideDrop = parseStackSideDropId(over.id);
+    const nextStacks = persistedSettings.barSectionStacks.map((stack) => ({ ...stack, sections: [...stack.sections] }));
+    if (isFromBank) {
+      // Defensive dedupe: if stale UI allows dragging an already-used block, keep only one instance.
+      for (const stack of nextStacks) {
+        stack.sections = stack.sections.filter((key) => key !== sectionKey);
+      }
+    } else {
+      const sourceStack = nextStacks.find((stack) => stack.id === sourceStackId);
+      if (!sourceStack) return;
+      sourceStack.sections = sourceStack.sections.filter((key) => key !== sectionKey);
+    }
+
+    if (insertDrop && activeStackIds.includes(insertDrop.stackId)) {
+      const targetStack = nextStacks.find((stack) => stack.id === insertDrop.stackId);
+      if (!targetStack) return;
+      const targetIndex = targetStack.sections.indexOf(insertDrop.targetKey);
+      if (targetIndex < 0) return;
+      const insertIndex = insertDrop.position === 'before' ? targetIndex : targetIndex + 1;
+      targetStack.sections.splice(insertIndex, 0, sectionKey);
+    } else if (sideDrop && activeStackIds.includes(sideDrop.stackId)) {
+      const targetIndex = nextStacks.findIndex((stack) => stack.id === sideDrop.stackId);
+      if (targetIndex < 0) return;
+      const newStack: BarStack = {
+        id: createStackId(nextStacks),
+        sections: [sectionKey],
+        widthToken: null,
+      };
+      const insertAt = sideDrop.side === 'left' ? targetIndex : targetIndex + 1;
+      nextStacks.splice(insertAt, 0, newStack);
+    } else {
+      return;
+    }
+
+    const cleanedStacks = nextStacks.filter((stack) => stack.sections.length > 0);
+    const patch: Parameters<typeof save>[0] = {
+      barSectionStacks: cleanedStacks,
+      barStackPriority: [
+        ...persistedSettings.barStackPriority.filter((id) => cleanedStacks.some((stack) => stack.id === id)),
+        ...cleanedStacks.map((stack) => stack.id).filter((id) => !persistedSettings.barStackPriority.includes(id)),
+      ],
+    };
+    if (isFromBank) {
+      patch.barSections = {
+        ...persistedSettings.barSections,
+        [sectionKey]: true,
+      };
+    }
+    save(patch);
+  };
+
+  const removeBarSection = (key: BarSectionKey) => {
+    const nextStacks = persistedSettings.barSectionStacks
+      .map((stack) => ({
+        ...stack,
+        sections: stack.sections.filter((sectionKey) => sectionKey !== key),
+      }))
+      .filter((stack) => stack.sections.length > 0);
+
+    save({
+      barSections: {
+        ...persistedSettings.barSections,
+        [key]: false,
+      },
+      barSectionStacks: nextStacks,
+      barStackPriority: persistedSettings.barStackPriority.filter((id) => nextStacks.some((stack) => stack.id === id)),
+    });
+  };
+
+  const removeBarSectionToken = (stackId: string) => {
+    save({
+      barSectionStacks: persistedSettings.barSectionStacks.map((stack) => (
+        stack.id === stackId ? { ...stack, widthToken: null } : stack
+      )),
+    });
+  };
+
+  const handlePriorityDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    if (active.id === over.id) return;
+    if (typeof active.id !== 'string' || typeof over.id !== 'string') return;
+
+    const from = priorityOrderIds.indexOf(active.id);
+    const to = priorityOrderIds.indexOf(over.id);
+    if (from < 0 || to < 0 || from === to) return;
+
+    const reordered = arrayMove(priorityOrderIds, from, to);
+    save({ barStackPriority: reordered });
+  };
+
+  const updateStackMinWidth = (stack: BarStack, value: number) => {
+    const clamped = Math.min(480, Math.max(72, Math.round(value)));
+    const nextMinWidth = { ...persistedSettings.barSectionMinWidth };
+    for (const sectionKey of stack.sections) {
+      nextMinWidth[sectionKey] = clamped;
+    }
+    save({
+      barSectionMinWidth: nextMinWidth,
+    });
+  };
 
   return (
     <Container size="lg" py="xl" className="main-page">
@@ -259,7 +806,7 @@ export default function AuthSuccessPage() {
             </Text>
             <Text size="xs" c="dimmed" component="div" mt={4}>
               <strong>Other</strong>:{' '}
-              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
+              <code>?overlayOpacity=0.9&amp;fontSize=1.2&amp;barFloating=false&amp;barStackScrollDurationSeconds=0.5&amp;barStackPauseSeconds=6.5&amp;theme=y2k&amp;reducedEffects=true&amp;showBarOrnaments=false&amp;hideBackground=true&amp;hideContent=true</code>
             </Text>
           </details>
         </Paper>
@@ -377,37 +924,163 @@ export default function AuthSuccessPage() {
                 })}
               </Stack>
 
-              <Switch
-                label="Floating Bar"
-                description="Bar overlay appears as a centered floating pill instead of full-width"
-                checked={persistedSettings.barFloating}
-                onChange={(e) => save({ barFloating: e.currentTarget.checked })}
-              />
-
               <div>
-                <Text size="sm" fw={500} mb="xs">Bar Sections</Text>
-                <Stack gap="xs">
-                  {(
-                    [
-                      ['clock', 'Current Time'],
-                      ['duration', 'Stream Duration'],
-                      ['title', 'Stream Title / Category'],
-                      ['viewers', 'Viewers'],
-                      ['followers', 'Followers'],
-                      ['subscribers', 'Subscribers'],
-                      ['recentFollower', 'Last Follower'],
-                      ['recentSub', 'Last Subscriber'],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <Switch
-                      key={key}
-                      label={label}
-                      checked={persistedSettings.barSections[key]}
-                      onChange={(e) =>
-                        save({ barSections: { ...persistedSettings.barSections, [key]: e.currentTarget.checked } })
-                      }
+                <Text size="sm" fw={700} mb="xs">Bar</Text>
+                <Stack gap="sm">
+                  <Switch
+                    label="Floating Bar"
+                    description="Bar overlay appears as a centered floating pill instead of full-width"
+                    checked={persistedSettings.barFloating}
+                    onChange={(e) => save({ barFloating: e.currentTarget.checked })}
+                  />
+
+                  <div>
+                    <Text size="sm" fw={500} mb="xs">
+                      Stack Scroll Timing
+                    </Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Cycle duration = scroll length + pause length.
+                    </Text>
+
+                    <Text size="xs" fw={600} mb={4}>
+                      Scroll Length: {persistedSettings.barStackScrollDurationSeconds}s
+                    </Text>
+                    <Slider
+                      value={timingSecondsToSliderValue(persistedSettings.barStackScrollDurationSeconds)}
+                      onChange={(v) => save({ barStackScrollDurationSeconds: timingSliderValueToSeconds(v) })}
+                      label={null}
+                      min={0}
+                      max={100}
+                      step={1}
                     />
-                  ))}
+                    <Group justify="space-between" mt={4} mb="sm">
+                      <Text size="xs" c="dimmed">0.10s</Text>
+                      <Text size="xs" c="dimmed">log scale</Text>
+                      <Text size="xs" c="dimmed">30.00s</Text>
+                    </Group>
+
+                    <Text size="xs" fw={600} mb={4}>
+                      Pause Length: {persistedSettings.barStackPauseSeconds}s
+                    </Text>
+                    <Slider
+                      value={timingSecondsToSliderValue(persistedSettings.barStackPauseSeconds)}
+                      onChange={(v) => save({ barStackPauseSeconds: timingSliderValueToSeconds(v) })}
+                      label={null}
+                      min={0}
+                      max={100}
+                      step={1}
+                    />
+                    <Group justify="space-between" mt={4}>
+                      <Text size="xs" c="dimmed">0.10s</Text>
+                      <Text size="xs" c="dimmed">log scale</Text>
+                      <Text size="xs" c="dimmed">30.00s</Text>
+                    </Group>
+
+                    <Text size="xs" c="dimmed" mt={6}>
+                      Total cycle: {Number((persistedSettings.barStackScrollDurationSeconds + persistedSettings.barStackPauseSeconds).toPrecision(2))}s
+                    </Text>
+                  </div>
+
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Bar Stacks (left to right)</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Drag a block above/below another block to insert in a stack. Drag left/right drop zones to move as a separate stack.
+                    </Text>
+                    {activeBarStacks.length === 0 ? (
+                      <Text size="xs" c="dimmed">No blocks enabled. Add one below.</Text>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={(event) => {
+                          const dragKind = event.active.data.current?.dragKind;
+                          if (dragKind === 'barBlock' || dragKind === 'barStack' || dragKind === 'widthToken') {
+                            setActiveBarDragKind(dragKind);
+                          }
+                          const draggedSection = event.active.data.current?.sectionKey;
+                          setActiveDraggedBlockKey(isBarSectionKey(draggedSection) ? draggedSection : null);
+                          const tokenType = event.active.data.current?.tokenType;
+                          if (isBarWidthTokenType(tokenType)) setActiveWidthToken(tokenType);
+                        }}
+                        onDragCancel={() => {
+                          setActiveWidthToken(null);
+                          setActiveBarDragKind(null);
+                          setActiveDraggedBlockKey(null);
+                        }}
+                        onDragEnd={(event) => {
+                          handleBarOrderDragEnd(event);
+                          setActiveWidthToken(null);
+                          setActiveBarDragKind(null);
+                          setActiveDraggedBlockKey(null);
+                        }}
+                      >
+                        <SortableContext items={activeBarStacks.map((stack) => stack.id)} strategy={horizontalListSortingStrategy}>
+                          <div className="bar-order-lane">
+                            <BarWidthTokenBankRow />
+                            <BarBlockBankRow sectionKeys={disabledBarSections} />
+                            <div className="bar-stacks-row">
+                              {activeBarStacks.map((stack, index) => (
+                                <div key={stack.id} className="bar-stack-slot">
+                                  {index === 0 && (
+                                    <StackSideDropZone
+                                      id={`stack-left-${stack.id}`}
+                                      side="left"
+                                      active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
+                                    />
+                                  )}
+                                  <SortableBarStack
+                                    stack={stack}
+                                    token={stack.widthToken ?? null}
+                                    showTokenDropZone={activeBarDragKind === 'widthToken'}
+                                    showBlockInsertZones={activeBarDragKind === 'barBlock'}
+                                    activeDraggedBlockKey={activeDraggedBlockKey}
+                                    onRemoveBlock={removeBarSection}
+                                    onRemoveToken={removeBarSectionToken}
+                                  />
+                                  <StackSideDropZone
+                                    id={`stack-right-${stack.id}`}
+                                    side="right"
+                                    active={activeBarDragKind === 'barBlock' || activeBarDragKind === 'barStack'}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </SortableContext>
+                        <DragOverlay>
+                          {activeWidthToken && <span className={`bar-token-pill bar-token-${activeWidthToken} is-overlay`}>{activeWidthToken === 'stretch' ? '↔' : '＋'}</span>}
+                        </DragOverlay>
+                      </DndContext>
+                    )}
+                  </div>
+
+                  <div>
+                    <Text size="xs" fw={600} mb={4}>Visibility Priority & Min Width</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      Drag using ☰ to rank stacks from top to bottom. Top stacks stay visible the longest when space gets tight.
+                      Adjust width per stack on the right.
+                    </Text>
+                    {priorityOrderedStacks.length > 0 && (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handlePriorityDragEnd}
+                      >
+                        <SortableContext items={priorityOrderedStacks.map((stack) => stack.id)} strategy={verticalListSortingStrategy}>
+                          <div className="bar-priority-list">
+                            {priorityOrderedStacks.map((stack) => (
+                              <SortableBarPriorityItem
+                                key={stack.id}
+                                stack={stack}
+                                stackWidth={Math.max(...stack.sections.map((sectionKey) => persistedSettings.barSectionMinWidth[sectionKey] ?? 132))}
+                                onWidthChange={updateStackMinWidth}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </div>
                 </Stack>
               </div>
 

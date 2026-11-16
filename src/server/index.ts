@@ -11,7 +11,7 @@ import cors from 'cors';
 import session from 'express-session';
 
 // Import new modular components
-import { handleTwitchApiEndpoint, handleGamesEndpoint, handleEventsEndpoint, handleLastEventsEndpoint } from './twitch-endpoints.js';
+import { handleTwitchApiEndpoint, handleGamesEndpoint, handleLiveDataEndpoint, handleEventsEndpoint, handleLastEventsEndpoint } from './twitch-endpoints.js';
 import { 
   handleEventSubWebhook, 
   handleEventSubSubscription, 
@@ -178,6 +178,12 @@ try {
    * Main Twitch API endpoint router
    * Handles all 21 API endpoints with consistent token validation
    */
+  app.use('/api/twitch', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    next();
+  });
+
   app.get('/api/twitch/:endpoint', 
     validateEndpoint(),
     validateOverlayToken(defaultTokenManager.getUserByOverlayToken.bind(defaultTokenManager)),
@@ -222,6 +228,8 @@ try {
           data = handleLastEventsEndpoint(userData.username);
         } else if (endpoint === 'games') {
           data = await handleGamesEndpoint(userData, res);
+        } else if (endpoint === 'live') {
+          data = await handleLiveDataEndpoint(userData);
         } else {
           // All other endpoints use the generic handler
           data = await handleTwitchApiEndpoint(endpoint as string, userData, res);

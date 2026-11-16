@@ -102,9 +102,6 @@ type TwitchProviderComponent = React.FC<TwitchProviderProps> & {
 
 // Polling intervals
 const STREAM_POLL_MS = 30_000;
-const FOLLOWERS_POLL_MS = 10 * 60_000;
-const SUBSCRIBERS_POLL_MS = 10 * 60_000;
-const LAST_EVENTS_POLL_MS = 30_000;
 
 // Twitch API response shapes (subset we need)
 interface TwitchStreamData {
@@ -139,6 +136,16 @@ interface TwitchEmoteData {
   scale: string[];
 }
 
+interface TwitchLiveData {
+  stream?: { data?: TwitchStreamData[] };
+  followers?: { data?: TwitchFollowerData[]; total?: number };
+  subscribers?: { data?: TwitchSubscriberData[]; total?: number };
+  lastEvents?: {
+    lastFollower?: { userId?: string; userName?: string; userDisplayName?: string; followedAt?: string };
+    lastSubscriber?: { userId?: string; userName?: string; userDisplayName?: string; tier?: string; isGift?: boolean; gifterName?: string; subscribedAt?: string };
+  };
+}
+
 export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   const { settings } = useSettings();
   const { fetchApi, hasToken } = useServerApi();
@@ -157,164 +164,156 @@ export const TwitchProvider: TwitchProviderComponent = ({ children }) => {
   // Suppress unused variable warning — settings may be used for future config
   void settings;
 
-  // --- Stream info polling ---
-  const fetchStreamInfo = useCallback(async () => {
+  // --- Emotes (one-time fetch per token) ---
+  const fetchEmotes = useCallback(async () => {
+    try {
+      const currentToken = settings.overlayToken;
+      if (emotesLoadedRef.current === currentToken) return;
+      const data = await fetchApi<{ data?: TwitchEmoteData[] }>('emotes');
+      const list = data?.data;
+      if (!Array.isArray(list)) return;
+
+      const map = new Map<string, CachedEmote>();
+      for (const emote of list) {
+        if (!emote || typeof emote.id !== 'string' || typeof emote.name !== 'string') continue;
+        const base = `https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}`;
+        map.set(emote.name.toLowerCase(), {
+          id: emote.id,
+          name: emote.name,
+          urls: {
+            '1x': `${base}/default/dark/1.0`,
+            '2x': `${base}/default/dark/2.0`,
+            '3x': `${base}/default/dark/3.0`,
+            '1x_static': `${base}/static/dark/1.0`,
+            '2x_static': `${base}/static/dark/2.0`,
+            '3x_static': `${base}/static/dark/3.0`,
+          },
+        });
+      }
+      setCachedEmotes(map);
+      emotesLoadedRef.current = currentToken;
+    } catch (err) {
+      console.error('[TwitchContext] fetchEmotes failed:', err);
+    }
+  }, [fetchApi, settings.overlayToken]);
+
+  const fetchLiveData = useCallback(async () => {
     setIsLoadingStreamInfo(true);
     try {
-      const data = await fetchApi<{ data: TwitchStreamData[] }>('stream');
+      const data = await fetchApi<TwitchLiveData>('live');
       if (!data) return;
 
-      if (data.data.length > 0) {
-        const s = data.data[0];
-        setStreamInfo({
-          id: s.id,
-          title: s.title,
-          gameName: s.game_name,
-          startedAt: new Date(s.started_at),
-          viewerCount: s.viewer_count,
-          isLive: true,
-        });
-      } else {
-        setStreamInfo((prev) =>
-          prev
+      const stream = data.stream?.data;
+      if (Array.isArray(stream)) {
+        const current = stream[0];
+        if (current && typeof current.started_at === 'string') {
+          setStreamInfo({
+            id: current.id ?? '',
+            title: current.title ?? '',
+            gameName: current.game_name ?? '',
+            startedAt: new Date(current.started_at),
+            viewerCount: current.viewer_count ?? 0,
+            isLive: true,
+          });
+        } else {
+          setStreamInfo((prev) => prev
             ? { ...prev, isLive: false, viewerCount: 0 }
-            : { id: '', title: '', gameName: '', startedAt: new Date(), viewerCount: 0, isLive: false }
-        );
+            : { id: '', title: '', gameName: '', startedAt: new Date(), viewerCount: 0, isLive: false });
+        }
       }
+
+      const followers = data.followers?.data;
+      if (Array.isArray(followers)) {
+        setFollowerCount(data.followers?.total ?? 0);
+        const current = followers[0];
+        if (current && typeof current.followed_at === 'string') {
+          setLastFollower({
+            userId: current.user_id ?? '',
+            userName: current.user_login ?? '',
+            userDisplayName: current.user_name ?? '',
+            followDate: new Date(current.followed_at),
+          });
+        }
+      }
+
+      const subscribers = data.subscribers?.data;
+      if (Array.isArray(subscribers)) {
+        setSubscriberCount(data.subscribers?.total ?? 0);
+        const current = subscribers[0];
+        if (current) {
+          setLastSubscriber({
+            userId: current.user_id ?? '',
+            userName: current.user_login ?? '',
+            userDisplayName: current.user_name ?? '',
+            tier: current.tier ?? '1000',
+            isGift: !!current.is_gift,
+            gifterName: current.gifter_name,
+          });
+        }
+      }
+
+      const lastEvents = data.lastEvents;
+      if (lastEvents?.lastFollower?.followedAt) {
+        const storedDate = new Date(lastEvents.lastFollower.followedAt);
+        if (!isNaN(storedDate.getTime())) {
+          setLastFollower((prev) => !prev || storedDate > prev.followDate ? {
+            userId: lastEvents.lastFollower!.userId ?? '',
+            userName: lastEvents.lastFollower!.userName ?? '',
+            userDisplayName: lastEvents.lastFollower!.userDisplayName ?? '',
+            followDate: storedDate,
+          } : prev);
+        }
+      }
+      if (lastEvents?.lastSubscriber?.subscribedAt) {
+        const storedDate = new Date(lastEvents.lastSubscriber.subscribedAt);
+        if (!isNaN(storedDate.getTime())) {
+          setLastSubscriber((prev) => !prev || !prev.subscribeDate || storedDate > prev.subscribeDate ? {
+            userId: lastEvents.lastSubscriber!.userId ?? '',
+            userName: lastEvents.lastSubscriber!.userName ?? '',
+            userDisplayName: lastEvents.lastSubscriber!.userDisplayName ?? '',
+            tier: lastEvents.lastSubscriber!.tier ?? '1000',
+            isGift: !!lastEvents.lastSubscriber!.isGift,
+            gifterName: lastEvents.lastSubscriber!.gifterName,
+            subscribeDate: storedDate,
+          } : prev);
+        }
+      }
+    } catch (err) {
+      console.error('[TwitchContext] fetchLiveData failed:', err);
     } finally {
       setIsLoadingStreamInfo(false);
     }
   }, [fetchApi]);
 
-  // --- Followers polling ---
-  const fetchFollowers = useCallback(async () => {
-    const data = await fetchApi<{ data: TwitchFollowerData[]; total: number }>('followers');
-    if (!data) return;
-
-    setFollowerCount(data.total ?? 0);
-    if (data.data.length > 0) {
-      const f = data.data[0];
-      setLastFollower({
-        userId: f.user_id,
-        userName: f.user_login,
-        userDisplayName: f.user_name,
-        followDate: new Date(f.followed_at),
-      });
-    }
-  }, [fetchApi]);
-
-  // --- Subscribers polling ---
-  const fetchSubscribers = useCallback(async () => {
-    const data = await fetchApi<{ data: TwitchSubscriberData[]; total: number }>('subscribers');
-    if (!data) return;
-
-    setSubscriberCount(data.total ?? 0);
-
-    if (data.data.length > 0) {
-      const s = data.data[0];
-      setLastSubscriber({
-        userId: s.user_id,
-        userName: s.user_login,
-        userDisplayName: s.user_name,
-        tier: s.tier,
-        isGift: s.is_gift,
-        gifterName: s.gifter_name,
-        // subscribeDate intentionally omitted — subscriptions API doesn't include a timestamp
-      });
-    }
-  }, [fetchApi]);
-
-  // --- Last events (persisted follow/sub from server storage) ---
-  const fetchLastEvents = useCallback(async () => {
-    const data = await fetchApi<{
-      lastFollower?: { userId: string; userName: string; userDisplayName: string; followedAt: string };
-      lastSubscriber?: { userId: string; userName: string; userDisplayName: string; tier: string; isGift: boolean; gifterName?: string; subscribedAt: string };
-    }>('last-events');
-    if (!data) return;
-
-    if (data.lastFollower) {
-      const storedDate = new Date(data.lastFollower.followedAt);
-      setLastFollower(prev => {
-        if (!prev || storedDate > prev.followDate) {
-          return {
-            userId: data.lastFollower!.userId,
-            userName: data.lastFollower!.userName,
-            userDisplayName: data.lastFollower!.userDisplayName,
-            followDate: storedDate,
-          };
-        }
-        return prev;
-      });
-    }
-
-    if (data.lastSubscriber) {
-      const storedDate = new Date(data.lastSubscriber.subscribedAt);
-      setLastSubscriber(prev => {
-        if (!prev || !prev.subscribeDate || storedDate > prev.subscribeDate) {
-          return {
-            userId: data.lastSubscriber!.userId,
-            userName: data.lastSubscriber!.userName,
-            userDisplayName: data.lastSubscriber!.userDisplayName,
-            tier: data.lastSubscriber!.tier,
-            isGift: data.lastSubscriber!.isGift,
-            gifterName: data.lastSubscriber!.gifterName,
-            subscribeDate: storedDate,
-          };
-        }
-        return prev;
-      });
-    }
-  }, [fetchApi]);
-
-  // --- Emotes (one-time fetch per token) ---
-  const fetchEmotes = useCallback(async () => {
-    const currentToken = settings.overlayToken;
-    if (emotesLoadedRef.current === currentToken) return;
-    const data = await fetchApi<{ data: TwitchEmoteData[] }>('emotes');
-    if (!data) return;
-
-    const map = new Map<string, CachedEmote>();
-    for (const emote of data.data) {
-      const base = `https://static-cdn.jtvnw.net/emoticons/v2/${emote.id}`;
-      map.set(emote.name.toLowerCase(), {
-        id: emote.id,
-        name: emote.name,
-        urls: {
-          '1x': `${base}/default/dark/1.0`,
-          '2x': `${base}/default/dark/2.0`,
-          '3x': `${base}/default/dark/3.0`,
-          '1x_static': `${base}/static/dark/1.0`,
-          '2x_static': `${base}/static/dark/2.0`,
-          '3x_static': `${base}/static/dark/3.0`,
-        },
-      });
-    }
-    setCachedEmotes(map);
-    emotesLoadedRef.current = currentToken;
-  }, [fetchApi, settings.overlayToken]);
-
   // --- Set up polling and initial fetches ---
   useEffect(() => {
     if (!hasToken) return;
 
-    fetchStreamInfo();
-    fetchFollowers();
-    fetchSubscribers();
-    fetchLastEvents();
-    fetchEmotes();
+    // Register intervals FIRST so a failure in an initial fetch can never
+    // prevent the polling timers from being created.
+    const liveDataTimer = setInterval(fetchLiveData, STREAM_POLL_MS);
 
-    const streamTimer = setInterval(fetchStreamInfo, STREAM_POLL_MS);
-    const followersTimer = setInterval(fetchFollowers, FOLLOWERS_POLL_MS);
-    const subscribersTimer = setInterval(fetchSubscribers, SUBSCRIBERS_POLL_MS);
-    const lastEventsTimer = setInterval(fetchLastEvents, LAST_EVENTS_POLL_MS);
+    // Fire the initial fetches in a fire-and-forget, fully isolated way.
+    void fetchLiveData();
+    void fetchEmotes();
+
+    // OBS may throttle timers while a browser source's scene is inactive.
+    // Refresh immediately when the source becomes active again.
+    const refreshOnResume = () => {
+      if (document.visibilityState === 'hidden') return;
+      void fetchLiveData();
+    };
+    document.addEventListener('visibilitychange', refreshOnResume);
+    window.addEventListener('pageshow', refreshOnResume);
+    window.addEventListener('focus', refreshOnResume);
 
     return () => {
-      clearInterval(streamTimer);
-      clearInterval(followersTimer);
-      clearInterval(subscribersTimer);
-      clearInterval(lastEventsTimer);
+      clearInterval(liveDataTimer);
+      document.removeEventListener('visibilitychange', refreshOnResume);
+      window.removeEventListener('pageshow', refreshOnResume);
+      window.removeEventListener('focus', refreshOnResume);
     };
-  }, [hasToken, fetchStreamInfo, fetchFollowers, fetchSubscribers, fetchLastEvents, fetchEmotes]);
+  }, [hasToken, fetchLiveData, fetchEmotes]);
 
   const getEmoteByName = useCallback(
     (name: string): CachedEmote | undefined => cachedEmotes.get(name.toLowerCase()),

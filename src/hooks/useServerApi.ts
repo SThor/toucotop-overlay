@@ -15,7 +15,8 @@ export function useServerApi() {
 
       try {
         const res = await fetch(
-          `/api/twitch/${endpoint}?token=${encodeURIComponent(token)}`
+          `/api/twitch/${endpoint}?token=${encodeURIComponent(token)}`,
+          { cache: 'no-store' }
         );
         if (!res.ok) {
           console.warn(`API ${endpoint} returned ${res.status}`);

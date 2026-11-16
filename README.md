@@ -83,6 +83,22 @@ npm run build
 3. Copy the URL and add it as a Browser Source in OBS
 4. Set appropriate width/height and position in OBS
 
+### Live Data and Multiple OBS Sources
+
+*(this is a bit of a technical note for performance, feel free to skip if you just want to use the overlays).*
+
+Overlay browser sources remain separate so OBS can control their layer order and
+scene-specific content. Live Twitch data is requested through the Express proxy
+at `/api/twitch/live`. The server caches one snapshot per channel for 25 seconds
+and shares concurrent requests, so multiple browser sources do not each trigger
+their own Twitch API calls. Clients request that snapshot every 30 seconds and
+refresh it when the browser source resumes.
+
+The server-side cache reduces API traffic and keeps data consistent between
+sources, but each OBS browser source still runs its own browser page. Keep
+unneeded sources stopped or enable OBS's options to shut sources down when hidden
+and refresh them when their scene becomes active.
+
 ### URL Parameters
 
 You can override settings using URL parameters:
