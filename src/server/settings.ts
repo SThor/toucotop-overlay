@@ -177,7 +177,7 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
       errors.push('barSections must be an object');
     } else {
       const sections: Partial<OverlaySettings['barSections']> = {};
-      for (const key of ['clock', 'duration', 'title', 'viewers', 'followers', 'subscribers', 'recentFollower', 'recentSub'] as const) {
+      for (const key of BAR_SECTION_KEYS) {
         if (key in v) {
           const val = (v as unknown as Record<string, unknown>)[key];
           if (typeof val !== 'boolean') {

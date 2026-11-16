@@ -5,6 +5,7 @@ import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import GlobalAlertLayer from '../../components/GlobalAlertLayer';
+import { useNowPlaying } from '../../hooks/useNowPlaying';
 import {
   normalizeBarStackPauseSeconds,
   normalizeBarStackScrollDurationSeconds,
@@ -29,6 +30,7 @@ const SECTION_INTRINSIC_MIN_WIDTH: Record<BarSectionKey, number> = {
   subscribers: 126,
   recentFollower: 168,
   recentSub: 168,
+  nowPlaying: 168,
 };
 
 function getSectionStyle(finalMinWidth: number, token: BarWidthTokenType | null): React.CSSProperties {
@@ -139,6 +141,7 @@ const BarOverlayContent = () => {
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
   const [prevFollower, setPrevFollower] = useState<string | null>(null);
   const [prevSubscriber, setPrevSubscriber] = useState<string | null>(null);
+  const nowPlaying = useNowPlaying(!isLoadingSettings && settings.barSections.nowPlaying);
 
   // Update current time every second
   useEffect(() => {
@@ -390,6 +393,20 @@ const BarOverlayContent = () => {
       );
     }
 
+    if (key === 'nowPlaying') {
+      if (!nowPlaying) return null;
+      const by = nowPlaying.artist ? ` — ${nowPlaying.artist}` : '';
+      return (
+        <div className={`bar-section bar-recent-section bar-now-playing${nowPlaying.isPlaying ? '' : ' is-paused'}`}>
+          <div className="bar-recent-icon" aria-hidden="true">{nowPlaying.isPlaying ? '🎵' : '⏸'}</div>
+          <div className="bar-recent-content">
+            <MarqueeText className="bar-recent-name" text={`${nowPlaying.title}${by}`} />
+            <MarqueeText className="bar-recent-label" text={nowPlaying.isPlaying ? 'Now Playing' : 'Paused'} />
+          </div>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -400,6 +417,7 @@ const BarOverlayContent = () => {
         const availableSections = stack.sections.filter((key) => {
           if (key === 'recentFollower') return !!twitch.lastFollower;
           if (key === 'recentSub') return !!twitch.lastSubscriber;
+          if (key === 'nowPlaying') return !!nowPlaying;
           return true;
         });
         if (availableSections.length === 0) return null;
@@ -458,6 +476,7 @@ const BarOverlayContent = () => {
     settings.barStackPriority,
     twitch.lastFollower,
     twitch.lastSubscriber,
+    nowPlaying,
   ]);
 
   if (isLoadingSettings) return null;

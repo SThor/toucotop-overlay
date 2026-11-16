@@ -83,6 +83,30 @@ npm run build
 3. Copy the URL and add it as a Browser Source in OBS
 4. Set appropriate width/height and position in OBS
 
+### Now Playing (Spotify, Deezer…)
+
+The `/now-playing` overlay and the optional "Now Playing" bar section show the
+track currently playing on the streaming PC. They rely on
+[smtc-now-playing](https://github.com/soarqin/smtc-now-playing), a small Windows
+tray app that reads the system media controls (SMTC), which Spotify, Deezer and
+most players publish.
+
+1. Install smtc-now-playing from its
+   [releases](https://github.com/soarqin/smtc-now-playing/releases) and keep it
+   running (default port `11451`; enable autostart in its settings).
+2. Right-click its tray icon → **Device** → pick your player (e.g.
+   `com.deezer.deezer-desktop`). In auto mode it follows the first media session
+   Windows lists, which is often a browser tab (YouTube in Firefox declares
+   itself as music). The device list in its main window may stay empty; the
+   tray menu is up to date.
+3. Add `/now-playing` as a Browser Source, and/or enable the "Now Playing"
+   block in the bar settings.
+
+The overlay connects straight from the OBS browser source to
+`ws://localhost:11451/ws`: the music data never goes through the server, so it
+only works on the machine running smtc-now-playing. The overlay hides itself
+when nothing is playing.
+
 ### Live Data and Multiple OBS Sources
 
 *(this is a bit of a technical note for performance, feel free to skip if you just want to use the overlays).*

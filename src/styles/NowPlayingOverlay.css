@@ -1,0 +1,128 @@
+.now-playing-overlay {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  width: min(32rem, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  color: var(--Light);
+  background: rgba(var(--DarkRGBA), 0.85);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.now-playing-cover {
+  flex: 0 0 auto;
+  width: 5em;
+  height: 5em;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(var(--MainRGBA), 0.2);
+}
+
+.now-playing-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.now-playing-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 2em;
+}
+
+.now-playing-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+.now-playing-source {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--Main);
+}
+
+.now-playing-title {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.now-playing-artist {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.now-playing-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.3em;
+  font-size: 0.7em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.now-playing-progress-bar {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(var(--LightRGBA), 0.2);
+  overflow: hidden;
+}
+
+.now-playing-progress-fill {
+  height: 100%;
+  background: var(--Main);
+  transition: width 1s linear;
+}
+
+.now-playing-overlay.is-paused .now-playing-cover,
+.now-playing-overlay.is-paused .now-playing-progress-fill {
+  filter: grayscale(0.7);
+}
+
+/* CRT theme */
+.now-playing-overlay.crt-active {
+  border: 2px solid var(--Main);
+  font-family: 'Courier New', monospace;
+}
+
+.now-playing-overlay.crt-active .now-playing-title {
+  text-shadow: 0 0 6px rgba(var(--MainRGBA), 0.6);
+}
+
+/* Y2K theme */
+.now-playing-overlay.y2k-active {
+  background: var(--y2k-bg, #030305);
+  box-shadow: 0 4px 24px rgba(119, 0, 255, 0.25), 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.now-playing-overlay.y2k-active .now-playing-source {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55em;
+  color: var(--y2k-cyan);
+  text-shadow: 0 0 6px var(--y2k-cyan);
+}
+
+.now-playing-overlay.y2k-active .now-playing-title {
+  font-family: 'UnifrakturMaguntia', serif;
+  font-weight: 400;
+  font-size: 1.4em;
+  color: #f0f0f0;
+  text-shadow: 0 0 4px rgba(0, 255, 204, 0.4), 0 0 10px rgba(119, 0, 255, 0.3);
+}
+
+.now-playing-overlay.y2k-active .now-playing-progress-fill {
+  background: var(--y2k-cyan);
+}

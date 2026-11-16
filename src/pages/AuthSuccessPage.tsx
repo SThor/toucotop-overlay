@@ -42,6 +42,7 @@ const BAR_SECTION_META: Record<BarSectionKey, { label: string; shortLabel: strin
   subscribers: { label: 'Subscribers', shortLabel: 'Subscribers', icon: '⭐' },
   recentFollower: { label: 'Last Follower', shortLabel: 'Latest Follow', icon: '🆕' },
   recentSub: { label: 'Last Subscriber', shortLabel: 'Latest Sub', icon: '🎁' },
+  nowPlaying: { label: 'Now Playing (smtc-now-playing)', shortLabel: 'Now Playing', icon: '🎵' },
 };
 
 const BAR_TIMING_MIN_SECONDS = 0.1;
@@ -535,6 +536,7 @@ export default function AuthSuccessPage() {
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
   const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
   const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
+  const nowPlayingUrl = `${baseUrl}/now-playing?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
@@ -769,6 +771,7 @@ export default function AuthSuccessPage() {
               { label: '📊 Info Bar Overlay', url: barUrl },
               { label: '⏸ Pause Scene', url: pauseUrl },
               { label: '🔔 Alerts Overlay', url: alertsUrl },
+              { label: '🎵 Now Playing Overlay', url: nowPlayingUrl },
             ].map(({ label, url }) => (
               <div key={url}>
                 <Text size="sm" fw={500} mb="xs">{label}</Text>
@@ -779,6 +782,12 @@ export default function AuthSuccessPage() {
               </div>
             ))}
           </Stack>
+          <Text size="xs" c="dimmed" mt="sm">
+            🎵 Now Playing (overlay and bar section) needs{' '}
+            <a href="https://github.com/soarqin/smtc-now-playing/releases" target="_blank" rel="noreferrer">smtc-now-playing</a>
+            {' '}running on the streaming PC (default port 11451). It reads Spotify, Deezer and any player
+            that shows up in the Windows media controls.
+          </Text>
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: 'pointer', fontSize: 13 }}>
               Show overlay token
