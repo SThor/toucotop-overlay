@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import type { TwitchChatMessage } from '../contexts/TwitchContext';
+import { removeMessageById, removeMessagesFromUser } from './chatMessages';
 
 const MAX_MESSAGES = 200;
 const RECONNECT_DELAY_MS = 3000;
@@ -131,9 +132,18 @@ export function useChatStream() {
       es.addEventListener('delete', (e) => {
         try {
           const { messageId } = JSON.parse(e.data) as { messageId: string };
-          setMessages((prev) => prev.filter((m) => m.id !== messageId));
+          setMessages((prev) => removeMessageById(prev, messageId));
         } catch {
           console.warn('Failed to parse delete SSE data');
+        }
+      });
+
+      es.addEventListener('deleteUser', (e) => {
+        try {
+          const { username } = JSON.parse(e.data) as { username: string };
+          setMessages((prev) => removeMessagesFromUser(prev, username));
+        } catch {
+          console.warn('Failed to parse deleteUser SSE data');
         }
       });
 

@@ -168,6 +168,16 @@ async function getOrCreateRelay(channel: string): Promise<ChannelRelay> {
     broadcastToChannel(channel, 'delete', { messageId });
   });
 
+  // Timeouts and bans arrive as a single CLEARCHAT targeting a user (not one
+  // CLEARMSG per message), so drop all of that user's messages.
+  const removeUserMessages = (username: string) => {
+    const login = username.toLowerCase();
+    relay.history = relay.history.filter((message) => message.username.toLowerCase() !== login);
+    broadcastToChannel(channel, 'deleteUser', { username: login });
+  };
+  chatClient.onTimeout((_chan, user) => removeUserMessages(user));
+  chatClient.onBan((_chan, user) => removeUserMessages(user));
+
   chatClient.onChatClear(() => {
     relay.history = [];
     broadcastToChannel(channel, 'clear', {});
