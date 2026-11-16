@@ -498,8 +498,8 @@ export default function AuthSuccessPage() {
   // URL overrides in the effective `settings` view are never persisted to the server.
   // Both client (updateSettings) and server (updateUserSettings) deep-merge themeSettings.crt.
   const updateCrtSettings = useCallback(
-    (patch: Partial<typeof persistedSettings.themeSettings.crt>) => {
-      updateSettings({ themeSettings: { crt: patch } as typeof persistedSettings.themeSettings });
+    (patch: Partial<OverlaySettings['themeSettings']['crt']>) => {
+      updateSettings({ themeSettings: { crt: patch } as OverlaySettings['themeSettings'] });
       if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
       setShowSaved(true);
       showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
@@ -515,6 +515,15 @@ export default function AuthSuccessPage() {
       showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
     },
     [updateSettings],
+  );
+
+  // Bar editor drag state: declared before the early return below so hooks
+  // always run in the same order.
+  const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
+  const [activeBarDragKind, setActiveBarDragKind] = useState<'barBlock' | 'barStack' | 'widthToken' | null>(null);
+  const [activeDraggedBlockKey, setActiveDraggedBlockKey] = useState<BarSectionKey | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
   if (sessionExpired) {
@@ -563,12 +572,6 @@ export default function AuthSuccessPage() {
     .filter((stack): stack is BarStack => !!stack);
 
   const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
-  const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
-  const [activeBarDragKind, setActiveBarDragKind] = useState<'barBlock' | 'barStack' | 'widthToken' | null>(null);
-  const [activeDraggedBlockKey, setActiveDraggedBlockKey] = useState<BarSectionKey | null>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  );
 
   const handleBarOrderDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

@@ -25,12 +25,10 @@ function pruneTokenExtensionCache(): void {
 setInterval(pruneTokenExtensionCache, TOKEN_EXTENSION_DEBOUNCE_MS).unref?.();
 
 // Extend Express Request type to include custom properties
-declare global {
-  namespace Express {
-    interface Request {
-      userData?: UserData;
-      rawBody?: string;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    userData?: UserData;
+    rawBody?: string;
   }
 }
 

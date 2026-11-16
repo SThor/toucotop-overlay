@@ -209,9 +209,10 @@ async function handleGamesEndpoint(userData: UserData, res: Response): Promise<T
   const channelData = await makeTwitchApiCall(channelUrl, headers, res, 'Games endpoint failed');
   if (!channelData) return null; // Error already handled
   
-  if (channelData.data?.[0]?.game_id) {
+  const gameId = (channelData.data?.[0] as { game_id?: string } | undefined)?.game_id;
+  if (gameId) {
     const gameUrl = buildApiUrl('https://api.twitch.tv/helix/games', {
-      id: channelData.data[0].game_id
+      id: gameId
     });
     return await makeTwitchApiCall(gameUrl, headers, res, 'Games endpoint failed');
   } else {

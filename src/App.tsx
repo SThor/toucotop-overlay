@@ -100,7 +100,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
         updateSettings({ overlayToken: savedToken });
       }
     }
-  }, [params, settings.overlayToken, updateSettings]);
+  }, [params, settings.overlayToken, updateSettings, location.pathname]);
 
   // Validate token with server on protected routes
   useEffect(() => {

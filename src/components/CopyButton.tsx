@@ -24,7 +24,7 @@ export function CopyButton({ text, className }: { text: string; className?: stri
         return;
       }
       throw new Error('Clipboard API not available');
-    } catch (err) {
+    } catch {
       let fallbackSucceeded = false;
 
       try {
@@ -48,7 +48,6 @@ export function CopyButton({ text, className }: { text: string; className?: stri
         resetAfterDelay();
       } else {
         // Clipboard operations failed; surface this for debugging and UX.
-        // eslint-disable-next-line no-console
         console.error('Failed to copy text to clipboard');
         setStatus('failed');
         resetAfterDelay();

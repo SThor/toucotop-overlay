@@ -59,11 +59,12 @@ function RotatingStackViewport({ stackId, sections, minWidth, token, pulse, tran
   const [isAnimating, setIsAnimating] = useState(false);
   const sectionCount = sections.length;
   const lastPulseRef = useRef(pulse);
+  const sectionsKey = sections.join('|');
 
   useEffect(() => {
     setCurrentIndex(0);
     setIsAnimating(false);
-  }, [stackId, sections.join('|')]);
+  }, [stackId, sectionsKey]);
 
   useEffect(() => {
     if (pulse === lastPulseRef.current) return;
