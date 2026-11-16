@@ -39,6 +39,10 @@ jobs:
         username: github-deploy
         key: ${{ secrets.VPS_SSH_KEY }}
         script: |
+          # Fail the job on any error: without this, a failed .env write or
+          # compose pull/up left the old container running and the job green.
+          set -euo pipefail
+
           # Debug permissions
           echo "🔍 Current user: $(whoami)"
           echo "🔍 User groups: $(groups)"
@@ -91,7 +95,16 @@ jobs:
           
           # Health checks
           echo "🔍 Testing endpoints..."
-          curl -f http://localhost:3000/health && echo "✅ Health check passed" || echo "⚠️ Health check failed"
+          # The running container must use the image we just pulled
+          PULLED_IMAGE=$(docker image inspect --format '{{.Id}}' ghcr.io/sthor/toucotop-overlay:staging)
+          RUNNING_IMAGE=$(docker inspect --format '{{.Image}}' toucotop-overlay-staging)
+          if [ "$PULLED_IMAGE" != "$RUNNING_IMAGE" ]; then
+            echo "❌ Staging container is still running an old image ($RUNNING_IMAGE, expected $PULLED_IMAGE)"
+            exit 1
+          fi
+          echo "✅ Staging container runs the new image"
+
+          curl -fsS http://localhost:3000/health && echo "✅ Health check passed" || { echo "❌ Health check failed"; exit 1; }
           curl -f http://localhost:3000/auth/status && echo "✅ OAuth endpoints responding" || echo "⚠️ OAuth endpoints not responding"
           
           echo "🚀 Deployed staging to port 3000 with OAuth support"
