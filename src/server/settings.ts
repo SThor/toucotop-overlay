@@ -20,6 +20,8 @@ import {
   normalizeBarSectionPriority,
   normalizeBarSectionWidthTokens,
   normalizeBarSections,
+  normalizeNowPlayingPauseGraceSeconds,
+  parseNowPlayingSettingsPatch,
 } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
@@ -53,6 +55,7 @@ router.get('/', (req: Request, res: Response) => {
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
     barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(raw.barStackScrollDurationSeconds),
     barStackPauseSeconds: normalizeBarStackPauseSeconds(raw.barStackPauseSeconds),
+    nowPlayingPauseGraceSeconds: normalizeNowPlayingPauseGraceSeconds(raw.nowPlayingPauseGraceSeconds),
     barSections: normalizeBarSections(raw.barSections),
     barSectionStacks: normalizedStacks,
     barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
@@ -169,6 +172,12 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     } else {
       patch.barStackPauseSeconds = Math.round(v * 100) / 100;
     }
+  }
+
+  {
+    const nowPlaying = parseNowPlayingSettingsPatch(body as unknown as Record<string, unknown>);
+    Object.assign(patch, nowPlaying.patch);
+    errors.push(...nowPlaying.errors);
   }
 
   if ('barSections' in body) {

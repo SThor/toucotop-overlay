@@ -934,6 +934,30 @@ export default function AuthSuccessPage() {
               </Stack>
 
               <div>
+                <Text size="sm" fw={700} mb="xs">🎵 Now Playing</Text>
+                <Stack gap="sm">
+                  <Switch
+                    label="Hide when paused"
+                    description="Applies to the Now Playing overlay and bar block. When off, a paused track stays on screen."
+                    checked={persistedSettings.nowPlayingHideWhenPaused ?? true}
+                    onChange={(e) => save({ nowPlayingHideWhenPaused: e.currentTarget.checked })}
+                  />
+                  <NumberInput
+                    label="Grace period (seconds)"
+                    description="How long the track stays visible after pausing, or between two songs, before hiding."
+                    min={0}
+                    max={60}
+                    step={1}
+                    decimalScale={1}
+                    value={persistedSettings.nowPlayingPauseGraceSeconds ?? 5}
+                    onChange={(v) => {
+                      if (typeof v === 'number' && v >= 0 && v <= 60) save({ nowPlayingPauseGraceSeconds: v });
+                    }}
+                  />
+                </Stack>
+              </div>
+
+              <div>
                 <Text size="sm" fw={700} mb="xs">Bar</Text>
                 <Stack gap="sm">
                   <Switch

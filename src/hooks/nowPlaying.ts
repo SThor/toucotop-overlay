@@ -121,9 +121,40 @@ export function toNowPlaying(state: SmtcState, baseUrl: string): NowPlaying | nu
   return track;
 }
 
-/** Overlays only show music while it plays: a paused track is hidden. */
-export function onlyWhilePlaying(track: NowPlaying | null): NowPlaying | null {
-  return track?.isPlaying ? track : null;
+/** What an overlay currently displays, and when it should stop (ms since epoch). */
+export interface VisibilityState {
+  shown: NowPlaying | null;
+  hideAt: number | null;
+}
+
+export const HIDDEN: VisibilityState = { shown: null, hideAt: null };
+export const PAUSE_GRACE_MS = 5000;
+
+export interface VisibilityOptions {
+  /** Hide a paused track (after the grace period). Default true. */
+  hideWhenPaused?: boolean;
+  /** How long a paused or vanished track stays on screen. Default 5 s. */
+  graceMs?: number;
+}
+
+/**
+ * Decide what to display for the latest track. A track that stops playing
+ * (paused, or the session vanishing between songs) stays visible, frozen,
+ * for `graceMs` so short gaps don't make the overlay flicker. Call again at
+ * `hideAt` to let the grace period expire.
+ */
+export function stepVisibility(
+  state: VisibilityState,
+  track: NowPlaying | null,
+  now: number,
+  { hideWhenPaused = true, graceMs = PAUSE_GRACE_MS }: VisibilityOptions = {},
+): VisibilityState {
+  if (track && (track.isPlaying || !hideWhenPaused)) return { shown: track, hideAt: null };
+  if (!state.shown) return HIDDEN;
+
+  const hideAt = state.hideAt ?? now + graceMs;
+  if (now >= hideAt) return HIDDEN;
+  return { shown: track ?? { ...state.shown, isPlaying: false }, hideAt };
 }
 
 /** Current playback position, extrapolated from the last update while playing. */

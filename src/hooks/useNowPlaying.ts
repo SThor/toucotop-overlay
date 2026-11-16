@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useSettings } from '../contexts/SettingsContext';
+import { normalizeNowPlayingPauseGraceSeconds } from '../server/shared/overlaySettings';
 import {
   DEFAULT_NOW_PLAYING_URL,
   EMPTY_SMTC_STATE,
+  HIDDEN,
   applySmtcMessage,
+  stepVisibility,
   toNowPlaying,
   toWebSocketUrl,
   type NowPlaying,
   type SmtcState,
+  type VisibilityState,
 } from './nowPlaying';
 
 const RECONNECT_DELAY_MS = 5000;
@@ -58,6 +63,36 @@ export function useNowPlaying(enabled = true, baseUrl = DEFAULT_NOW_PLAYING_URL)
   }, [enabled, baseUrl]);
 
   return toNowPlaying(state, baseUrl);
+}
+
+/**
+ * The track an overlay should display, applying the user's pause settings:
+ * hide while paused (or not), after a grace period that also smooths over the
+ * short gap between two songs.
+ */
+export function useDisplayedNowPlaying(enabled = true): NowPlaying | null {
+  const { settings } = useSettings();
+  const track = useNowPlaying(enabled);
+  const hideWhenPaused = settings.nowPlayingHideWhenPaused ?? true;
+  const graceMs = normalizeNowPlayingPauseGraceSeconds(settings.nowPlayingPauseGraceSeconds) * 1000;
+  const [visibility, setVisibility] = useState<VisibilityState>(HIDDEN);
+
+  useEffect(() => {
+    setVisibility((prev) => stepVisibility(prev, track, Date.now(), { hideWhenPaused, graceMs }));
+    // `track` is rebuilt on every render; compare it by content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(track), hideWhenPaused, graceMs]);
+
+  // Let the grace period expire.
+  useEffect(() => {
+    if (visibility.hideAt === null) return;
+    const id = setTimeout(() => {
+      setVisibility((prev) => stepVisibility(prev, null, Date.now(), { hideWhenPaused, graceMs }));
+    }, Math.max(0, visibility.hideAt - Date.now()));
+    return () => clearTimeout(id);
+  }, [visibility.hideAt, hideWhenPaused, graceMs]);
+
+  return visibility.shown;
 }
 
 /** Re-renders every `intervalMs` while `active`, returning the current time. */

@@ -4,7 +4,9 @@ import {
   applySmtcMessage,
   estimatePositionMs,
   formatPlaybackTime,
-  onlyWhilePlaying,
+  HIDDEN,
+  PAUSE_GRACE_MS,
+  stepVisibility,
   toNowPlaying,
   type NowPlaying,
   type SmtcState,
@@ -86,19 +88,67 @@ describe('applySmtcMessage + toNowPlaying', () => {
   });
 });
 
-describe('onlyWhilePlaying', () => {
-  const track: NowPlaying = { title: 'T', artist: 'A', source: 'deezer', isPlaying: true, updatedAt: NOW };
+describe('stepVisibility (pause grace period)', () => {
+  const playing: NowPlaying = { title: 'T', artist: 'A', source: 'deezer', isPlaying: true, positionMs: 1000, updatedAt: NOW };
+  const paused: NowPlaying = { ...playing, isPlaying: false };
 
-  it('keeps a playing track', () => {
-    expect(onlyWhilePlaying(track)).toBe(track);
+  it('uses a 5 second grace period by default', () => {
+    expect(PAUSE_GRACE_MS).toBe(5000);
   });
 
-  it('hides a paused track', () => {
-    expect(onlyWhilePlaying({ ...track, isPlaying: false })).toBeNull();
+  it('honours a custom grace period', () => {
+    const justPaused = stepVisibility(stepVisibility(HIDDEN, playing, NOW), paused, NOW, { graceMs: 10_000 });
+    expect(justPaused.hideAt).toBe(NOW + 10_000);
   });
 
-  it('passes null through', () => {
-    expect(onlyWhilePlaying(null)).toBeNull();
+  it('hides immediately with a zero grace period', () => {
+    expect(stepVisibility(stepVisibility(HIDDEN, playing, NOW), paused, NOW, { graceMs: 0 })).toEqual(HIDDEN);
+  });
+
+  it('keeps paused tracks on screen when hiding on pause is disabled', () => {
+    const options = { hideWhenPaused: false };
+    expect(stepVisibility(HIDDEN, paused, NOW, options)).toEqual({ shown: paused, hideAt: null });
+    const later = stepVisibility(stepVisibility(HIDDEN, playing, NOW, options), paused, NOW + 60_000, options);
+    expect(later).toEqual({ shown: paused, hideAt: null });
+  });
+
+  it('still uses the grace period when the session disappears, even if paused tracks stay visible', () => {
+    const gone = stepVisibility(stepVisibility(HIDDEN, playing, NOW), null, NOW, { hideWhenPaused: false });
+    expect(gone).toEqual({ shown: paused, hideAt: NOW + 5000 });
+  });
+
+  it('shows a playing track right away', () => {
+    expect(stepVisibility(HIDDEN, playing, NOW)).toEqual({ shown: playing, hideAt: null });
+  });
+
+  it('never shows a track that was already paused when first seen', () => {
+    expect(stepVisibility(HIDDEN, paused, NOW)).toEqual(HIDDEN);
+  });
+
+  it('keeps a paused track visible during the grace period, then hides it', () => {
+    const visible = stepVisibility(HIDDEN, playing, NOW);
+    const justPaused = stepVisibility(visible, paused, NOW + 1000);
+    expect(justPaused).toEqual({ shown: paused, hideAt: NOW + 6000 });
+
+    expect(stepVisibility(justPaused, paused, NOW + 5999).shown).toEqual(paused);
+    expect(stepVisibility(justPaused, paused, NOW + 6000)).toEqual(HIDDEN);
+  });
+
+  it('does not restart the grace period on repeated paused updates', () => {
+    const justPaused = stepVisibility(stepVisibility(HIDDEN, playing, NOW), paused, NOW);
+    expect(stepVisibility(justPaused, paused, NOW + 3000).hideAt).toBe(NOW + 5000);
+  });
+
+  it('keeps the last track (frozen) when the session briefly disappears, e.g. between songs', () => {
+    const visible = stepVisibility(HIDDEN, playing, NOW);
+    const gap = stepVisibility(visible, null, NOW + 500);
+    expect(gap).toEqual({ shown: paused, hideAt: NOW + 5500 });
+  });
+
+  it('cancels the grace period when playback resumes', () => {
+    const justPaused = stepVisibility(stepVisibility(HIDDEN, playing, NOW), paused, NOW);
+    const next = { ...playing, title: 'Next', updatedAt: NOW + 2000 };
+    expect(stepVisibility(justPaused, next, NOW + 2000)).toEqual({ shown: next, hideAt: null });
   });
 });
 

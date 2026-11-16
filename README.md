@@ -105,7 +105,10 @@ most players publish.
 The overlay connects straight from the OBS browser source to
 `ws://localhost:11451/ws`: the music data never goes through the server, so it
 only works on the machine running smtc-now-playing. Both the overlay and the
-bar section hide themselves when nothing is playing or playback is paused.
+bar section hide themselves when nothing is playing and, by default, when
+playback is paused, after a 5 second grace period (which also smooths over the
+gap between two songs). Both are adjustable in the dashboard's Now Playing
+settings.
 
 ### Live Data and Multiple OBS Sources
 
