@@ -4,6 +4,7 @@ import {
   applySmtcMessage,
   estimatePositionMs,
   formatPlaybackTime,
+  onlyWhilePlaying,
   toNowPlaying,
   type NowPlaying,
   type SmtcState,
@@ -82,6 +83,22 @@ describe('applySmtcMessage + toNowPlaying', () => {
   it('keeps an absolute artwork URL untouched', () => {
     const state = feed(info({ ...spotifyInfo, albumArt: 'https://cdn.example/cover.jpg' }));
     expect(toNowPlaying(state, BASE)?.artwork).toBe('https://cdn.example/cover.jpg');
+  });
+});
+
+describe('onlyWhilePlaying', () => {
+  const track: NowPlaying = { title: 'T', artist: 'A', source: 'deezer', isPlaying: true, updatedAt: NOW };
+
+  it('keeps a playing track', () => {
+    expect(onlyWhilePlaying(track)).toBe(track);
+  });
+
+  it('hides a paused track', () => {
+    expect(onlyWhilePlaying({ ...track, isPlaying: false })).toBeNull();
+  });
+
+  it('passes null through', () => {
+    expect(onlyWhilePlaying(null)).toBeNull();
   });
 });
 

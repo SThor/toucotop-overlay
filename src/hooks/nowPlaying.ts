@@ -121,6 +121,11 @@ export function toNowPlaying(state: SmtcState, baseUrl: string): NowPlaying | nu
   return track;
 }
 
+/** Overlays only show music while it plays: a paused track is hidden. */
+export function onlyWhilePlaying(track: NowPlaying | null): NowPlaying | null {
+  return track?.isPlaying ? track : null;
+}
+
 /** Current playback position, extrapolated from the last update while playing. */
 export function estimatePositionMs(track: NowPlaying, now: number): number | null {
   if (track.positionMs === undefined) return null;

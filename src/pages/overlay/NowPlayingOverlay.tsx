@@ -4,19 +4,19 @@ import { useSettings } from '../../contexts/SettingsContext';
 import ThemeBackground from '../../components/ThemeBackground';
 import MarqueeText from '../../components/MarqueeText';
 import { useNow, useNowPlaying } from '../../hooks/useNowPlaying';
-import { estimatePositionMs, formatPlaybackTime } from '../../hooks/nowPlaying';
+import { estimatePositionMs, formatPlaybackTime, onlyWhilePlaying } from '../../hooks/nowPlaying';
 import '../../styles/NowPlayingOverlay.css';
 
 const SOURCE_LABEL = { spotify: 'Spotify', deezer: 'Deezer', other: 'Now Playing' } as const;
 
 /**
  * Dedicated "now playing" card: cover, title, artist and progress.
- * Fed by the local smtc-now-playing companion; hidden when nothing plays.
+ * Fed by the local smtc-now-playing companion; hidden when nothing plays or playback is paused.
  */
 const NowPlayingOverlay = () => {
   const { settings, isLoadingSettings } = useSettings();
-  const track = useNowPlaying(!isLoadingSettings);
-  const now = useNow(!!track?.isPlaying);
+  const track = onlyWhilePlaying(useNowPlaying(!isLoadingSettings));
+  const now = useNow(!!track);
 
   useEffect(() => {
     document.body.classList.add('overlay-mode');
@@ -34,7 +34,7 @@ const NowPlayingOverlay = () => {
       {track && (
         <motion.div
           key="now-playing"
-          className={`now-playing-overlay${themeClass}${track.isPlaying ? '' : ' is-paused'}`}
+          className={`now-playing-overlay${themeClass}`}
           style={{ opacity: settings.overlayOpacity, fontSize: `${settings.fontSize}rem` }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: settings.overlayOpacity, y: 0 }}
@@ -49,7 +49,7 @@ const NowPlayingOverlay = () => {
           </div>
           <div className="now-playing-info">
             <div className="now-playing-source">
-              {track.isPlaying ? '▶' : '⏸'} {SOURCE_LABEL[track.source]}
+              ▶ {SOURCE_LABEL[track.source]}
             </div>
             <MarqueeText className="now-playing-title" text={track.title} />
             <MarqueeText className="now-playing-artist" text={track.album ? `${track.artist} · ${track.album}` : track.artist} />

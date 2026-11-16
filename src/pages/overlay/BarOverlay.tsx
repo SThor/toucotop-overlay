@@ -6,6 +6,7 @@ import MarqueeText from '../../components/MarqueeText';
 import BarY2KOrnament from '../../components/BarY2KOrnament';
 import GlobalAlertLayer from '../../components/GlobalAlertLayer';
 import { useNowPlaying } from '../../hooks/useNowPlaying';
+import { onlyWhilePlaying } from '../../hooks/nowPlaying';
 import {
   normalizeBarStackPauseSeconds,
   normalizeBarStackScrollDurationSeconds,
@@ -141,7 +142,7 @@ const BarOverlayContent = () => {
   const [newSubscriberAnimation, setNewSubscriberAnimation] = useState(false);
   const [prevFollower, setPrevFollower] = useState<string | null>(null);
   const [prevSubscriber, setPrevSubscriber] = useState<string | null>(null);
-  const nowPlaying = useNowPlaying(!isLoadingSettings && settings.barSections.nowPlaying);
+  const nowPlaying = onlyWhilePlaying(useNowPlaying(!isLoadingSettings && settings.barSections.nowPlaying));
 
   // Update current time every second
   useEffect(() => {
@@ -397,11 +398,11 @@ const BarOverlayContent = () => {
       if (!nowPlaying) return null;
       const by = nowPlaying.artist ? ` — ${nowPlaying.artist}` : '';
       return (
-        <div className={`bar-section bar-recent-section bar-now-playing${nowPlaying.isPlaying ? '' : ' is-paused'}`}>
-          <div className="bar-recent-icon" aria-hidden="true">{nowPlaying.isPlaying ? '🎵' : '⏸'}</div>
+        <div className="bar-section bar-recent-section bar-now-playing">
+          <div className="bar-recent-icon" aria-hidden="true">🎵</div>
           <div className="bar-recent-content">
             <MarqueeText className="bar-recent-name" text={`${nowPlaying.title}${by}`} />
-            <MarqueeText className="bar-recent-label" text={nowPlaying.isPlaying ? 'Now Playing' : 'Paused'} />
+            <MarqueeText className="bar-recent-label" text="Now Playing" />
           </div>
         </div>
       );

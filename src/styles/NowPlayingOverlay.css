@@ -87,11 +87,6 @@
   transition: width 1s linear;
 }
 
-.now-playing-overlay.is-paused .now-playing-cover,
-.now-playing-overlay.is-paused .now-playing-progress-fill {
-  filter: grayscale(0.7);
-}
-
 /* CRT theme */
 .now-playing-overlay.crt-active {
   border: 2px solid var(--Main);
