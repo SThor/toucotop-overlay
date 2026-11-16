@@ -55,3 +55,16 @@ Use these CSS custom properties throughout the project:
 - All overlays should work without authentication for easy setup
 - Development server (`npm run dev`) is already running - no need to start it
 - **Important**: Do not check shell dev, run builds, or look at browser during development. Simply complete the code changes and ask the user to test, as checking these provides no useful information and often gets stuck.
+
+## Tests
+
+Every change must be tested with Vitest from now on. Do not backfill tests for existing code nobody is touching, but as soon as you modify a piece of code (fix, feature, refactor), cover the behavior you touch with a test.
+
+- Write the test first, see it fail, then implement.
+- Run `npm test` before considering the change done (this is not a build, so the note above about not running builds does not apply).
+- Put tests next to the code: `foo.ts` → `foo.test.ts`. Vitest collects `src/**/*.test.ts`. Test files are excluded from the server build (`tsconfig.server.json`).
+- If the code is hard to test as is (React hook, IRC client, Express…), extract the logic into a pure function or mock the dependency (see `src/server/chat-relay.test.ts`, which fakes the twurple `ChatClient`).
+
+## Git: this repo is managed by GitButler
+
+Use the `but` CLI (GitButler skill) for every commit, branch, amend and push; never `git commit`, `git checkout`, `git branch`, `git rebase` or `git push`, which desynchronize the `gitbutler/workspace` branch. Read-only git commands are fine. For a stacked branch, open the PR against the branch below it, not `main`.
