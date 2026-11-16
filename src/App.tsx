@@ -19,6 +19,7 @@ import BarOverlay from './pages/overlay/BarOverlay';
 import PauseOverlay from './pages/overlay/PauseOverlay';
 import AlertOverlay from './pages/overlay/AlertOverlay';
 import BorderOverlay from './pages/overlay/BorderOverlay';
+import NowPlayingOverlay from './pages/overlay/NowPlayingOverlay';
 import NavMenu from './components/NavMenu';
 import './styles/ServerPages.css';
 
@@ -32,7 +33,7 @@ const ALLOW_NO_TOKEN = [
 
 // Overlay paths: invalid/expired token shows an inline message instead of redirecting,
 // since OBS Browser Sources can't interact with a Twitch auth flow.
-const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause', '/alerts', '/border'];
+const OVERLAY_PATHS = ['/chat', '/clock', '/bar', '/pause', '/alerts', '/border', '/now-playing'];
 
 // Shown inside an overlay when the token is missing or expired
 function OverlayExpired() {
@@ -99,7 +100,7 @@ function RequireToken({ children }: { children: React.ReactNode }) {
         updateSettings({ overlayToken: savedToken });
       }
     }
-  }, [params, settings.overlayToken, updateSettings]);
+  }, [params, settings.overlayToken, updateSettings, location.pathname]);
 
   // Validate token with server on protected routes
   useEffect(() => {
@@ -189,6 +190,7 @@ function App() {
                   <Route path="/pause" element={<PauseOverlay />} />
                   <Route path="/alerts" element={<AlertOverlay />} />
                   <Route path="/border" element={<BorderOverlay />} />
+                  <Route path="/now-playing" element={<NowPlayingOverlay />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </div>

@@ -20,6 +20,8 @@ import {
   normalizeBarSectionPriority,
   normalizeBarSectionWidthTokens,
   normalizeBarSections,
+  normalizeNowPlayingPauseGraceSeconds,
+  parseNowPlayingSettingsPatch,
 } from './shared/overlaySettings.js';
 
 const router: Router = express.Router();
@@ -53,6 +55,7 @@ router.get('/', (req: Request, res: Response) => {
     perOverlayFontSize: { ...defaultOverlaySettings.perOverlayFontSize, ...(raw.perOverlayFontSize ?? {}) },
     barStackScrollDurationSeconds: normalizeBarStackScrollDurationSeconds(raw.barStackScrollDurationSeconds),
     barStackPauseSeconds: normalizeBarStackPauseSeconds(raw.barStackPauseSeconds),
+    nowPlayingPauseGraceSeconds: normalizeNowPlayingPauseGraceSeconds(raw.nowPlayingPauseGraceSeconds),
     barSections: normalizeBarSections(raw.barSections),
     barSectionStacks: normalizedStacks,
     barStackPriority: normalizeBarStackPriority(raw.barStackPriority, normalizedStacks),
@@ -171,13 +174,19 @@ router.patch('/', express.json(), (req: Request, res: Response) => {
     }
   }
 
+  {
+    const nowPlaying = parseNowPlayingSettingsPatch(body as unknown as Record<string, unknown>);
+    Object.assign(patch, nowPlaying.patch);
+    errors.push(...nowPlaying.errors);
+  }
+
   if ('barSections' in body) {
     const v = body.barSections;
     if (typeof v !== 'object' || v === null || Array.isArray(v)) {
       errors.push('barSections must be an object');
     } else {
       const sections: Partial<OverlaySettings['barSections']> = {};
-      for (const key of ['clock', 'duration', 'title', 'viewers', 'followers', 'subscribers', 'recentFollower', 'recentSub'] as const) {
+      for (const key of BAR_SECTION_KEYS) {
         if (key in v) {
           const val = (v as unknown as Record<string, unknown>)[key];
           if (typeof val !== 'boolean') {

@@ -61,14 +61,14 @@ export interface EventSubEvent {
     version: string;
     status: string;
     cost: number;
-    condition: Record<string, any>;
+    condition: Record<string, unknown>;
     transport: {
       method: string;
       callback: string;
     };
     created_at: string;
   };
-  event?: Record<string, any>;
+  event?: Record<string, unknown>;
   challenge?: string;
   timestamp?: string;
   id?: string;
@@ -77,7 +77,7 @@ export interface EventSubEvent {
 export interface EventSubSubscriptionData {
   type: string;
   version: string;
-  condition: Record<string, any>;
+  condition: Record<string, unknown>;
   transport: {
     method: string;
     callback: string;
@@ -458,7 +458,8 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
       } else if (subType === 'channel.subscription.message') {
         const cumMonths = typeof eventData['cumulative_months'] === 'number' ? eventData['cumulative_months'] : undefined;
         const streakMo = typeof eventData['streak_months'] === 'number' ? eventData['streak_months'] : undefined;
-        const resubMsg = typeof eventData['message']?.['text'] === 'string' ? eventData['message']['text'] as string : undefined;
+        const resubText = (eventData['message'] as { text?: unknown } | undefined)?.text;
+        const resubMsg = typeof resubText === 'string' ? resubText : undefined;
         broadcastAlert(targetChannel, {
           id: `resub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'resubscribe',
@@ -481,7 +482,7 @@ function handleEventSubWebhook(req: Request, res: Response, eventStore: EventSto
       } else if (subType === 'channel.cheer') {
         const cheerBits = typeof eventData['bits'] === 'number' ? eventData['bits'] : undefined;
         const cheerMsg = typeof eventData['message'] === 'string' ? eventData['message'] as string : undefined;
-        const cheerActor = Boolean(eventData['is_anonymous']) ? undefined : actorName;
+        const cheerActor = eventData['is_anonymous'] ? undefined : actorName;
         broadcastAlert(targetChannel, {
           id: `cheer_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           type: 'cheer',

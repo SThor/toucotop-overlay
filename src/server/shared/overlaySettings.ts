@@ -11,6 +11,7 @@ export const BAR_SECTION_KEYS = [
   'subscribers',
   'recentFollower',
   'recentSub',
+  'nowPlaying',
 ] as const;
 
 export type BarSectionKey = (typeof BAR_SECTION_KEYS)[number];
@@ -43,6 +44,8 @@ const DEFAULT_BAR_SECTIONS: BarSections = {
   subscribers: true,
   recentFollower: true,
   recentSub: true,
+  // Opt-in: needs the local now-playing companion to be running.
+  nowPlaying: false,
 };
 
 const DEFAULT_BAR_SECTION_ORDER: BarSectionOrder = [...BAR_SECTION_KEYS];
@@ -57,6 +60,7 @@ const DEFAULT_BAR_SECTION_PRIORITY: BarSectionPriority = {
   followers: 6,
   subscribers: 7,
   recentSub: 8,
+  nowPlaying: 9,
 };
 
 const DEFAULT_BAR_SECTION_MIN_WIDTH: BarSectionMinWidth = {
@@ -68,6 +72,7 @@ const DEFAULT_BAR_SECTION_MIN_WIDTH: BarSectionMinWidth = {
   subscribers: 102,
   recentFollower: 144,
   recentSub: 144,
+  nowPlaying: 160,
 };
 
 const DEFAULT_BAR_SECTION_WIDTH_TOKENS: BarSectionWidthTokens = {
@@ -79,9 +84,10 @@ const DEFAULT_BAR_SECTION_WIDTH_TOKENS: BarSectionWidthTokens = {
   subscribers: null,
   recentFollower: 'boost',
   recentSub: 'boost',
+  nowPlaying: 'stretch',
 };
 
-const DEFAULT_BAR_SECTION_STACKS: BarSectionStack[] = BAR_SECTION_KEYS.map((key) => ({
+const DEFAULT_BAR_SECTION_STACKS: BarSectionStack[] = BAR_SECTION_KEYS.filter((key) => DEFAULT_BAR_SECTIONS[key]).map((key) => ({
   id: `stack-${key}`,
   sections: [key],
   widthToken: DEFAULT_BAR_SECTION_WIDTH_TOKENS[key],
@@ -100,6 +106,7 @@ export function normalizeBarSections(raw?: Partial<BarSections> | null): BarSect
     subscribers: typeof src.subscribers === 'boolean' ? src.subscribers : DEFAULT_BAR_SECTIONS.subscribers,
     recentFollower: typeof src.recentFollower === 'boolean' ? src.recentFollower : DEFAULT_BAR_SECTIONS.recentFollower,
     recentSub: typeof src.recentSub === 'boolean' ? src.recentSub : DEFAULT_BAR_SECTIONS.recentSub,
+    nowPlaying: typeof src.nowPlaying === 'boolean' ? src.nowPlaying : DEFAULT_BAR_SECTIONS.nowPlaying,
   };
 }
 
@@ -269,6 +276,41 @@ export function normalizeBarStackPriority(
   return [...deduped, ...missing];
 }
 
+const DEFAULT_NOW_PLAYING_PAUSE_GRACE_SECONDS = 5;
+const MAX_NOW_PLAYING_PAUSE_GRACE_SECONDS = 60;
+
+export function normalizeNowPlayingPauseGraceSeconds(raw?: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return DEFAULT_NOW_PLAYING_PAUSE_GRACE_SECONDS;
+  const clamped = Math.min(MAX_NOW_PLAYING_PAUSE_GRACE_SECONDS, Math.max(0, raw));
+  return Math.round(clamped * 10) / 10;
+}
+
+/** Validate the now-playing fields of a settings PATCH body. */
+export function parseNowPlayingSettingsPatch(body: Record<string, unknown>): {
+  patch: Partial<Pick<OverlaySettings, 'nowPlayingHideWhenPaused' | 'nowPlayingPauseGraceSeconds'>>;
+  errors: string[];
+} {
+  const patch: Partial<Pick<OverlaySettings, 'nowPlayingHideWhenPaused' | 'nowPlayingPauseGraceSeconds'>> = {};
+  const errors: string[] = [];
+
+  if ('nowPlayingHideWhenPaused' in body) {
+    const v = body.nowPlayingHideWhenPaused;
+    if (typeof v !== 'boolean') errors.push('nowPlayingHideWhenPaused must be a boolean');
+    else patch.nowPlayingHideWhenPaused = v;
+  }
+
+  if ('nowPlayingPauseGraceSeconds' in body) {
+    const v = body.nowPlayingPauseGraceSeconds;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > MAX_NOW_PLAYING_PAUSE_GRACE_SECONDS) {
+      errors.push(`nowPlayingPauseGraceSeconds must be a number between 0 and ${MAX_NOW_PLAYING_PAUSE_GRACE_SECONDS}`);
+    } else {
+      patch.nowPlayingPauseGraceSeconds = normalizeNowPlayingPauseGraceSeconds(v);
+    }
+  }
+
+  return { patch, errors };
+}
+
 export interface OverlaySettings {
   overlayOpacity: number;
   perOverlayOpacity: PerOverlayNumber;
@@ -304,6 +346,10 @@ export interface OverlaySettings {
   hideBackground: boolean;
   /** When true, the foreground content (title, subtitle, barcode) is not rendered for this overlay. */
   hideContent: boolean;
+  /** Now playing (bar section + overlay): hide the track while playback is paused. */
+  nowPlayingHideWhenPaused: boolean;
+  /** Now playing: seconds a paused (or vanished) track stays visible before hiding. */
+  nowPlayingPauseGraceSeconds: number;
 }
 
 export const defaultOverlaySettings: OverlaySettings = {
@@ -339,4 +385,6 @@ export const defaultOverlaySettings: OverlaySettings = {
   pauseSubtitle: '— je reviens —',
   hideBackground: false,
   hideContent: false,
+  nowPlayingHideWhenPaused: true,
+  nowPlayingPauseGraceSeconds: DEFAULT_NOW_PLAYING_PAUSE_GRACE_SECONDS,
 };

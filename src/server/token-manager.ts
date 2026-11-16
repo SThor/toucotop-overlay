@@ -28,7 +28,7 @@ export interface TokenExpirationInfo {
 }
 
 export interface ApiCallFunction {
-  (userData: UserData): Promise<any>;
+  (userData: UserData): Promise<unknown>;
 }
 
 /**
@@ -195,7 +195,7 @@ export class TokenManager {
     username: string, 
     apiCallFn: ApiCallFunction, 
     maxRetries: number = 1
-  ): Promise<any | null> {
+  ): Promise<unknown> {
     let attempt = 0;
 
     while (attempt <= maxRetries) {

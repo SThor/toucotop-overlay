@@ -20,10 +20,10 @@ export interface UserData {
 }
 
 export interface TwitchApiResponse {
-  data?: any[];
+  data?: unknown[];
   error?: string;
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ApiHeaders {
@@ -55,7 +55,10 @@ async function makeTwitchApiCall(
   errorMessage: string = 'API request failed'
 ): Promise<TwitchApiResponse | null> {
   try {
-    const response = await fetch(url, { headers: headers as any });
+    const definedHeaders = Object.fromEntries(
+      Object.entries(headers).filter((entry): entry is [string, string] => entry[1] !== undefined),
+    );
+    const response = await fetch(url, { headers: definedHeaders });
     const data = await handleTwitchResponse(response, res);
     if (data === null) return null; // Error already handled
     return data;

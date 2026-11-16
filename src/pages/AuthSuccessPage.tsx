@@ -42,6 +42,7 @@ const BAR_SECTION_META: Record<BarSectionKey, { label: string; shortLabel: strin
   subscribers: { label: 'Subscribers', shortLabel: 'Subscribers', icon: '⭐' },
   recentFollower: { label: 'Last Follower', shortLabel: 'Latest Follow', icon: '🆕' },
   recentSub: { label: 'Last Subscriber', shortLabel: 'Latest Sub', icon: '🎁' },
+  nowPlaying: { label: 'Now Playing (smtc-now-playing)', shortLabel: 'Now Playing', icon: '🎵' },
 };
 
 const BAR_TIMING_MIN_SECONDS = 0.1;
@@ -497,8 +498,8 @@ export default function AuthSuccessPage() {
   // URL overrides in the effective `settings` view are never persisted to the server.
   // Both client (updateSettings) and server (updateUserSettings) deep-merge themeSettings.crt.
   const updateCrtSettings = useCallback(
-    (patch: Partial<typeof persistedSettings.themeSettings.crt>) => {
-      updateSettings({ themeSettings: { crt: patch } as typeof persistedSettings.themeSettings });
+    (patch: Partial<OverlaySettings['themeSettings']['crt']>) => {
+      updateSettings({ themeSettings: { crt: patch } as OverlaySettings['themeSettings'] });
       if (showSavedTimerRef.current) clearTimeout(showSavedTimerRef.current);
       setShowSaved(true);
       showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
@@ -514,6 +515,15 @@ export default function AuthSuccessPage() {
       showSavedTimerRef.current = setTimeout(() => setShowSaved(false), 1500);
     },
     [updateSettings],
+  );
+
+  // Bar editor drag state: declared before the early return below so hooks
+  // always run in the same order.
+  const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
+  const [activeBarDragKind, setActiveBarDragKind] = useState<'barBlock' | 'barStack' | 'widthToken' | null>(null);
+  const [activeDraggedBlockKey, setActiveDraggedBlockKey] = useState<BarSectionKey | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
   if (sessionExpired) {
@@ -535,6 +545,7 @@ export default function AuthSuccessPage() {
   const barUrl = `${baseUrl}/bar?token=${encodeURIComponent(overlayToken)}`;
   const pauseUrl = `${baseUrl}/pause?token=${encodeURIComponent(overlayToken)}`;
   const alertsUrl = `${baseUrl}/alerts?token=${encodeURIComponent(overlayToken)}`;
+  const nowPlayingUrl = `${baseUrl}/now-playing?token=${encodeURIComponent(overlayToken)}`;
   const crt = persistedSettings.themeSettings.crt;
   const y2k = persistedSettings.themeSettings.y2k ?? defaultOverlaySettings.themeSettings.y2k;
   const selectedTargetIsValid = !!customAlertTarget && customAlertTargets.includes(customAlertTarget);
@@ -561,12 +572,6 @@ export default function AuthSuccessPage() {
     .filter((stack): stack is BarStack => !!stack);
 
   const disabledBarSections = BAR_SECTION_KEYS.filter((key) => !persistedSettings.barSections[key]);
-  const [activeWidthToken, setActiveWidthToken] = useState<BarWidthTokenType | null>(null);
-  const [activeBarDragKind, setActiveBarDragKind] = useState<'barBlock' | 'barStack' | 'widthToken' | null>(null);
-  const [activeDraggedBlockKey, setActiveDraggedBlockKey] = useState<BarSectionKey | null>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  );
 
   const handleBarOrderDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -769,6 +774,7 @@ export default function AuthSuccessPage() {
               { label: '📊 Info Bar Overlay', url: barUrl },
               { label: '⏸ Pause Scene', url: pauseUrl },
               { label: '🔔 Alerts Overlay', url: alertsUrl },
+              { label: '🎵 Now Playing Overlay', url: nowPlayingUrl },
             ].map(({ label, url }) => (
               <div key={url}>
                 <Text size="sm" fw={500} mb="xs">{label}</Text>
@@ -779,6 +785,12 @@ export default function AuthSuccessPage() {
               </div>
             ))}
           </Stack>
+          <Text size="xs" c="dimmed" mt="sm">
+            🎵 Now Playing (overlay and bar section) needs{' '}
+            <a href="https://github.com/soarqin/smtc-now-playing/releases" target="_blank" rel="noreferrer">smtc-now-playing</a>
+            {' '}running on the streaming PC (default port 11451). It reads Spotify, Deezer and any player
+            that shows up in the Windows media controls.
+          </Text>
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: 'pointer', fontSize: 13 }}>
               Show overlay token
@@ -923,6 +935,30 @@ export default function AuthSuccessPage() {
                   );
                 })}
               </Stack>
+
+              <div>
+                <Text size="sm" fw={700} mb="xs">🎵 Now Playing</Text>
+                <Stack gap="sm">
+                  <Switch
+                    label="Hide when paused"
+                    description="Applies to the Now Playing overlay and bar block. When off, a paused track stays on screen."
+                    checked={persistedSettings.nowPlayingHideWhenPaused ?? true}
+                    onChange={(e) => save({ nowPlayingHideWhenPaused: e.currentTarget.checked })}
+                  />
+                  <NumberInput
+                    label="Grace period (seconds)"
+                    description="How long the track stays visible after pausing, or between two songs, before hiding."
+                    min={0}
+                    max={60}
+                    step={1}
+                    decimalScale={1}
+                    value={persistedSettings.nowPlayingPauseGraceSeconds ?? 5}
+                    onChange={(v) => {
+                      if (typeof v === 'number' && v >= 0 && v <= 60) save({ nowPlayingPauseGraceSeconds: v });
+                    }}
+                  />
+                </Stack>
+              </div>
 
               <div>
                 <Text size="sm" fw={700} mb="xs">Bar</Text>

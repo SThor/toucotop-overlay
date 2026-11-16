@@ -34,6 +34,9 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+// The hook lives next to its provider on purpose; fast refresh falls back to a
+// full reload when this file changes, which is fine.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {
@@ -390,7 +393,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }
 
     // Extract overlay settings patch (everything except overlayToken)
-    const { overlayToken: _tok, ...overlayPatch } = newSettings;
+    const overlayPatch = { ...newSettings };
+    delete overlayPatch.overlayToken;
     if (Object.keys(overlayPatch).length === 0) return;
 
     // Apply locally immediately for responsive UI (deep-merge themeSettings so partial
